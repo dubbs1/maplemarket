@@ -1033,9 +1033,9 @@ function mrows() {
 function drawMB() {
   if (!$("#mb")) return; // the list isn't on screen (e.g. importing from More)
   if (SIMPLE && $("#lcount")) {
-    const n = listingRows().length;
-    $("#lcount").textContent = n ? `${n} listing${n === 1 ? "" : "s"}` : "";
-    return void ($("#mb").innerHTML = simpleRows());
+    const L = listingRows();
+    $("#lcount").textContent = L.length ? `${L.length} listing${L.length === 1 ? "" : "s"}` : "";
+    return void ($("#mb").innerHTML = simpleRows(L));
   }
   $("#mb").innerHTML = mrows();
 }
@@ -1416,9 +1416,8 @@ function listingRow(l) {
     `<div class="p"><div class="num">${fmt(l.price)}${l.n > 1 ? ` <span class="cnt">×${l.n}</span>` : ""}</div><div class="mu">` +
     `${fresh ? '<span class="fresh">just listed</span>' : "seen " + ago(age)}${age > 2 * DAY ? ' · <span class="dn">may be gone</span>' : ""}</div></div></div>`;
 }
-function simpleRows() {
-  const L = listingRows(),
-    older = listingRows.older ? `<button class="more-old" data-lold="1">Show ${listingRows.older} older listing${listingRows.older === 1 ? "" : "s"} ` +
+function simpleRows(L = listingRows()) {
+  const older = listingRows.older ? `<button class="more-old" data-lold="1">Show ${listingRows.older} older listing${listingRows.older === 1 ? "" : "s"} ` +
       `(not seen for 3 days or more)</button>` : "";
   return (L.length ? L.slice(0, 500).map(listingRow).join("") :
     `<div class="empty">${mt.q.trim() ? `No listing matches "${esc(mt.q.trim())}" in the last 3 days.` : EMPTY_SCAN}</div>`) + older;
