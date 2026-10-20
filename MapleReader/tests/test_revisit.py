@@ -7,6 +7,7 @@
    one that comes back is saved again.
 3. Knowing when the whole list was seen: a 5-listing shop (no scrollbar handle, empty slot below) is whole;
    a 6-listing view with a handle, not scrolled, isn't.
+4. A screenshot that fails (PC locked) doesn't stop watching.
 """
 import os, sys, tempfile, types
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -121,6 +122,38 @@ def whole():
     check(not t.whole, 'shopS.png with its 5th listing unread: not whole (that slot is not empty)')
 
 
+def screen_fails():
+    print('The screen can\'t be read for a moment (PC locked, a Windows Yes/No prompt):')
+    import test_session as TS
+    from shopreader import scanner
+    pics, made = TS.frames()[-8:], []
+
+    class Shot:
+        def __init__(s, img):
+            s.size, s.bgra = img.size, img.convert('RGBA').tobytes('raw', 'BGRA')
+
+    class Screen:
+        monitors = [{}, {}]
+        def __init__(s): made.append(s); s.n = 0
+        def grab(s, mon):
+            s.n += 1
+            if len(made) == 1:
+                raise RuntimeError('BitBlt failed')     # the first screen reader never works (as when locked)
+            if not pics:
+                sc.stop()
+                return Shot(Image.new('RGB', (64, 64)))
+            return Shot(pics.pop(0))
+    sys.modules['mss'] = types.SimpleNamespace(MSS=Screen)
+    scanner.time = types.SimpleNamespace(sleep=lambda s: None, time=__import__('time').time)
+
+    class Ev(scanner.Events):
+        def message(self, text): pass
+        def saved(self, rows, room, ch, total): pass
+    sc = scanner.Scanner(events=Ev(), interval=0)
+    sc.run()
+    check(len(made) >= 2 and not pics, f'watching carried on: {len(made)} screen readers opened, every picture looked at')
+
+
 if __name__ == '__main__':
     work = tempfile.mkdtemp(prefix='maplereader_revisit_')
     os.chdir(work)
@@ -128,6 +161,7 @@ if __name__ == '__main__':
     session_twice()
     gone()
     whole()
+    screen_fails()
     print()
     print('REVISIT CHECK PASSED' if not fails else f'REVISIT CHECK: {len(fails)} FAILED')
     sys.exit(1 if fails else 0)

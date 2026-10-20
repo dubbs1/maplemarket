@@ -1,0 +1,3 @@
+# Building MapleReader.exe (build_exe.bat and the Windows check): the app's packages plus PyInstaller
+-r requirements.txt
+pyinstaller==6.22.3

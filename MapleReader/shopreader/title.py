@@ -43,7 +43,8 @@ def read_title(img, lay):
     g0 = ImageOps.grayscale(img.crop(box))
     tb = g0.resize((96, 12))
     c = TITLE_CACHE
-    if c.get('thumb') is not None and c['size'] == g0.size and \
+    where = (box, g0.size)                           # the bar's place and size, before trimming to the letters
+    if c.get('thumb') is not None and c.get('where') == where and \
             ImageChops.difference(c['thumb'], tb).point(lambda v: 255 if v > 30 else 0).histogram()[255] < 6:
         return c['name']                             # same title bar as last read (you scrolled): no need to read again
     px = g0.load()
@@ -66,6 +67,6 @@ def read_title(img, lay):
             reads.append(line)
     for i, r in enumerate(reads):
         if sum(key(o) == key(r) for o in reads) >= 2:
-            TITLE_CACHE.update(thumb=tb, size=g0.size, name=r)
+            TITLE_CACHE.update(thumb=tb, where=where, name=r)
             return r
     return None

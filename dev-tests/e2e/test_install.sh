@@ -92,5 +92,9 @@ check "--remove (nginx): service and entry gone, data kept, Rev Market untouched
 reset; cf_before=$(md5sum < /etc/caddy/Caddyfile); FAKE_ACTIVE="caddy" bash "$I" > /tmp/o.txt 2>&1
 FAKE_ACTIVE="caddy" bash "$I" --remove > /tmp/o.txt 2>&1; code=$?
 check "--remove (caddy): Caddyfile exactly as before Maple" "[[ $code == 0 ]] && [[ '$cf_before' == \"\$(md5sum < /etc/caddy/Caddyfile)\" ]]"
+reset; before=$(rev_sum); FAKE_ACTIVE="" bash "$I" > /tmp/o.txt 2>&1; code=$?
+check "nginx installed but stopped: refuses (it isn't a fresh droplet), Rev Market untouched" "[[ $code != 0 ]] && grep -q 'installed here but not running' /tmp/o.txt && [[ '$before' == \"\$(rev_sum)\" ]] && [[ ! -e /etc/nginx/sites-available/maple-market ]]"
+reset; FAKE_ACTIVE="nginx" bash "$I" > /tmp/o.txt 2>&1; MAPLE_DOMAIN=new.example.com FAKE_ACTIVE="nginx" bash "$I" > /tmp/o2.txt 2>&1; code=$?
+check "run again with another address: Maple's entry follows it" "[[ $code == 0 ]] && grep -q 'server_name new.example.com;' /etc/nginx/sites-available/maple-market && ! grep -q 'maple.vendormarket.app' /etc/nginx/sites-available/maple-market"
 reset; rm -rf /etc/nginx /etc/caddy
 echo; [[ $fail == 0 ]] && echo "ALL INSTALL CHECKS PASSED" || echo "SOME INSTALL CHECKS FAILED"

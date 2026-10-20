@@ -387,7 +387,7 @@ class ExpTracker:
             return False                                 # a misread: the number and the percentage disagree
         elif exp >= exp0:
             self.gained += exp - exp0
-            if need and pct >= 5:
+            if need and (pct >= 5 or not self.need):   # (just after a level-up the level's EXP isn't known yet)
                 self.need = need                         # keep refining it (a bigger percentage is more exact)
         else:
             self.lost += exp0 - exp                     # EXP lost (from dying)

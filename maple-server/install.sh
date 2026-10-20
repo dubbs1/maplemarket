@@ -54,6 +54,9 @@ FRONT=none
 if systemctl is-active --quiet nginx 2>/dev/null; then FRONT=nginx
 elif systemctl is-active --quiet caddy 2>/dev/null; then FRONT=caddy
 elif systemctl is-active --quiet cloudflared 2>/dev/null || pgrep -x cloudflared >/dev/null 2>&1; then FRONT=tunnel
+elif [[ $MODE != remove && ( -d /etc/nginx || -d /etc/caddy ) ]]; then
+  # a web server is installed but not running: it may hold other sites' entries, so it isn't ours to set up
+  die "nginx or Caddy is installed here but not running. Start it (systemctl start nginx) and run this again, or tell Claude."
 elif [[ $WEB_BUSY -eq 0 ]]; then FRONT=fresh
 fi
 case "$FRONT" in
@@ -166,7 +169,8 @@ if [[ $FRONT == fresh ]]; then
   if ! { apt-get update -q && DEBIAN_FRONTEND=noninteractive apt-get install -y -q nginx certbot python3-certbot-nginx; } >/tmp/maple-apt.log 2>&1; then
     tail -n 15 /tmp/maple-apt.log; die "Installing nginx didn't work (log above)."
   fi
-  rm -f /etc/nginx/sites-enabled/default           # nginx's welcome page: on this droplet nginx is Maple's
+  # nginx's welcome page (this nginx was just installed, so nothing else uses it): switched off, a copy kept
+  if [[ -e /etc/nginx/sites-enabled/default ]]; then mv -f /etc/nginx/sites-enabled/default "/root/nginx-default.before-maple-$STAMP"; fi
   systemctl enable --quiet nginx; systemctl start nginx
   if command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q 'Status: active'; then
     ufw allow 80/tcp >/dev/null; ufw allow 443/tcp >/dev/null; ok "firewall: web ports opened"
@@ -180,13 +184,14 @@ nginx)
   else SITE=/etc/nginx/conf.d/maple-market.conf; LINK=; fi
   mkdir -p "$(dirname "$SITE")"
   if [[ -f "$SITE" ]]; then
-    if grep -q "proxy_pass http://127.0.0.1:$PORT;" "$SITE"; then
+    if grep -q "proxy_pass http://127.0.0.1:$PORT;" "$SITE" && grep -q "server_name $DOMAIN;" "$SITE"; then
       ok "nginx already has the $DOMAIN entry"
-    else                                            # the market moved to another port: point Maple's entry at it
+    else                                            # the market moved to another port or address: update Maple's entry
       cp "$SITE" "/root/maple-market.nginx.before-$STAMP"
-      sed -i "s#proxy_pass http://127.0.0.1:[0-9]*;#proxy_pass http://127.0.0.1:$PORT;#" "$SITE"
-      if nginx -t >/dev/null 2>&1; then systemctl reload nginx; ok "nginx: Maple's entry now points at port $PORT"
-      else cp "/root/maple-market.nginx.before-$STAMP" "$SITE"; die "nginx didn't accept the port change, so it was put back."; fi
+      sed -i -e "s#proxy_pass http://127.0.0.1:[0-9]*;#proxy_pass http://127.0.0.1:$PORT;#" \
+             -e "s#server_name [^;]*;#server_name $DOMAIN;#" "$SITE"
+      if nginx -t >/dev/null 2>&1; then systemctl reload nginx; ok "nginx: Maple's entry now serves $DOMAIN on port $PORT"
+      else cp "/root/maple-market.nginx.before-$STAMP" "$SITE"; die "nginx didn't accept the change, so it was put back."; fi
     fi
   else
     V6="    listen [::]:80;"; [[ -e /proc/net/if_inet6 ]] || V6="    # (no IPv6 on this server)"
@@ -232,8 +237,8 @@ EOF
 caddy)
   CF=/etc/caddy/Caddyfile
   if grep -qF "$MARK" "$CF" 2>/dev/null; then
-    grep -q "reverse_proxy 127.0.0.1:$PORT\$" "$CF" && ok "Caddy already has $DOMAIN" \
-      || warn "Caddy's Maple block points at another port; change it to 127.0.0.1:$PORT in $CF."
+    if grep -q "reverse_proxy 127.0.0.1:$PORT\$" "$CF" && grep -qE "^${DOMAIN//./\\.} \{" "$CF"; then ok "Caddy already has $DOMAIN"
+    else warn "Caddy's Maple block (after the '$MARK' line in $CF) is for another address or port: set it to $DOMAIN and 127.0.0.1:$PORT."; fi
   else
     cp "$CF" "$CF.before-maple-$STAMP"
     printf '\n%s\n%s {\n\treverse_proxy 127.0.0.1:%s\n}\n' "$MARK" "$DOMAIN" "$PORT" >> "$CF"
