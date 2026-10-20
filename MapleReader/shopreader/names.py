@@ -8,7 +8,7 @@ from .config import NAME_MATCH
 def load_items(path):
     if not os.path.isfile(path):
         return []
-    with open(path, encoding='utf-8') as f:
+    with open(path, encoding='utf-8-sig') as f:     # -sig: Notepad's invisible first character
         return [ln.split('|')[0].strip() for ln in f if ln.strip() and not ln.startswith('#')]
 
 

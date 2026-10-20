@@ -46,7 +46,7 @@ def listen_for_typing(scanner):
         for line in sys.stdin:
             t = line.strip().lower()
             c = t.replace('ch', '').strip()
-            if t.startswith('room') and t[4:].strip().isdigit():
+            if t.startswith('room') and t[4:].strip().isdigit() and int(t[4:]) <= 40:
                 scanner.set_room(int(t[4:]))
                 print('  room set to', state['room'])
             elif c.isdigit() and 1 <= int(c) <= 40:

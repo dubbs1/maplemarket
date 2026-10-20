@@ -188,7 +188,9 @@ const MODE =
 const LIVE = MODE !== "static";
 const DAY = 864e5,
   KEY = "mcm1",
-  ROOMS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  ROOMS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], // the rooms the wiki lists; more may open, so up to 40 are accepted
+  ROOM_MAX = 40;
+const roomOK = rm => Number.isInteger(rm) && rm >= 1 && rm <= ROOM_MAX;
 const ITEMS = [
   ["shield-def", "Shield DEF Scroll: Lesser", "Scroll", 17000],
   ["cape-str", "Cape STR Scroll: Intermediate", "Scroll", 500000],
@@ -591,7 +593,8 @@ function alertHits() {
 
 /* ===== Import and editing ===== Reading scan files from MapleReader, and everything that changes saved data. */
 function seenAt(ex) {
-  const x = ex.find(v => /^@\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d)?$/.test(v)),
+  // "@2026-10-19T15:31:08-04:00" (newer readers say their time zone) or without it (read as local time)
+  const x = ex.find(v => /^@\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d)?(Z|[+-]\d\d:\d\d)?$/.test(v)),
     t = x ? Date.parse(x.slice(1)) : NaN;
   return t > 0 && t < Date.now() + DAY ? t : null;
 }
@@ -618,7 +621,7 @@ function parseScanRows(text) {
         ps = ex.find(x => /^#\d+$/.test(x)),
         at = seenAt(ex),
         cp = ex.find(x => /^c\d+$/i.test(x));
-      if (p.length < 5 || pr == null || !(rm === 0 || ROOMS.includes(rm)) || !(ch >= 1 && ch <= 40) || !p[2]) {
+      if (p.length < 5 || pr == null || !(rm === 0 || roomOK(rm)) || !(ch >= 1 && ch <= 40) || !p[2]) {
         skipped++;
         return;
       }
@@ -811,7 +814,7 @@ function addListing(o) {
   if (p == null) return "Enter a whole number of mesos, 1 or more.";
   if (q < 1 || q > 999) return "Quantity must be 1 to 999.";
   if (!st) return "Enter a store name.";
-  if (!ROOMS.includes(+o.room)) return "Pick a Free Market room.";
+  if (!roomOK(+o.room)) return "Pick a Free Market room.";
   const r = addItem(o.name, "Other");
   if (!r) return "Item names can be 1 to 60 characters.";
   S.store = st;
@@ -847,7 +850,7 @@ function removeListing(id) {
 function addSighting(id, v, room) {
   const p = parsePrice(v);
   if (p == null) return "Enter a whole number of mesos, 1 or more.";
-  if (!ROOMS.includes(+room)) return "Pick a Free Market room.";
+  if (!roomOK(+room)) return "Pick a Free Market room.";
   S.sg[id].push({ p, room: +room, t: Date.now() });
   save();
   return null;
@@ -868,6 +871,12 @@ function addAlert(term, max) {
 }
 
 /* ===== Views ===== Each draw* function renders one tab into #app. */
+// Room picker: the usual rooms, plus any higher room that has been scanned
+function roomOptions() {
+  const seen = new Set(ROOMS);
+  S.scans.forEach(sc => sc.rows.forEach(r => roomOK(r.room) && seen.add(r.room)));
+  return [...seen].sort((a, b) => a - b).map(r => `<option value="${r}">Room ${r}</option>`).join("");
+}
 function spark(l) {
   if (l.length < 2) return "";
   const s = [...l].sort((a, b) => a.t - b.t),
@@ -1042,7 +1051,7 @@ function drawMarket() {
       )}</datalist></div><div class="frm"><select id="pt" aria-label="Type"><option value="sell">Sell</option><option value="buy">Buy</option>` +
         `</select><input id="pp" inputmode="numeric" placeholder="Price" aria-label="Price"><input id="pq" inputmode="numeric" value="1" aria-label="Quantity">` +
         `</div><div class="frm"><input id="ps" value="${esc(S.store || "My shop")}" aria-label="Store name"><select id="pr" aria-label="Room">` +
-        `${ROOMS.map(r => `<option value="${r}">Room ${r}</option>`).join("")}</select></div><div class="frm"><button id="pgo">Post listing</button>` +
+        `${roomOptions()}</select></div><div class="frm"><button id="pgo">Post listing</button>` +
         `</div><p class="err" id="e4" role="alert"></p></details><div id="mb"></div>`;
   $("#ms").value = mt.q;
   $("#ms").oninput = e => {
@@ -1249,7 +1258,7 @@ function drawItem() {
   `<span class="mu">${fmt(x.p)} · ${Math.max(1, Math.round((Date.now() - x.t) / 36e5))}h ago</span></div>`).join("") : '<p class="mu">' +
   'No sightings in 14 days. Log the first one.</p>'}</div>
 ${listCard(cur)}${scanCard(cur)}<div class="card"><b>Log a price</b><div class="frm"><input id="lp" inputmode="numeric" placeholder="Price in mesos" aria-label="Price in mesos">` +
-  `<select id="lr" aria-label="Room">${ROOMS.map(r => `<option value="${r}">Room ${r}</option>`).join("")}</select></div><div class="frm">` +
+  `<select id="lr" aria-label="Room">${roomOptions()}</select></div><div class="frm">` +
   `<button id="log">Log price</button></div><p class="err" id="e1" role="alert"></p></div>
 <div class="card"><b>Also check this item on</b><p><a href="https://meowdb.com/msclassic/free-market" target="_blank" rel="noopener">` +
   `MeowDB</a> and <a href="https://meso.watch" target="_blank" rel="noopener">MesoWatch</a></p><p class="mu" style="margin:0">Links only. No data is copied from these sites.</p></div>`;

@@ -17,6 +17,7 @@ import sqlite3
 import sys
 import threading
 import time
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
@@ -36,6 +37,7 @@ SCANNING_WINDOW = 10 * 60         # "scanning now" = sent something in the last 
 FEED_CHUNK = 5000                 # lines per /api/rows answer
 
 _db_lock = threading.Lock()
+_rate_lock = threading.Lock()
 _state = {'keys': {}, 'keys_mtime': None, 'recent': {}, 'rate': {}}
 
 
@@ -83,11 +85,24 @@ def who_is(auth_header):
 
 
 # ---------- checking what friends send ----------
-_ISO = re.compile(r'^@\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d)?$')
+_ISO = re.compile(r'^@\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d)?(Z|[+-]\d\d:\d\d)?$')   # offset: newer readers
 _EXTRA = re.compile(r'^(sold|c\d{1,4}|x?\d{1,4}|#\d{1,4})$', re.I)
 
 
-def clean_line(line):
+def _seen_ok(stamp, now):
+    """A row's '@time' is real and not in the future. Rows from older readers have no time zone; their
+    local time is at most 14 hours off UTC, so a day of leeway covers every zone."""
+    s = stamp[1:].replace('Z', '+00:00')
+    try:
+        t = datetime.fromisoformat(s)
+    except ValueError:
+        return False
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    return t.timestamp() <= now + 86400
+
+
+def clean_line(line, now=None):
     """The line, tidied, if it looks like a MapleReader scan row; otherwise None."""
     if not isinstance(line, str) or len(line) > 300 or '\n' in line or '\r' in line:
         return None
@@ -99,7 +114,10 @@ def clean_line(line):
     if not (p[3].isdigit() and 0 <= int(p[3]) <= 40 and p[4].isdigit() and 1 <= int(p[4]) <= 40):
         return None
     extras = p[5:]
-    if not any(_ISO.match(x) for x in extras):        # shared rows must say when they were seen
+    stamps = [x for x in extras if _ISO.match(x)]
+    if not stamps:                                    # shared rows must say when they were seen
+        return None
+    if not all(_seen_ok(x, time.time() if now is None else now) for x in stamps):
         return None
     if not all(_ISO.match(x) or _EXTRA.match(x) for x in extras):
         return None
@@ -111,6 +129,7 @@ def clean_line(line):
 # ---------- HTTP ----------
 class Handler(BaseHTTPRequestHandler):
     server_version = 'MapleMarket'
+    timeout = 30                                      # a connection that sends nothing for 30 s is dropped
 
     def log_message(self, fmt, *a):                  # one short line per request in the service log
         if not os.environ.get('MAPLE_QUIET'):
@@ -130,8 +149,12 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _body(self, limit):
-        n = int(self.headers.get('Content-Length') or 0)
-        if n > limit:
+        """The request's body, or None if it's too big or its size is missing or nonsense."""
+        try:
+            n = int(self.headers.get('Content-Length') or 0)
+        except ValueError:
+            return None
+        if not 0 <= n <= limit:
             return None
         return self.rfile.read(n) if n else b''
 
@@ -183,10 +206,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(401, {'ok': False, 'error': 'Key not accepted. Ask the market owner for a key.'})
         now = time.time()
         bucket, limit = (who, PER_MINUTE) if u.path == '/api/upload' else ((who, 'icons'), ICONS_PER_MINUTE)
-        hits = [t for t in _state['rate'].get(bucket, []) if now - t < 60]
-        if len(hits) >= limit:
+        with _rate_lock:
+            hits = [t for t in _state['rate'].get(bucket, []) if now - t < 60]
+            busy = len(hits) >= limit
+            if not busy:
+                _state['rate'][bucket] = hits + [now]
+        if busy:
             return self._send(429, {'ok': False, 'error': 'Too many uploads; slow down.'})
-        _state['rate'][bucket] = hits + [now]
         if u.path == '/api/upload':
             body = self._body(MAX_BODY)
             if body is None:
@@ -215,7 +241,7 @@ def store(con, lines, who, now):
     added = dupes = bad = 0
     with _db_lock:
         for line in lines:
-            c = clean_line(line)
+            c = clean_line(line, now)
             if not c:
                 bad += 1
                 continue

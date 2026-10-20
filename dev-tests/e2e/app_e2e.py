@@ -1,6 +1,8 @@
 import os
 import sys, os, types, time, json, tempfile, asyncio, urllib.request, urllib.error
-R = sys.argv[1]; OUT = sys.argv[2]
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the repository
+R = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_ROOT, 'MapleReader')
+OUT = sys.argv[2] if len(sys.argv) > 2 else tempfile.mkdtemp(prefix='mr_shots_')   # screenshots go here
 sys.path.insert(0, R); sys.path.insert(0, os.path.join(R, 'tests'))
 work = tempfile.mkdtemp(prefix='mr_app_'); os.chdir(work)
 import shopreader.config as C; C.APP_DIR = work

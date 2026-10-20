@@ -1,6 +1,9 @@
 import os
 import sys, os, time, json, subprocess, tempfile, asyncio, shutil, urllib.request
-R = sys.argv[1]; SRV = sys.argv[2]; OUT = sys.argv[3]; HERE = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the repository
+R = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_ROOT, 'MapleReader')
+SRV = sys.argv[2] if len(sys.argv) > 2 else os.path.join(_ROOT, 'maple-server')
+OUT = sys.argv[3] if len(sys.argv) > 3 else tempfile.mkdtemp(prefix='mr_shots_'); HERE = os.path.dirname(os.path.abspath(__file__))
 data = tempfile.mkdtemp(prefix='maple_share_')
 env = dict(os.environ, MAPLE_DATA=data, MAPLE_PORT='8799', MAPLE_QUIET='1')
 mk = lambda name: subprocess.run([sys.executable, os.path.join(SRV, 'manage.py'), 'add', name], capture_output=True, text=True, env=env).stdout.split(f'Key for {name}:')[1].split()[0]

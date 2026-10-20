@@ -58,6 +58,7 @@ class _Feed(Events):
 class Controller:
     def __init__(self):
         self.lock = threading.Lock()
+        self._start_lock = threading.Lock()
         self.settings = self._load()
         self.tesseract = find_tesseract()
         self.engine = engine.mode() if self.tesseract else 'none'
@@ -131,14 +132,15 @@ class Controller:
 
     # --- buttons ---
     def start(self, channel=0):
-        if self.scanner:
-            return {'ok': True}
         if not self.tesseract:
             return {'ok': False, 'error': 'Tesseract is not installed.'}
-        items = load_items(os.path.join(APP_DIR, 'items.txt'))
-        sc = Scanner(items, int(channel or 0), monitor=int(self.settings['monitor']), volume=float(self.settings['volume']),
-                     quiet=bool(self.settings['quiet']), events=_Feed(self))
-        self.scanner = sc
+        with self._start_lock:                       # two quick clicks must not start two scanners
+            if self.scanner:
+                return {'ok': True}
+            items = load_items(os.path.join(APP_DIR, 'items.txt'))
+            sc = Scanner(items, int(channel or 0), monitor=int(self.settings['monitor']),
+                         volume=float(self.settings['volume']), quiet=bool(self.settings['quiet']), events=_Feed(self))
+            self.scanner = sc
         self.set(watching=True, status='looking', channel=sc.state['ch'], room=0, shop=None, shop_rows=0, total=0,
                  started=time.time())
         self.note('Watching your screen.' + ('' if sc.state['ch'] else ' Open the Change Channel window once so I can read your channel.'))
@@ -176,7 +178,7 @@ class Controller:
         if 'room' in d:
             rm = int(d['room'])
             if not 0 <= rm <= 40:
-                return {'ok': False, 'error': 'Room must be 1 to 40.'}
+                return {'ok': False, 'error': 'Room must be 0 (unknown) to 40.'}
             self.set(room=rm)
             if self.scanner:
                 self.scanner.set_room(rm)

@@ -73,6 +73,8 @@ class Saver:
             if now - self.logged.get(k, 0) > FORGET_AFTER:
                 self.logged[k] = now
                 new.append(dict(r, copy=n))
+        if len(self.logged) > 20000:                  # a long session: forget listings older than 10 minutes
+            self.logged = {k: t for k, t in self.logged.items() if now - t <= FORGET_AFTER}
         if not new:
             return
         when = datetime.now()
