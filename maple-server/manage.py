@@ -69,9 +69,11 @@ def main(argv):
         if not hs:
             print(f'No key named {name}.')
             return 1
-        if cmd == 'restore' and len(hs) > 1:
-            print(f'{name} has a newer key already; the old one stays revoked.')
-            return 1
+        if cmd == 'restore':
+            if any(keys[h].get('active', True) for h in hs):
+                print(f"{name}'s newest key already works; older keys stay revoked.")
+                return 1
+            hs = hs[-1:]                              # only the newest key comes back
         for h in hs:
             keys[h]['active'] = cmd == 'restore'
         _write(keys)

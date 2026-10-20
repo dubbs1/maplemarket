@@ -83,7 +83,7 @@ def main():
     out = manage('add', 'Gunther')
     k3 = out.split('Key for Gunther:')[1].split()[0] if 'Key for Gunther:' in out else ''
     ok('after a revoke, the same person can get a new key', k3.startswith('mm-') and up(k3, [])[0] == 200)
-    ok('the old key stays revoked', 'stays revoked' in manage('restore', 'Gunther') and up(k2, [])[0] == 401)
+    ok('the old key stays revoked', 'stay revoked' in manage('restore', 'Gunther') and up(k2, [])[0] == 401)
     import socket
     sk = socket.create_connection(('127.0.0.1', 8799), timeout=5)
     sk.sendall(f'POST /api/upload HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer {k1}\r\nContent-Length: -1\r\n\r\n'.encode())

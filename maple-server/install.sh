@@ -66,11 +66,11 @@ echo "     programs on the web ports right now:"
 
 # Is the address already used by a site that isn't Maple's? Then stop: two sites can't share it.
 OWN_RE='/maple-market(\.conf)?$'
-if [[ -d /etc/nginx ]]; then
+if [[ $MODE != remove && -d /etc/nginx ]]; then
   CLASH=$(grep -rlsE "server_name[^;]*[[:space:]]${DOMAIN//./\\.}([[:space:];]|$)" /etc/nginx 2>/dev/null | grep -vE "$OWN_RE|\.before-maple-" || true)
   [[ -z "$CLASH" ]] || die "nginx already has a site for $DOMAIN in: $CLASH. Pick another address with MAPLE_DOMAIN."
 fi
-if [[ -f /etc/caddy/Caddyfile ]] && grep -qE "^${DOMAIN//./\\.}([[:space:],{]|$)" /etc/caddy/Caddyfile \
+if [[ $MODE != remove && -f /etc/caddy/Caddyfile ]] && grep -qE "^${DOMAIN//./\\.}([[:space:],{]|$)" /etc/caddy/Caddyfile \
    && ! grep -qF "$MARK" /etc/caddy/Caddyfile; then
   die "Caddy already has a site for $DOMAIN that Maple didn't add. Pick another address with MAPLE_DOMAIN."
 fi
