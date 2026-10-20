@@ -1,5 +1,5 @@
 """Finding the shop list on screen by its colours, and measuring its rows."""
-from PIL import Image, ImageOps
+from PIL import Image, ImageChops, ImageOps
 from .config import PRICE, ROW_BG, ROW_FADED
 from .ocr import ocr_lines, pitch
 
@@ -22,24 +22,32 @@ def layout_from(pr, marks=None, old_h=None):
                 width=max(l['x1'] - l['x0'] for l in pr))
 
 
+_SMALL = {'img': None, 'sm': None}
+
+
+def _small(img, step):
+    """The screenshot shrunk by `step`, made once per screenshot (several colour checks look at it)."""
+    if _SMALL['img'] is not img:
+        _SMALL.update(img=img, sm=img.resize((max(1, img.width // step), max(1, img.height // step)), Image.NEAREST))
+    return _SMALL['sm']
+
+
 def color_boxes(img, col, tol=6, cell=24, minc=8, vgap=8):
-    """Find areas of the screen filled with one UI colour. Very fast (no text reading).
-    Returns boxes (x0, y0, x1, y1), biggest first."""
+    """Find areas of the screen filled with one UI colour. Very fast (no text reading): Pillow does the
+    pixel work. Returns boxes (x0, y0, x1, y1), biggest first."""
     step = 4
-    sm = img.resize((max(1, img.width // step), max(1, img.height // step)), Image.NEAREST)
-    px, c = sm.load(), cell // step
+    sm, c = _small(img, step), cell // step
     gw, gh = sm.width // c, sm.height // c
-    dense = set()
-    for gy in range(gh):
-        for gx in range(gw):
-            n = 0
-            for y in range(gy * c, gy * c + c):
-                for x in range(gx * c, gx * c + c):
-                    p = px[x, y]
-                    if abs(p[0] - col[0]) <= tol and abs(p[1] - col[1]) <= tol and abs(p[2] - col[2]) <= tol:
-                        n += 1
-            if n >= c * c * 0.35:
-                dense.add((gx, gy))
+    if not gw or not gh:
+        return []
+    # 255 where a pixel is within `tol` of the colour on all three channels
+    near = [band.point([255 if abs(v - k) <= tol else 0 for v in range(256)]) for band, k in zip(sm.split()[:3], col)]
+    mask = ImageChops.multiply(ImageChops.multiply(near[0], near[1]), near[2])
+    # average of each c x c cell; a cell is "dense" when at least 35% of its pixels match
+    avg = mask.crop((0, 0, gw * c, gh * c)).resize((gw, gh), Image.BOX)
+    need = c * c * 0.35
+    flat = (getattr(avg, 'get_flattened_data', None) or avg.getdata)()
+    dense = {(i % gw, i // gw) for i, v in enumerate(flat) if round(v * c * c / 255) >= need}
     comps, seen = [], set()
     steps = [(1, 0), (-1, 0)] + [(0, d) for d in range(-vgap, vgap + 1) if d]   # sold rows can leave vertical gaps
     for start in dense:

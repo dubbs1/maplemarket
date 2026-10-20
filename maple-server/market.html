@@ -1371,7 +1371,7 @@ function drawPriceList() {
 }
 function drawPrices() {
   $("#app").innerHTML =
-    `<input id="q" type="search" placeholder="Find an item, e.g. scroll" aria-label="Find an item">` +
+    `<input id="q" type="search" placeholder="Find an item, e.g. scroll   (press / to jump here)" aria-label="Find an item">` +
     `<div class="bar"><span class="mu" id="pcount"></span>${segBtns("ps", psort, [["new", "Newest"], ["low", "Cheapest"], ["az", "A–Z"]])}</div>` +
     `<div class="feed" id="list"></div>`;
   $("#q").value = q;
@@ -1599,6 +1599,22 @@ document.querySelectorAll("[data-nav]").forEach(
       draw();
     })
 );
+// Keys: "/" jumps to the search box (Prices if there's none on screen), Esc goes back from an item
+document.addEventListener("keydown", e => {
+  const typing = /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || "");
+  if (e.key === "/" && !typing && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    if (!$("#q, #ms")) {
+      view = "browse";
+      cur = null;
+      draw(false);
+    }
+    $("#q, #ms").focus();
+  } else if (e.key === "Escape" && cur && !typing) {
+    cur = null;
+    draw();
+  }
+});
 // Drop a scan file anywhere on the page to import it
 document.addEventListener("dragover", e => {
   if ([...(e.dataTransfer?.types || [])].includes("Files")) e.preventDefault();
@@ -1865,6 +1881,8 @@ function drawScan() {
     `<div class="tile"><div class="k">Shop open</div><p class="shopnow" id="vshop">—</p><div class="mu" id="vrows"></div></div>` +
     `</div></div>` +
     `<details class="card" id="sets"><summary>Settings</summary>` +
+    `<div class="opt"><span>Start watching when MapleReader opens</span><label class="sw"><input type="checkbox" id="oa"` +
+    `${se.auto_start === false ? "" : " checked"}><span></span></label></div>` +
     `<div class="opt"><span>Chime when saved</span><label class="sw"><input type="checkbox" id="oq"${se.quiet ? "" : " checked"}><span>` +
     `</span></label></div>` +
     `<div class="opt"><span>Volume</span><input type="range" id="ov" min="0.02" max="0.4" step="0.01" value="${se.volume || 0.08}" aria-label="Chime volume"></div>` +
@@ -1887,6 +1905,10 @@ function drawScan() {
     `</div><div><div class="feedh"><h2>Saved this session</h2><span class="mu" id="fcount"></span></div><div class="feed" id="feed"></div></div></div>`;
   $("#go").onclick = async () => {
     if (APP.busy) return;
+    if (APP.st && !APP.st.tesseract) {               // nothing can be read without it: offer to install it
+      const r = await api("/api/install-tesseract");
+      return say(r.ok ? "Installing Tesseract in a separate window. Click Yes if Windows asks." : r.error || "Could not start the installer.");
+    }
     APP.busy = true;
     const on = APP.st && APP.st.watching,
       r = await api(on ? "/api/stop" : "/api/start", on ? {} : { channel: +$("#ich").value || 0 });
@@ -1919,6 +1941,7 @@ function drawScan() {
     if (!f.hidden) $("#i" + b.dataset.chg).focus();
   }));
   $("#oq").onchange = e => api("/api/set", { quiet: !e.target.checked });
+  $("#oa").onchange = e => api("/api/set", { auto_start: e.target.checked });
   $("#ov").onchange = e => api("/api/set", { volume: +e.target.value });
   $("#om").onchange = e => api("/api/set", { monitor: +e.target.value });
   $("#oscans").onclick = () => api("/api/open-scans");
@@ -1975,12 +1998,12 @@ function updScan(feedChanged, lost) {
   const st = APP.st || {};
   if (!$("#go")) return;
   const on = !lost && st.watching;
-  $("#go").textContent = on ? "Stop" : "Start watching";
+  $("#go").textContent = !st.tesseract && !lost ? "Install Tesseract (the text reader)" : on ? "Stop" : "Start watching";
   $("#go").className = "go" + (on ? " stop" : "");
   const [cls, text] = lost
     ? ["bad", "MapleReader has closed. Start it again to keep scanning."]
     : !st.tesseract
-      ? ["bad", "Tesseract (the text reader) is missing. Install it, then restart MapleReader."]
+      ? ["bad", "MapleReader needs Tesseract to read shops. Press the button above to install it (about a minute)."]
       : STATUS[on ? st.status : "stopped"] || STATUS.looking;
   $("#sst").className = "st " + cls;
   $("#sst span").textContent = text;
