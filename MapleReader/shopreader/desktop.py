@@ -132,8 +132,11 @@ def self_check(result_path):
             state = json.loads(r.read().decode())
         with urllib.request.urlopen(url, timeout=10) as r:
             page = r.read().decode('utf-8', 'replace')
-        lines += [f"version {state['version']}", f"text reader: {state['engine']}", f'page: {len(page)} characters']
-        good = bool(state['version']) and 'Maple Classic Market' in page and state['tesseract'] and state['engine'] in ('fast', 'slow')
+        from .exp_font import GLYPHS
+        lines += [f"version {state['version']}", f"text reader: {state['engine']}", f'page: {len(page)} characters',
+                  f"EXP digit shapes: {''.join(sorted(GLYPHS.get('small', {})))}"]
+        good = (bool(state['version']) and 'Maple Classic Market' in page and state['tesseract'] and
+                state['engine'] in ('fast', 'slow') and 'exp' in state and len(GLYPHS.get('small', {})) >= 10)
         srv.stop()
         ctl.shutdown()
     except Exception:

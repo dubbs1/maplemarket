@@ -58,3 +58,7 @@ CHIME_FILE = 'chime2.wav'      # written next to maple_shop_reader.py the first 
 # --- updates ---
 UPDATE_REPO = 'dubbs1/maplemarket'   # GitHub repository whose releases carry MapleReader-Setup-<version>.exe
 UPDATE_EVERY = 6 * 3600        # look for a new version this often while the app is open
+
+# --- EXP tracker ---
+EXP_EVERY = 3                  # re-read the EXP line this often (seconds)
+EXP_SEARCH_EVERY = 5           # look for the status bar this often while it is not found (colour only: fast)

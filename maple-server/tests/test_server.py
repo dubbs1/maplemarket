@@ -45,15 +45,16 @@ def main():
     ok('wrong key: refused', up('mm-nope', L)[0] == 401)
     code, r = up(k1, L + ['junk', 'A | 5 | B | 1 | 99 | @2026-10-19T15:31:08', 'No time | 5 | Shop | 1 | 3', 'Evil | 5 | <script> | 1 | 3 | <b> | @2026-10-19T15:31:08'])
     ok(f'good rows kept, bad ones dropped ({r})', code == 200 and r['added'] == 3 and r['bad'] == 4)
-    code, r = up(k2, L[:2] + ['Ice Wand | 12500 | WCC | 2 | 10 | c1 | @2026-10-19T15:40:00'])
-    ok(f"the same rows from a friend aren't stored twice ({r})", r['added'] == 1 and r['dupes'] == 2)
+    code, r = up(k2, L[:2] + ['Ice Wand | 12500 | WCC | 2 | 10 | c1 | @2026-10-19T15:40:00',
+                              'Ice Wand | 12500 | WCC | 2 | 10 | gone | c1 | @2026-10-19T15:45:00'])
+    ok(f"the same rows from a friend aren't stored twice; a gone line is kept ({r})", r['added'] == 2 and r['dupes'] == 2)
     future = time.strftime('@%Y-%m-%dT%H:%M:%S', time.gmtime(time.time() + 3 * 86400))
     code, r = up(k1, ['Zone Item | 700 | East Shop | 2 | 5 | c1 | @2026-10-19T15:41:00-04:00',
                       'Zone Item | 700 | UTC Shop | 2 | 5 | c1 | @2026-10-19T19:41:00Z',
                       f'Future Item | 700 | Shop | 2 | 5 | c1 | {future}'])
     ok(f'times with a time zone are kept; times in the future are refused ({r})', r['added'] == 2 and r['bad'] == 1)
     code, f = call('/api/rows?from=0')
-    ok('everyone can read the rows', code == 200 and f['text'].count('\n') == 6 and f['status']['scanning'] == 2)
+    ok('everyone can read the rows', code == 200 and f['text'].count('\n') == 7 and f['status']['scanning'] == 2)
     code, f2 = call(f"/api/rows?from={f['next']}")
     ok('reading again gives nothing new', f2['text'] == '' and not f2['reset'])
     png = open(os.path.join(ROOT, 'tests', 'pic.png'), 'rb').read() if os.path.exists(os.path.join(ROOT, 'tests', 'pic.png')) else None
@@ -78,7 +79,7 @@ def main():
     ok('restored, it works again', up(k2, L)[0] == 200)
     out = manage('purge', 'Gunther')
     code, f = call('/api/rows?from=0')
-    ok(f'purge deletes what someone sent ({out.strip()})', 'Deleted 1' in out and f['text'].count('\n') == 5)
+    ok(f'purge deletes what someone sent ({out.strip()})', 'Deleted 2' in out and f['text'].count('\n') == 5)
     manage('revoke', 'Gunther')
     out = manage('add', 'Gunther')
     k3 = out.split('Key for Gunther:')[1].split()[0] if 'Key for Gunther:' in out else ''

@@ -68,6 +68,13 @@ The installer needs nothing else first (no Python, no `setup.bat`, no `build_exe
    - Settings (on the Scan tab) shows `Updates: ...` and has a **Check now** button.
    - To remove MapleReader: Windows Settings > Apps > MapleReader > Uninstall. Your scans stay in `%LOCALAPPDATA%\Programs\MapleReader\scans` until you delete that folder.
 
+6. **Your EXP:** while MapleReader is watching, the **Your EXP** card on the Scan tab shows your level, EXP per hour, EXP gained, and the time to your next level. It reads the EXP line at the bottom of the game window (`EXP 93,499 [43.17%]`), so keep that line on screen.
+   - The first numbers show a few seconds after you press Start. "EXP per hour" shows after a minute.
+   - **Reset** starts counting again (for example when you start a new hunting trip).
+   - EXP lost from dying is shown apart, not taken off what you gained.
+   - To turn it off: Settings > **Track my EXP**.
+   - If the card keeps saying "Looking for the EXP line", send Claude a screenshot of the whole game window.
+
 The rest of this guide is the manual way (the zip folder), which still works.
 
 # Step-by-step guide (starting from: Python 3.13 already installed)
@@ -194,6 +201,9 @@ B. Use it:
    4. Open shops in the Free Market as usual.
       - You should hear a soft chime and see each listing appear on the right with its picture. New ones say **just listed** in green for a few minutes. The steps go away once the first listing is saved.
       - If the room shows `—`: check the minimap is open, or click **Change** under Room and type it.
+      - Shops whose rows are all sold (faded) are saved too, as **sold**.
+      - Opening a shop again within 10 minutes saves only what changed, even if you pressed Stop and Start (or closed MapleReader) in between, so there's no second chime for the same shop.
+      - When you've seen a shop's whole list again (scrolled to the bottom, or it fits without scrolling), listings that are no longer there are taken off the market, and Messages says so. Listings that sold show faded, so they're kept as **sold** instead.
    5. To look up a price, click **Prices**, type part of the name (for example `scroll`), and click the item. (Shortcut: press `/` to jump to the search box, `Esc` to go back.)
       - You should see the cheapest price now, the usual price, and a **Where to buy** list with the shop, room (FM) and channel (CH).
       - To be told when it gets cheaper: under **Price alert**, type the most you'd pay and click **Tell me when it's this price or less**. You'll hear a chime when a scan finds one.

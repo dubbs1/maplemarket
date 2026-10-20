@@ -68,6 +68,17 @@ async def main():
                 ok(f'A6 each has its picture ({imgs})', imgs == 29)
                 ok('A7 channel and room tiles', (await pg.inner_text('#vch')) == '10' and (await pg.inner_text('#vrm')) == '1')
                 ok('A8 header chip live', 'CH 10' in await pg.inner_text('#chip'))
+                # the tracker starts once two readings (3 s apart) agree: give it a moment on a fast machine
+                for _ in range(20):
+                    xt = await pg.inner_text('#expt')
+                    if '43.17%' in xt:
+                        break
+                    await pg.wait_for_timeout(1000)
+                if '43.17%' not in xt:
+                    print('  EXP tracker state:', ctl.exp.first, ctl.exp.last, ctl.settings.get('exp'), bool(ctl.scanner))
+                ok(f'A8b the EXP card read the status bar (level 37, 43.17%) {xt[:60]!r}', '37' in xt and '43.17%' in xt and '93,499' in xt)
+                await pg.click('#expreset'); await pg.wait_for_timeout(1500)
+                ok('A8c Reset clears it (until the next readings)', ctl.exp.gained == 0 and ctl.exp.levels == 0)
                 ok('A9 newest listings marked just listed', await pg.locator('#feed .fr.new').count() >= 6)
                 await pg.screenshot(path=OUT + '_dark.png')
                 ok('A9b the steps go away once listings are saved', await pg.locator('#steps').is_hidden())
