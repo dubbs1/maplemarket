@@ -55,10 +55,17 @@ def bring_over(src, dst):
         for f in files:
             if rel == '.' and f in SKIP_IN_SCANS:
                 continue
+            if rel == '.' and f == 'all_scans.txt':
+                continue                                # copied last (below): its being here means "done"
             target = os.path.join(d_scans, rel, f)
             if not os.path.exists(target):
                 shutil.copy2(os.path.join(root, f), target)
                 n += 1
+    main = os.path.join(d_scans, 'all_scans.txt')
+    if os.path.isfile(os.path.join(s_scans, 'all_scans.txt')) and not os.path.exists(main):
+        shutil.copy2(os.path.join(s_scans, 'all_scans.txt'), main + '.tmp')   # a cut-off copy never counts as done
+        os.replace(main + '.tmp', main)
+        n += 1
     return n
 
 
@@ -72,5 +79,5 @@ def first_run(app_dir, env=None):
     try:
         n = bring_over(old, app_dir)
     except OSError as e:
-        return f'Could not bring over your scans from {old}: {e}. Use More > Older scan files to import them.'
+        return f'Could not bring over your scans from {old}: {e}. It tries again next time; or use Options > Older scan files to import them.'
     return f'Brought over your scans from {old} ({n} files). The old folder was not changed.'

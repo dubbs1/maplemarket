@@ -10,6 +10,7 @@ views agree (the same slot never holds two different items). Different items pin
 a shop of only identical rows, the size of one mouse-wheel step decides, and if even that is unknown
 the smallest N that fits is used, so it never counts more than it saw.
 """
+import time
 from PIL import Image, ImageOps
 
 VISIBLE = 6                    # rows a shop window shows at once
@@ -108,10 +109,15 @@ class ScrollTracker:
         self.bottom = False        # ...and was scrolled to its end
         self.short = False         # no handle, and the slot after the last listing is empty
         self.whole = False         # every listing of the shop has been seen in this visit
+        self.missed = 0            # when the last look found no handle
 
-    def _bar(self, img, lay):
+    def _bar(self, img, lay, every=False):
+        now = time.time()
+        if not every and self.x is None and now - self.missed < 1:
+            return None                              # no handle a moment ago (a short list): look again once a second
         sb = find_scrollbar(img, lay, self.x) or (find_scrollbar(img, lay) if self.x else None)
         if not sb:
+            self.missed = now
             return None
         self.x, rel, self.free = sb
         if self.margin is None or rel < self.margin:
@@ -170,7 +176,7 @@ class ScrollTracker:
         if not rows or len(lay['cols']) != 1:
             return None
         h, top = lay['h'], lay['top']
-        p = self._bar(img, lay)
+        p = self._bar(img, lay, every=True)
         travel = (self.free - 2 * self.margin) if p is not None else 0
         f = min(1.0, max(0.0, p / travel)) if p and travel > 0 else 0.0
         view = {}
