@@ -201,6 +201,9 @@ B. Use it:
    4. Open shops in the Free Market as usual.
       - You should hear a soft chime and see each listing appear on the right with its picture. New ones say **just listed** in green for a few minutes. The steps go away once the first listing is saved.
       - If the room shows `—`: check the minimap is open, or click **Change** under Room and type it.
+      - Shops whose rows are all sold (faded) are saved too, as **sold**.
+      - Opening a shop again within 10 minutes saves only what changed, even if you pressed Stop and Start (or closed MapleReader) in between, so there's no second chime for the same shop.
+      - When you've seen a shop's whole list again (scrolled to the bottom, or it fits without scrolling), listings that are no longer there are taken off the market, and Messages says so. Listings that sold show faded, so they're kept as **sold** instead.
    5. To look up a price, click **Prices**, type part of the name (for example `scroll`), and click the item. (Shortcut: press `/` to jump to the search box, `Esc` to go back.)
       - You should see the cheapest price now, the usual price, and a **Where to buy** list with the shop, room (FM) and channel (CH).
       - To be told when it gets cheaper: under **Price alert**, type the most you'd pay and click **Tell me when it's this price or less**. You'll hear a chime when a scan finds one.

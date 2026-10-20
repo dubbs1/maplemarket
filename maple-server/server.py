@@ -86,7 +86,7 @@ def who_is(auth_header):
 
 # ---------- checking what friends send ----------
 _ISO = re.compile(r'^@\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d)?(Z|[+-]\d\d:\d\d)?$')   # offset: newer readers
-_EXTRA = re.compile(r'^(sold|c\d{1,4}|x?\d{1,4}|#\d{1,4})$', re.I)
+_EXTRA = re.compile(r'^(sold|gone|c\d{1,4}|x?\d{1,4}|#\d{1,4})$', re.I)
 
 
 def _seen_ok(stamp, now):
