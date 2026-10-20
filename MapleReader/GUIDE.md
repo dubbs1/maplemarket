@@ -68,11 +68,11 @@ The installer needs nothing else first (no Python, no `setup.bat`, no `build_exe
    - **Options** shows `Updates: ...` and has a **Check now** button.
    - To remove MapleReader: Windows Settings > Apps > MapleReader > Uninstall. Your scans stay in `%LOCALAPPDATA%\Programs\MapleReader\scans` until you delete that folder.
 
-6. **Your EXP:** while MapleReader is watching, the **Your EXP** card on the Scan tab shows your level, EXP per hour, EXP gained, and the time to your next level. It reads the EXP line at the bottom of the game window (`EXP 93,499 [43.17%]`), so keep that line on screen.
+6. **Your EXP:** the **Your EXP** card on the Scan tab shows your level, EXP per hour, EXP gained, and the time to your next level. EXP is recorded **on its own**, with its own **Start**/**Stop** button on that card: it keeps going while you're out hunting, whether or not shops are being watched. It reads the EXP line at the bottom of the game window (`EXP 93,499 [43.17%]`), so keep that line on screen.
    - The first numbers show a few seconds after you press Start. "EXP per hour" shows after a minute.
    - **Reset** starts counting again (for example when you start a new hunting trip).
    - EXP lost from dying is shown apart, not taken off what you gained.
-   - To turn it off: Options > **Track my EXP**.
+   - To stop it: **Stop** on the EXP card (or Options > **Record my EXP**). MapleReader remembers your choice next time it opens.
    - If the card keeps saying "Looking for the EXP line", send Claude a screenshot of the whole game window.
 
 The rest of this guide is the manual way (the zip folder), which still works.
