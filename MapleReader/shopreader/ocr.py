@@ -23,10 +23,14 @@ def to_number(t):
     return int(re.sub(r'[^\d]', '', t) or 0)
 
 
-def ocr_lines(img, red=False, ox=0, oy=0, scale=SCALE):
-    """OCR an image and return text lines with boxes in screen coordinates."""
+def ocr_lines(img, red=False, ox=0, oy=0, scale=SCALE, thr=None):
+    """OCR an image and return text lines with boxes in screen coordinates.
+    thr: split into black and white at this grey first (for the faint text of sold rows)."""
     big = img.resize((img.width * scale, img.height * scale), Image.LANCZOS) if scale > 1 else img
-    g = ImageOps.autocontrast(big.split()[0] if red else ImageOps.grayscale(big))
+    if thr:
+        g = ImageOps.grayscale(big).point(lambda v: 0 if v < thr else 255)
+    else:
+        g = ImageOps.autocontrast(big.split()[0] if red else ImageOps.grayscale(big))
     g = ImageOps.expand(g, border=10, fill=255)
     d = engine.data(g, config='--psm 11 ' + CFG)
     words = {}

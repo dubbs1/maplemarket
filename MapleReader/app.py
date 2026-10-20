@@ -13,5 +13,9 @@ if __name__ == '__main__':
         from shopreader import engine
         find_tesseract()
         engine.selftest()
+    if '--self-check' in sys.argv:                  # automatic builds (and support): do the parts start and talk?
+        from shopreader.desktop import self_check
+        i = sys.argv.index('--self-check')
+        sys.exit(self_check(sys.argv[i + 1] if len(sys.argv) > i + 1 else 'self_check.txt'))
     from shopreader.desktop import run
     run()

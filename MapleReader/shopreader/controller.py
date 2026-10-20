@@ -6,6 +6,7 @@ small requests. Everything here is safe to call from the web server's threads.
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -13,7 +14,7 @@ import time
 from collections import deque
 
 from . import __version__, engine
-from .config import APP_DIR, VOLUME
+from .config import APP_DIR, UPDATE_EVERY, VOLUME
 from .icons import slug
 from .location import RoomWatcher, read_channel
 from .names import load_items
@@ -21,6 +22,7 @@ from .ocr import find_tesseract
 from .rows import parse_frame
 from .scanner import Events, Scanner
 from . import share
+from . import update as updater
 
 SETTINGS = os.path.join(APP_DIR, 'settings.json')
 
@@ -58,9 +60,11 @@ class _Feed(Events):
 class Controller:
     def __init__(self):
         self.lock = threading.Lock()
+        self._start_lock = threading.Lock()
         self.settings = self._load()
         self.tesseract = find_tesseract()
         self.engine = engine.mode() if self.tesseract else 'none'
+        self._tess_check = 0                         # when we last looked for a newly installed Tesseract
         self.scanner = None
         self.seq = 0
         self.events = deque(maxlen=400)              # saved rows and notes, newest last
@@ -69,6 +73,13 @@ class Controller:
         self.last_seen = time.time()                 # when the window last asked for news
         self.sharer = None
         self._share_restart()
+        # updates: only the installed app (MapleReader.exe) can install one; the zip version is told where to get it
+        self.frozen = bool(getattr(sys, 'frozen', False))
+        self.update_info = {'state': 'checking'}
+        self._update_at = 0
+        self.quit_requested = False                  # set when an update is about to install: the window closes
+        if self.frozen:                              # an earlier update's setup file is no longer needed
+            shutil.rmtree(os.path.join(APP_DIR, 'updates'), ignore_errors=True)
 
     # --- settings ---
     def _load(self):
@@ -83,6 +94,7 @@ class Controller:
         s.setdefault('share_on', False)
         s.setdefault('share_server', share.DEFAULT_SERVER)
         s.setdefault('share_key', '')
+        s.setdefault('auto_start', True)             # start watching as soon as the app opens
         return s
 
     def _save(self):
@@ -121,24 +133,74 @@ class Controller:
     def note(self, text, level='info'):
         self.push('note', text=text, level=level, t=time.time())
 
+    def _look_for_tesseract(self):
+        """Installed while the app was open? Then it's ready without a restart."""
+        if find_tesseract():
+            self.engine = engine.mode()               # can take a few seconds (a safety test): not on the window's request
+            self.tesseract = True
+            self.note('Tesseract found. Press Start watching.')
+
+    # --- updates ---
+    def check_update(self, wait=False):
+        """Look for a newer version in the background (or right away with wait=True)."""
+        self._update_at = time.time()
+
+        def look():
+            info = updater.check()
+            if self.update_info.get('state') not in ('downloading', 'installing'):
+                self.update_info = dict(info, can_install=self.frozen)
+        if wait:
+            look()
+        else:
+            threading.Thread(target=look, daemon=True).start()
+        return {'ok': True}
+
+    def install_update(self):
+        """Download the new version, check its fingerprint, and hand over to its setup (which restarts us)."""
+        info = self.update_info
+        if info.get('state') != 'available':
+            return {'ok': False, 'error': 'No update to install.'}
+        if not self.frozen:
+            return {'ok': False, 'error': 'This copy runs from the zip folder: download the new version from the release page.'}
+
+        def go():
+            self.update_info = dict(info, state='downloading')
+            try:
+                path = updater.download(info, os.path.join(APP_DIR, 'updates'))
+                self.update_info = dict(info, state='installing')
+                self.note('Installing the update. MapleReader closes now and opens again by itself in a minute.')
+                updater.start_install(path)
+                self.quit_requested = True
+            except (OSError, ValueError) as e:
+                self.update_info = dict(info, state='available', error=f'The update could not be installed: {e}')
+                self.note(f'The update could not be installed: {e}', 'error')
+        threading.Thread(target=go, daemon=True).start()
+        return {'ok': True}
+
     def snapshot(self, since=0):
+        if time.time() - self._update_at > UPDATE_EVERY:
+            self.check_update()
+        if not self.tesseract and time.time() - self._tess_check > 5:
+            self._tess_check = time.time()
+            threading.Thread(target=self._look_for_tesseract, daemon=True).start()
         with self.lock:
             self.last_seen = time.time()
             settings = {k: v for k, v in self.settings.items() if k != 'share_key'}   # the key never leaves the app
-            return dict(self.state, version=__version__, engine=self.engine, tesseract=self.tesseract,
+            return dict(self.state, version=__version__, engine=self.engine, tesseract=self.tesseract, update=self.update_info,
                         settings=settings, share=self.share_status(), seq=self.seq,
                         events=[e for e in self.events if e['seq'] > since])
 
     # --- buttons ---
     def start(self, channel=0):
-        if self.scanner:
-            return {'ok': True}
         if not self.tesseract:
             return {'ok': False, 'error': 'Tesseract is not installed.'}
-        items = load_items(os.path.join(APP_DIR, 'items.txt'))
-        sc = Scanner(items, int(channel or 0), monitor=int(self.settings['monitor']), volume=float(self.settings['volume']),
-                     quiet=bool(self.settings['quiet']), events=_Feed(self))
-        self.scanner = sc
+        with self._start_lock:                       # two quick clicks must not start two scanners
+            if self.scanner:
+                return {'ok': True}
+            items = load_items(os.path.join(APP_DIR, 'items.txt'))
+            sc = Scanner(items, int(channel or 0), monitor=int(self.settings['monitor']),
+                         volume=float(self.settings['volume']), quiet=bool(self.settings['quiet']), events=_Feed(self))
+            self.scanner = sc
         self.set(watching=True, status='looking', channel=sc.state['ch'], room=0, shop=None, shop_rows=0, total=0,
                  started=time.time())
         self.note('Watching your screen.' + ('' if sc.state['ch'] else ' Open the Change Channel window once so I can read your channel.'))
@@ -154,6 +216,11 @@ class Controller:
                     self.set(watching=False, status='stopped')
         threading.Thread(target=run, daemon=True).start()
         return {'ok': True}
+
+    def autostart(self):
+        """When the app opens: start watching straight away, unless that's switched off in Settings."""
+        if self.settings.get('auto_start', True) and self.tesseract:
+            self.start()
 
     def stop(self):
         sc, self.scanner = self.scanner, None
@@ -176,12 +243,12 @@ class Controller:
         if 'room' in d:
             rm = int(d['room'])
             if not 0 <= rm <= 40:
-                return {'ok': False, 'error': 'Room must be 1 to 40.'}
+                return {'ok': False, 'error': 'Room must be 0 (unknown) to 40.'}
             self.set(room=rm)
             if self.scanner:
                 self.scanner.set_room(rm)
             self.note(f'Room set to {rm}.')
-        for k, conv in (('volume', float), ('quiet', bool), ('monitor', int)):
+        for k, conv in (('volume', float), ('quiet', bool), ('monitor', int), ('auto_start', bool)):
             if k in d:
                 self.settings[k] = conv(d[k])
         if self.scanner and ('volume' in d or 'quiet' in d):
@@ -229,8 +296,9 @@ class Controller:
         if sys.platform != 'win32':
             return {'ok': False, 'error': 'Only on Windows.'}
         cmd = ('winget install --id UB-Mannheim.TesseractOCR -e --accept-package-agreements --accept-source-agreements'
-               ' & echo. & echo Done. Close this window and restart MapleReader. & pause')
+               ' & echo. & echo Done. Close this window; MapleReader is ready. & pause')
         subprocess.Popen(['cmd', '/c', cmd], creationflags=getattr(subprocess, 'CREATE_NEW_CONSOLE', 0))
+        self.note('Installing Tesseract in a separate window. Click Yes if Windows asks. MapleReader notices when it is done.')
         return {'ok': True}
 
     def status_line(self):

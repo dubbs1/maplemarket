@@ -76,17 +76,26 @@ def run():
         return
     from .controller import Controller
     from .market_server import MarketServer
+    from .migrate import first_run
+    moved = first_run(APP_DIR) if getattr(sys, 'frozen', False) else None   # the installed app's first run
     ctl = Controller()
+    if moved:
+        ctl.note(moved)
     srv = MarketServer(controller=ctl)
     url = srv.start()
     if not url:
         _message('MapleReader could not start: the ports it uses (8765 to 8770) are all busy.\n'
                  'Close other copies of MapleReader, or restart the PC, and try again.')
         return
+    ctl.autostart()
     proc, opened = open_window(url), time.time()
     try:
         while True:
             time.sleep(1)
+            if ctl.quit_requested:                   # an update is installing: close the window and step aside
+                if proc is not None and proc.poll() is None:
+                    proc.terminate()
+                break
             if proc is not None and proc.poll() is not None:
                 if time.time() - opened > 5:
                     break                            # the app window was closed
@@ -98,6 +107,41 @@ def run():
     finally:
         ctl.shutdown()
         srv.stop()
+
+
+def self_check(result_path):
+    """MapleReader.exe --self-check result.txt: start the app's parts in a scratch folder, ask them what the window
+    would ask, and write what happened (the exe has no console). Exit code 0 = all good. Used by the automatic
+    builds, and handy on a PC where the app won't start."""
+    import tempfile
+    import traceback
+    lines, good = [], False
+    try:
+        work = tempfile.mkdtemp(prefix='maplereader_check_')
+        os.environ.setdefault('MAPLEREADER_UPDATE_API', 'off')
+        from . import config, controller, market_server
+        from .ocr import find_tesseract
+        config.APP_DIR = controller.APP_DIR = market_server.APP_DIR = work
+        controller.SETTINGS = os.path.join(work, 'settings.json')
+        os.chdir(work)
+        lines.append(f'tesseract found: {find_tesseract()}')
+        ctl = controller.Controller()
+        srv = market_server.MarketServer(controller=ctl, ports=range(8780, 8786))
+        url = srv.start()
+        with urllib.request.urlopen(url + 'api/state', timeout=10) as r:
+            state = json.loads(r.read().decode())
+        with urllib.request.urlopen(url, timeout=10) as r:
+            page = r.read().decode('utf-8', 'replace')
+        lines += [f"version {state['version']}", f"text reader: {state['engine']}", f'page: {len(page)} characters']
+        good = bool(state['version']) and 'Maple Classic Market' in page and state['tesseract'] and state['engine'] in ('fast', 'slow')
+        srv.stop()
+        ctl.shutdown()
+    except Exception:
+        lines.append(traceback.format_exc())
+    lines.append('SELF-CHECK PASSED' if good else 'SELF-CHECK FAILED')
+    with open(result_path, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(lines) + '\n')
+    return 0 if good else 1
 
 
 if __name__ == '__main__':

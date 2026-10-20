@@ -8,7 +8,7 @@ from .config import NAME_MATCH
 def load_items(path):
     if not os.path.isfile(path):
         return []
-    with open(path, encoding='utf-8') as f:
+    with open(path, encoding='utf-8-sig') as f:     # -sig: Notepad's invisible first character
         return [ln.split('|')[0].strip() for ln in f if ln.strip() and not ln.startswith('#')]
 
 
@@ -17,11 +17,19 @@ def real_name(nm):
     return sum(map(len, words)) >= 5 and (any(len(w) >= 4 for w in words) or sum(len(w) >= 3 for w in words) >= 2)
 
 
+def fix_w(text):
+    """A capital W read as two marks at the start of a word: "Vvhite", "Yvhite", "Ywhite", "VVand", "yyatch",
+    "Y¥atch", "¥¥atch" -> "White", "Wand", "Watch". No word starts with these pairs, and a single V or Y
+    ("Vest", "Yeti") is left alone."""
+    return re.sub(r'(?<![A-Za-z0-9])(?:[VYy¥][VvWwYy¥]|\\/\\/)(?=[a-z])', 'W', text)
+
+
 def fix_name(name, items):
     """Clean up common OCR mistakes in an item name."""
     name = re.sub(r'^[^A-Za-z0-9]+', '', name)       # stray symbols in front, e.g. "¥wand"
     name = re.sub(r'\bl(?=[a-z])', 'I', name)          # OCR reads a capital I as l: "lron" -> "Iron"
-    name = name.replace('VV', 'W').replace('Scrolk', 'Scroll').replace('Scro11', 'Scroll')
+    name = fix_w(name).replace('VV', 'W').replace('Scrolk', 'Scroll').replace('Scro11', 'Scroll')
+    name = re.sub(r'\b[BH]i[uU]e\b|\bbIUe\b', 'Blue', name)   # the l of "Blue" read as i ("Biue", "Hiue", "bIUe")
     name = re.sub(r'\bV[Ww]?(?=h)', 'W', name)          # W read as V: "Vhite"/"VWhite"/"Vwhite" -> "White"
     name = re.sub(r'\bVand\b', 'Wand', name)
     name = re.sub(r'\b[YV]W', 'W', name)                 # "Ice YWand" -> "Ice Wand"

@@ -13,6 +13,7 @@ import glob
 import os
 import re
 import sys
+import threading
 import pytesseract
 
 TSV_COLUMNS = ('level', 'page_num', 'block_num', 'par_num', 'line_num', 'word_num',
@@ -22,6 +23,9 @@ TSV_COLUMNS = ('level', 'page_num', 'block_num', 'par_num', 'line_num', 'word_nu
 os.environ.setdefault('OMP_THREAD_LIMIT', '1')
 QUIET = (('debug_file', os.devnull),)                # hide "Estimating resolution as ..." messages
 _state = {'lib': None, 'tessdata': None, 'tried': False, 'apis': {}, 'mode': 'slow'}
+# One Tesseract handle must never be used by two threads at once (the scanner and "Read a screenshot"
+# can both read): that crashes the whole program, not just the read. Reads take turns instead.
+_lock = threading.RLock()
 
 
 def _split(config):
@@ -133,19 +137,26 @@ def _api(pairs):
 
 @atexit.register
 def _close():
-    """Shut Tesseract down cleanly when the reader stops."""
-    L = _state['lib']
-    for h in _state['apis'].values():
-        if h is not None:
-            L.TessBaseAPIEnd(h)
-            L.TessBaseAPIDelete(h)
-    _state['apis'].clear()
+    """Shut Tesseract down cleanly when the reader stops (but never hold up closing for it)."""
+    if not _lock.acquire(timeout=5):
+        return                                       # a read is still running: let the process end anyway
+    try:
+        L = _state['lib']
+        for h in _state['apis'].values():
+            if h is not None:
+                L.TessBaseAPIEnd(h)
+                L.TessBaseAPIDelete(h)
+        _state['apis'].clear()
+    finally:
+        _lock.release()
 
 
 def mode():
     """'fast' or 'slow' - shown when the reader starts."""
     if not _state['tried']:
-        _load()
+        with _lock:
+            if not _state['tried']:
+                _load()
     return _state['mode']
 
 
@@ -165,6 +176,11 @@ def _path(p):
 
 
 def _run(img, config, tsv):
+    with _lock:
+        return _run_locked(img, config, tsv)
+
+
+def _run_locked(img, config, tsv):
     psm, pairs = _split(config)
     h = _api(pairs)
     if h is None:

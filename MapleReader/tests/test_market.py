@@ -4,6 +4,7 @@ import json, os, sys, tempfile, urllib.error, urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 work = tempfile.mkdtemp(prefix='maplereader_market_')
+os.environ.setdefault('MAPLEREADER_UPDATE_API', 'off')    # these checks never ask GitHub (test_update.py does that)
 import shopreader.config as C                           # noqa: E402
 C.APP_DIR = work
 from shopreader import market_server as M               # noqa: E402
@@ -78,7 +79,26 @@ def main():
     saved = json.load(open(CT.SETTINGS))
     ok('a button press from the app window works and is remembered', code == 200 and r['ok'] and saved['monitor'] == 2)
     ok('a wrong channel is refused', press('api/set', {'channel': 99}, {'X-MapleReader': '1'})[1]['ok'] is False)
+    ok('starting by itself is on unless switched off', ctl.settings['auto_start'] is True)
+    press('api/set', {'auto_start': False}, {'X-MapleReader': '1'})
+    ok('...and switching it off is remembered', json.load(open(CT.SETTINGS))['auto_start'] is False)
     app.stop()
+
+    # no Tesseract when the app opened, installed later: the app notices without a restart
+    import time
+    real = CT.find_tesseract
+    CT.find_tesseract = lambda: False
+    late = CT.Controller()
+    late.autostart()
+    ok('without Tesseract it does not try to start', late.scanner is None and late.snapshot()['tesseract'] is False)
+    CT.find_tesseract = real
+    late._tess_check = 0
+    late.snapshot()
+    for _ in range(100):
+        if late.tesseract:
+            break
+        time.sleep(0.1)
+    ok('Tesseract installed while open: ready without a restart', late.snapshot()['tesseract'] is True)
     print('MARKET CHECK PASSED' if not fails else 'MARKET CHECK FAILED')
     return 1 if fails else 0
 

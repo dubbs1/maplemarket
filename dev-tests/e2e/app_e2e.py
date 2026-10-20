@@ -1,6 +1,8 @@
-import os
 import sys, os, types, time, json, tempfile, asyncio, urllib.request, urllib.error
-R = sys.argv[1]; OUT = sys.argv[2]
+os.environ.setdefault('MAPLEREADER_UPDATE_API', 'off')   # never ask the real GitHub from a test
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the repository
+R = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_ROOT, 'MapleReader')
+OUT = sys.argv[2] if len(sys.argv) > 2 else tempfile.mkdtemp(prefix='mr_shots_')   # screenshots go here
 sys.path.insert(0, R); sys.path.insert(0, os.path.join(R, 'tests'))
 work = tempfile.mkdtemp(prefix='mr_app_'); os.chdir(work)
 import shopreader.config as C; C.APP_DIR = work
@@ -41,8 +43,18 @@ async def main():
             if scheme == 'dark':
                 ok('A1 opens on the Scanner tab', await pg.get_attribute('[data-nav=scan]', 'aria-current') == 'page')
                 ok('A2 says not scanning', 'Not scanning' in await pg.inner_text('#sst'))
+                ok('A2b three steps to follow, none done yet', await pg.locator('#steps li').count() == 3 and await pg.locator('#steps li.done').count() == 0)
+                ok('A2c channel and room boxes stay closed until Change', await pg.locator('#ich').is_hidden())
+                ok('A2d group sharing is not shown while it is off', await pg.locator('#shst').count() == 0)
+                ok('A2e no update card when there is nothing to update', await pg.locator('#upd').is_hidden())
+                ctl.update_info = {'state': 'available', 'version': '2099-01-01', 'can_install': False, 'page': 'https://example.com/r'}
+                await pg.wait_for_timeout(1600)
+                ok('A2f a new version shows at the top of Scan', await pg.locator('#upd').is_visible() and
+                   'A new version is ready' in await pg.inner_text('#upd') and 'Download page' in await pg.inner_text('#upd'))
+                ctl.update_info = {'state': 'none'}; await pg.wait_for_timeout(1600)
+                ok('A2g and goes away again', await pg.locator('#upd').is_hidden())
                 await pg.screenshot(path=OUT + '_idle.png')
-                await pg.fill('#ich', '99'); await pg.click('#sch'); await pg.wait_for_timeout(300)
+                await pg.click('[data-chg=ch]'); await pg.fill('#ich', '99'); await pg.click('#sch'); await pg.wait_for_timeout(300)
                 ok('A3 bad channel refused', ctl.state['channel'] == 0)
                 await pg.click('#go'); await pg.wait_for_timeout(1500)
                 ok('A4 Start starts the scanner', ctl.state['watching'] and 'Stop' in await pg.inner_text('#go'))
@@ -58,22 +70,45 @@ async def main():
                 ok('A8 header chip live', 'CH 10' in await pg.inner_text('#chip'))
                 ok('A9 newest listings marked just listed', await pg.locator('#feed .fr.new').count() >= 6)
                 await pg.screenshot(path=OUT + '_dark.png')
+                ok('A9b the steps go away once listings are saved', await pg.locator('#steps').is_hidden())
+                await pg.click('#sets summary')
                 await pg.check('#oq') ; await pg.uncheck('#oq'); await pg.wait_for_timeout(300)
                 await pg.select_option('#om', '2'); await pg.wait_for_timeout(300)
+                await pg.uncheck('#oa'); await pg.wait_for_timeout(300)
                 st = json.load(open(os.path.join(work, 'settings.json')))
-                ok('A10 options saved (chime off, screen 2)', st['quiet'] is True and st['monitor'] == 2)
-                await pg.fill('#irm', '7'); await pg.press('#irm', 'Enter'); await pg.wait_for_timeout(1500)
+                ok('A10 options saved (chime off, screen 2, no auto start)', st['quiet'] is True and st['monitor'] == 2 and st['auto_start'] is False)
+                await pg.click('[data-chg=rm]'); await pg.fill('#irm', '7'); await pg.press('#irm', 'Enter'); await pg.wait_for_timeout(1500)
                 ok('A11 room typed by hand', ctl.state['room'] == 7 and (await pg.inner_text('#vrm')) == '7')
                 await pg.set_input_files('#opic', os.path.join(R, 'tests/fixtures/screw.png')); await pg.wait_for_timeout(6000)
                 ok('A12 read a screenshot', 'screw.png: 6 listings' in await pg.inner_text('#notes'))
+                await pg.click('[data-nav=browse]'); await pg.wait_for_timeout(1500)
+                n = await pg.locator('#list [data-open]').count()
+                ok(f'A12b Prices: one row per scanned item, no sample items ({n})', n == 24 and 'Purple Tube' not in await pg.inner_text('#list'))
+                await pg.click('[data-ps=low]'); await pg.wait_for_timeout(300)
+                first = (await pg.inner_text('#list [data-open] >> nth=0')).splitlines()[0]
+                ok(f'A12c Cheapest first ({first})', first == 'Adamantium Ore')
+                await pg.fill('#q', 'ore'); await pg.wait_for_timeout(300)
+                ok('A12d search narrows the prices (the three ores)', await pg.locator('#list [data-open]').count() == 3)
                 await pg.click('[data-nav=market]'); await pg.wait_for_timeout(2500)
-                mi = await pg.locator('#mb img.ic').count()
-                ok(f'A13 market listings show pictures ({mi})', mi >= 20)
+                rows = await pg.locator('#mb .fr').count(); mi = await pg.locator('#mb img.ic').count()
+                ok(f'A13 listings: copies merged, each with its picture ({rows} rows, {mi} pictures)', rows == 17 and mi == 17)
+                ok('A13b two copies show as x2', await pg.locator('#mb .cnt:has-text("×2")').count() == 3)
                 ok('A14 market shows just listed', await pg.locator('#mb .fresh').count() >= 1)
                 await pg.screenshot(path=OUT + '_market.png')
                 await pg.click('#mb [data-open]'); await pg.wait_for_timeout(500)
                 ok('A15 item page has the big picture', await pg.locator('#app img.ic.lg').count() == 1)
-                await pg.click('#back'); await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(800)
+                await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
+                ok('A15e Esc goes back from an item', await pg.locator('#app img.ic.lg').count() == 0)
+                await pg.click('[data-nav=more]'); await pg.keyboard.press('/'); await pg.wait_for_timeout(300)
+                ok('A15f "/" jumps to the Prices search', await pg.evaluate("document.activeElement.id") == 'q')
+                await pg.click('[data-nav=market]'); await pg.click('#mb [data-open]'); await pg.wait_for_timeout(500)
+                ok('A15b item page says where to buy it', 'Where to buy' in await pg.inner_text('#app') and 'Cheapest NX <3' in await pg.inner_text('#app'))
+                await pg.click('#back'); await pg.click('[data-nav=more]'); await pg.click('[data-go=deals]'); await pg.wait_for_timeout(300)
+                ok('A15c More opens alerts and deals, with a way back', await pg.locator('#at').count() == 1 and
+                   await pg.get_attribute('[data-nav=more]', 'aria-current') == 'page')
+                await pg.click('#tomore'); await pg.click('[data-go=mine]'); await pg.wait_for_timeout(300)
+                ok('A15d My shop has the post form', await pg.locator('#pgo').count() == 1)
+                await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(800)
                 await pg.click('#go'); await pg.wait_for_timeout(1500)
                 ok('A16 Stop stops', not ctl.state['watching'] and 'Start' in await pg.inner_text('#go'))
                 ok('A17 feed kept after stop', await pg.locator('#feed .fr').count() == 29)
@@ -91,3 +126,5 @@ async def main():
 asyncio.run(main())
 srv.stop(); ctl.shutdown()
 print('ALL APP CHECKS PASSED' if not fails else f'{len(fails)} FAILED')
+
+sys.exit(1 if fails else 0)   # so a runner sees a failure, not just the printed line

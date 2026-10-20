@@ -52,6 +52,24 @@ The more actionable discovery is how much of the data problem is still open. Bun
 
 ---
 
+# The easy way: the MapleReader installer
+
+The installer needs nothing else first (no Python, no `setup.bat`, no `build_exe.bat`). Updates then come by themselves.
+
+1. Download `MapleReader-Setup-<version>.exe` from the project's **Releases** page on GitHub (or from the file Claude sends you).
+2. Double-click it.
+   - If Windows says "Windows protected your PC": click **More info**, then **Run anyway**. (The installer isn't signed with a paid certificate; it was built automatically from this project's code.)
+   - You should see "Setup - MapleReader". Click **Next**, then **Install**, then **Finish** with "Start MapleReader" ticked.
+3. MapleReader opens on the **Scan** tab and starts watching.
+   - If you used the zip version before, the first message says `Brought over your scans from ...`: everything you scanned is already there. The old folder isn't changed; you can delete it later.
+   - If the big button says **Install Tesseract**, click it (see Part G2).
+4. From now on, open MapleReader from the Start menu or the desktop icon.
+5. **Updates:** when a new version is out, a card at the top of the Scan tab says **A new version is ready**. Click **Update now**. MapleReader closes, updates and opens again by itself within a minute. Your scans and settings stay.
+   - Settings (on the Scan tab) shows `Updates: ...` and has a **Check now** button.
+   - To remove MapleReader: Windows Settings > Apps > MapleReader > Uninstall. Your scans stay in `%LOCALAPPDATA%\Programs\MapleReader\scans` until you delete that folder.
+
+The rest of this guide is the manual way (the zip folder), which still works.
+
 # Step-by-step guide (starting from: Python 3.13 already installed)
 
 Do the steps in order. Do one thing at a time and check that you see what is described before moving on.
@@ -148,7 +166,16 @@ Do the steps in order. Do one thing at a time and check that you see what is des
 
 **Part G2: The MapleReader app (scanner and market in one window)**
 
-The app is one clean window with tabs: **Scanner** (start and stop, your channel and room, the shop being read, options, and every listing as it's saved, with the item's picture) and the market tabs (**Market, Mine, Items, Deals, Sources**). Listings you scan show up in the market by themselves, with no importing.
+The app is one window with four tabs:
+
+| Tab | What it's for |
+|---|---|
+| **Scan** | The **Start watching** button, your channel and room, and every listing as it's saved, with its picture |
+| **Prices** | One row per item you've scanned: the cheapest price on sale now, how many are for sale, and when it was last seen. Click an item to see **where to buy it**, cheapest first |
+| **Listings** | Every shop listing, newest or cheapest first. Two identical copies in one shop show once, as "×2" |
+| **More** | Alerts and deals, your own shop's listings, where prices come from, and importing older scan files |
+
+Listings you scan show up in Prices and Listings by themselves, with no importing.
 
 A. Make `MapleReader.exe` (once, and again after each update):
    1. Double-click `build_exe.bat`. It installs the build tools, builds the app, and puts `MapleReader.exe` and an `_internal` folder in your MapleReader folder. It takes 2 to 5 minutes.
@@ -156,30 +183,31 @@ A. Make `MapleReader.exe` (once, and again after each update):
    - Keep `_internal` next to `MapleReader.exe`. For a desktop icon, right-click the exe, **Send to > Desktop (create shortcut)**.
    - If your antivirus warns about the new exe: home-made exes are sometimes flagged because they aren't signed. It was built on your PC from the files in this folder. `start_app.bat` opens the same app without an exe.
 B. Use it:
-   1. Double-click `MapleReader.exe`. A window opens on the **Scanner** tab. (It uses the Edge browser that comes with Windows, without the address bar, so it looks like an app.)
-   2. Click **Start watching**. Open the Change Channel window once in the game, or type the channel and click **Set**. Then open shops as usual.
-   - You should see each listing appear on the right with its picture, the Saved count go up, and the chime. New ones are marked green **just listed** for a few minutes.
-   - The top right shows `Watching · CH 10 · FM 1` while scanning.
-   - Options: chime on or off and its volume, the screen the game is on, **Read a screenshot** to test a saved picture, and **Open scans folder**.
-   - Pictures are cut from the shop window the first time each item is seen, and kept in `scans\icons`. Items scanned before this update get their picture the next time you see them in a shop.
-   - Closing the window closes MapleReader.
-   - The first time, the market reads all of `all_scans.txt`, so everything you scanned before is there. **Market > Older scan files > Reload all** clears it and reads the file again.
+   1. Double-click `MapleReader.exe`.
+      - You should see a window open on the **Scan** tab, with three numbered steps. It starts watching by itself, so step 1 already has a green tick and the top right says `Scanning`. (It uses the Edge browser that comes with Windows, without the address bar, so it looks like an app.)
+      - If the big button says **Install Tesseract**: click it, click **Yes** if Windows asks, and wait about a minute. When the black window says `Done`, close it. The button changes to **Start watching** by itself; click it.
+   2. If it isn't watching yet (the big yellow button says **Start watching**), click it.
+      - You should see step 1 get a green tick, and the top right say `Scanning`.
+   3. In the game, open the Change Channel window once, then close it.
+      - You should see step 2 get a tick and your channel appear under **Channel**.
+      - If it doesn't: click **Change** under Channel, type the channel number, and click **Save**.
+   4. Open shops in the Free Market as usual.
+      - You should hear a soft chime and see each listing appear on the right with its picture. New ones say **just listed** in green for a few minutes. The steps go away once the first listing is saved.
+      - If the room shows `—`: check the minimap is open, or click **Change** under Room and type it.
+   5. To look up a price, click **Prices**, type part of the name (for example `scroll`), and click the item. (Shortcut: press `/` to jump to the search box, `Esc` to go back.)
+      - You should see the cheapest price now, the usual price, and a **Where to buy** list with the shop, room (FM) and channel (CH).
+      - To be told when it gets cheaper: under **Price alert**, type the most you'd pay and click **Tell me when it's this price or less**. You'll hear a chime when a scan finds one.
+      - **Listings** shows what was seen in the last 3 days; the button at the bottom shows older ones.
+   6. When you're done, click **Stop**, or just close the window (closing it closes MapleReader).
+   - **Settings** (on the Scan tab; click it to open): start watching when MapleReader opens (on unless you switch it off), chime on or off and its volume, the screen the game is on, **Test a screenshot** to check a saved picture, and **Open scans folder**.
+   - Pictures are cut from the shop window the first time each item is seen, and kept in `scans\icons`.
+   - The first time, the app reads all of `all_scans.txt`, so everything you scanned before is there. **More > Older scan files > Reload all** clears it and reads the file again.
    - The copy of the market on Claude still works, but it doesn't update by itself and has no pictures: there you import `all_scans.txt` as before (Part G).
    - Using `start.bat` instead? Double-click `market.bat` to open the live market in your browser.
 
-**Part G3: Share with friends (the group market)**
+**Part G3: Share with friends (the group market): paused**
 
-With sharing on, every listing you scan is also sent to the group's market at `https://maple.vendormarket.app`, and your Market tab shows everyone's listings and pictures.
-
-1. Get a key (`mm-…`) from whoever runs the market. Setting the market up is in `maple-server\SETUP.md`.
-2. In the app: **Scanner** tab → **Share with friends** → paste the key → **Save**.
-   - You should see `Sharing as <your name> · N sent`. Everything you scanned before is sent once, then each new listing within seconds.
-   - The top right shows how many friends are scanning.
-   - No internet or the server is down? It says so, keeps your scans and sends them later.
-   - "The market did not accept your key": check the key with the person who gave it to you.
-3. To stop sharing, switch it off. Your own scans keep working as before.
-
-Anyone can look at the group market in a browser or on a phone, without a key.
+The group market (a shared website for you and your friends) is paused for now, so MapleReader keeps everything on your PC and the sharing settings are hidden. When it's set up later (`maple-server\SETUP.md`), the steps to turn it on will be here.
 
 **Part H: Check the reader still works (after an update)**
 
@@ -201,7 +229,8 @@ Anyone can look at the group market in a browser or on a phone, without a key.
 |---|---|
 | `MapleReader.exe` | The app: scanner and market in one window (after running `build_exe.bat`) |
 | `start_app.bat` | Opens the same app window without building the exe |
-| `build_exe.bat` | Builds `MapleReader.exe` |
+| `build_exe.bat` | Builds `MapleReader.exe` (it runs `build_app.py`) |
+| `installer\MapleReader.iss` | How the installer is made (the automatic build on GitHub uses it) |
 | `start.bat` | Starts watching the screen in the black window |
 | `market.bat` | Opens the live market without the app (for `start.bat` users) |
 | `test.bat` | Reads one screenshot you drop on it |
@@ -224,6 +253,7 @@ Anyone can look at the group market in a browser or on a phone, without a key.
 | Black or blank screenshots | Game in exclusive fullscreen | Use windowed or borderless windowed (step 11) |
 | Wrong item names | Small text misread | Add an items.txt list so names get corrected |
 | Wrong room | Room not read from the minimap | Type `room 9` with the right number (step 16) |
+| Item or shop names come out garbled ("Biue yyaIcn") after you resize the game or change its resolution | The game draws its shop text at a different size, and the "Filter Applied" setting blurs it | MapleReader now adjusts to the new size by itself. For the clearest reading: game **Options > Graphics > UI Size**: choose **Default Ratio** or **Ideal Ratio** (not "Filter Applied") |
 | Wrong channel | Change Channel window not opened since you switched | Open it once, or type the number |
 | `No module named shopreader` | `shopreader` folder missing or moved | Extract the full zip again so `shopreader` sits next to `maple_shop_reader.py` |
 | Rows missed when scrolling | You dragged the handle or jumped down the list | Scroll with the mouse wheel (step 15) |

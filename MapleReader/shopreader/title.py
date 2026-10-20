@@ -3,6 +3,7 @@ import re
 from PIL import Image, ImageOps, ImageChops
 from .config import CFG
 from . import engine
+from .names import fix_w
 
 
 def title_band(img, lay):
@@ -60,6 +61,7 @@ def read_title(img, lay):
         line = re.sub(r'^[^AIai0-9<]\s+', '', line)     # stray mark from the title bar's dotted edge
         line = re.sub(r'^[^A-Za-z0-9<]+', '', line)      # leftover symbols like ¥ in front
         line = re.sub(r'^(?:(?=\S*[=.,:;|~])[^A-Za-z\s]*[A-Za-z]?[^A-Za-z\s]*\s+)+', '', line)   # junk bits in front, e.g. "y= . ROLLS AND MORE"
+        line = re.sub(r'\bV(?=hite\b)', 'W', fix_w(line))   # "Ywhite"/"Vhite" -> "White"
         if key(line) and len(line) < 40:
             reads.append(line)
     for i, r in enumerate(reads):

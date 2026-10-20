@@ -1,6 +1,8 @@
-import os
-import sys, os, time, json, subprocess, tempfile, asyncio, shutil, urllib.request
-R = sys.argv[1]; SRV = sys.argv[2]; OUT = sys.argv[3]; HERE = os.path.dirname(os.path.abspath(__file__))
+import sys, os, time, json, subprocess, tempfile, asyncio, urllib.request
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the repository
+R = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_ROOT, 'MapleReader')
+SRV = sys.argv[2] if len(sys.argv) > 2 else os.path.join(_ROOT, 'maple-server')
+OUT = sys.argv[3] if len(sys.argv) > 3 else tempfile.mkdtemp(prefix='mr_shots_'); HERE = os.path.dirname(os.path.abspath(__file__))
 data = tempfile.mkdtemp(prefix='maple_share_')
 env = dict(os.environ, MAPLE_DATA=data, MAPLE_PORT='8799', MAPLE_QUIET='1')
 mk = lambda name: subprocess.run([sys.executable, os.path.join(SRV, 'manage.py'), 'add', name], capture_output=True, text=True, env=env).stdout.split(f'Key for {name}:')[1].split()[0]
@@ -43,8 +45,9 @@ async def main():
         ok('shared page has no Scanner tab', await pg.locator('[data-nav=scan]').is_hidden())
         ok('chip shows people scanning: ' + await pg.inner_text('#chip'), 'scanning now' in await pg.inner_text('#chip'))
         await pg.click('[data-nav=market]'); await pg.wait_for_timeout(800)
-        pics = await pg.locator('#mb img.ic').count()
-        ok(f'shared page shows the pictures friends sent ({pics})', pics >= 18)
+        await pg.wait_for_timeout(1500)   # the picture list arrives a moment after the rows
+        shown = await pg.locator('#mb .fr').count(); pics = await pg.locator('#mb img.ic').count()
+        ok(f'shared page shows the pictures friends sent ({pics} of {shown} rows)', shown >= 15 and pics == shown)
         await pg.screenshot(path=OUT + '_shared.png')
         # B scans a shop only B saw -> appears for everyone, and in A's own app Market tab
         nonlocal_pB2[0] = subprocess.Popen([sys.executable, os.path.join(HERE, 'friend.py'), R, tempfile.mkdtemp(prefix='friendB2_'), '8769', kB, server, 'screw', '60'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -59,7 +62,7 @@ async def main():
         got = await pa.evaluate("() => window.App.analyze().rows.filter(o=>o.ch===3).length")
         ok(f"…and in A's own app Market tab ({got})", got == 20)
         await pa.click('[data-nav=scan]'); await pa.wait_for_timeout(1500)
-        shst = await pa.inner_text('#shst')
+        await pa.click('#sets summary'); shst = await pa.inner_text('#shst')
         ok('A sees "Sharing as Cass · N sent": ' + shst, 'Sharing as Cass' in shst)
         await pa.screenshot(path=OUT + '_appshare.png', full_page=True)
         ok(f'no page errors {errs[:2]}', not errs)
@@ -69,3 +72,5 @@ asyncio.run(main())
 for pr in (pA, pB, pC, psrv, nonlocal_pB2[0]):
     if pr: pr.kill()
 print('ALL SHARE CHECKS PASSED' if not fails else f'{len(fails)} FAILED')
+
+sys.exit(1 if fails else 0)   # so a runner sees a failure, not just the printed line
