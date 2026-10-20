@@ -40,7 +40,9 @@ async def main():
         add([f'Mithril Maul | 9000 | White Crusader Chainmail | 1 | 10 | {stamp()}'])
         await pg.wait_for_timeout(3000)
         ok('L4 a new row appears within 3 s, no importing', await listings() == 4)
-        ok('L5 the Market list shows it', 'Mithril Maul' in await pg.inner_text('#mb'))
+        ok('L5 the Prices list shows it', 'Mithril Maul' in await pg.inner_text('#list'))
+        await pg.click('[data-nav=market]'); await pg.wait_for_timeout(500)
+        ok('L5b and the Listings list', 'Mithril Maul' in await pg.inner_text('#mb'))
         # half-written line is not read until complete
         with open(ALL, 'a', encoding='utf-8') as f: f.write('Blue Axe | 11000 | White Crus')
         await pg.wait_for_timeout(2500)
@@ -63,7 +65,7 @@ async def main():
         await pg.wait_for_timeout(3000)
         n = await listings(); ok(f'L11 new all_scans.txt after deleting the old: kept old + added new ({n})', n == 7)
         # Reload all: clears and rereads the file
-        await pg.click('summary:has-text("Older scan files")'); await pg.click('#reload'); await pg.wait_for_timeout(3000)
+        await pg.click('[data-nav=more]'); await pg.click('summary:has-text("Older scan files")'); await pg.click('#reload'); await pg.wait_for_timeout(3000)
         n = await listings(); ok(f'L12 Reload all rebuilds from the file ({n})', n == 1)
         # big file
         big = [f'Bulk {i % 50} | {100 + i} | Shop {i % 40} | {1 + i % 11} | {1 + i % 20} | {stamp(3000 - i // 20)}' for i in range(20000)]

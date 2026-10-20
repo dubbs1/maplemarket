@@ -46,8 +46,9 @@ async def main():
         ok('shared page has no Scanner tab', await pg.locator('[data-nav=scan]').is_hidden())
         ok('chip shows people scanning: ' + await pg.inner_text('#chip'), 'scanning now' in await pg.inner_text('#chip'))
         await pg.click('[data-nav=market]'); await pg.wait_for_timeout(800)
-        pics = await pg.locator('#mb img.ic').count()
-        ok(f'shared page shows the pictures friends sent ({pics})', pics >= 18)
+        await pg.wait_for_timeout(1500)   # the picture list arrives a moment after the rows
+        shown = await pg.locator('#mb .fr').count(); pics = await pg.locator('#mb img.ic').count()
+        ok(f'shared page shows the pictures friends sent ({pics} of {shown} rows)', shown >= 15 and pics == shown)
         await pg.screenshot(path=OUT + '_shared.png')
         # B scans a shop only B saw -> appears for everyone, and in A's own app Market tab
         nonlocal_pB2[0] = subprocess.Popen([sys.executable, os.path.join(HERE, 'friend.py'), R, tempfile.mkdtemp(prefix='friendB2_'), '8769', kB, server, 'screw', '60'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -62,7 +63,7 @@ async def main():
         got = await pa.evaluate("() => window.App.analyze().rows.filter(o=>o.ch===3).length")
         ok(f"…and in A's own app Market tab ({got})", got == 20)
         await pa.click('[data-nav=scan]'); await pa.wait_for_timeout(1500)
-        shst = await pa.inner_text('#shst')
+        await pa.click('#sets summary'); shst = await pa.inner_text('#shst')
         ok('A sees "Sharing as Cass · N sent": ' + shst, 'Sharing as Cass' in shst)
         await pa.screenshot(path=OUT + '_appshare.png', full_page=True)
         ok(f'no page errors {errs[:2]}', not errs)

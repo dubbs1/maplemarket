@@ -165,6 +165,29 @@ html.app #app.narrow{margin-inline:auto}
 .notes li:first-child{border-top:0}.notes li b{font-family:var(--mono);font-weight:500;flex:none}
 .notes li.warn{color:var(--ac)}.notes li.error{color:var(--bad)}
 .shopnow{font-family:var(--display);font-size:18px;font-weight:700;margin:0;overflow-wrap:anywhere}
+/* The app's simple views */
+[hidden]{display:none!important}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}
+button.fr{width:100%;border:0;border-bottom:1px solid var(--bd);border-radius:0;background:none;text-align:left;min-height:0;color:var(--tx)}
+button.fr:hover{background:var(--sf);border-color:var(--bd)}
+button.fr:last-child{border-bottom:0}
+#mb>.card.fr{display:grid;padding:10px 14px}
+.lk{border:0;padding:0;min-height:0;background:none;text-align:left;max-width:100%;display:block}
+.lk:hover{color:var(--sky);text-decoration:underline}
+.fr.nopic{grid-template-columns:minmax(0,1fr) auto}
+.cnt{font-size:13px;color:var(--mu)}
+.back{min-height:34px;padding:4px 12px;font-size:13px;margin-bottom:12px}
+.tiles.t3{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px}
+@media(max-width:560px){.tiles.t3{grid-template-columns:minmax(0,1fr)}}
+.nm h2{font-size:20px}
+.chg{min-height:28px;padding:2px 10px;font-size:12px}
+.steps{margin:12px 0 0;padding:0;list-style:none;counter-reset:s;font-size:14px}
+.steps li{counter-increment:s;display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--bd)}
+.steps li::before{content:counter(s);flex:none;width:22px;height:22px;border-radius:50%;background:var(--sf);border:1px solid var(--bd);
+  display:grid;place-items:center;font-size:12px;font-weight:600}
+.steps li.done{color:var(--mu)}
+.steps li.done::before{content:"✓";background:var(--ok);border-color:var(--ok);color:var(--card)}
+#sets[open]>summary{margin-bottom:4px}
 /* Import card: the main thing you do on Market, so it comes first */
 .imp{border:2px solid var(--sky)}
 .imp input[type=file]{width:100%;box-sizing:border-box}
@@ -756,7 +779,7 @@ async function importFiles(files) {
   if (big) msg += ` ${big} file(s) were too big.`;
   if (full) msg += " Warning: this browser's storage is full, so these rows will be lost when you close the page.";
   if (nh.length) {
-    msg += ` Alert: ${nh.length} match${nh.length > 1 ? "es" : ""}. See Deals.`;
+    msg += ` Alert: ${nh.length} match${nh.length > 1 ? "es" : ""}. ${SEE_DEALS}`;
     beep();
   }
   const out = $("#e5");
@@ -1003,6 +1026,12 @@ function mrows() {
   return `<p class="mu" style="margin:0 0 8px">${L.length} listings</p>` + body;
 }
 function drawMB() {
+  if (!$("#mb")) return; // the list isn't on screen (e.g. importing from More)
+  if (SIMPLE && $("#lcount")) {
+    const n = listingRows().length;
+    $("#lcount").textContent = n ? `${n} listing${n === 1 ? "" : "s"}` : "";
+    return void ($("#mb").innerHTML = simpleRows());
+  }
   $("#mb").innerHTML = mrows();
 }
 function drawMarket() {
@@ -1024,35 +1053,9 @@ function drawMarket() {
       ["low", "Price low"],
       ["high", "Price high"]
     ])}<button id="fg">${mt.grp ? "Show listings" : "Group by store"}</button></div>` +
-        (MODE === "shared"
-          ? `<details class="card"><summary>This market</summary><p class="mu" style="margin:0 0 8px">Listings from everyone ` +
-            `in the group arrive by themselves. <b>Reload all</b> clears this browser's copy and reads everything again.</p>`
-          : LIVE
-          ? `<details class="card"><summary>Older scan files</summary><p class="mu" style="margin:0 0 8px">New listings arrive by themselves. ` +
-            `Pick older scan files here, or drop them on the page; rows already here are skipped. ` +
-            `<b>Reload all</b> clears this page and reads all_scans.txt again.</p>`
-          : `<div class="card imp"><b>Import your scans</b><p class="mu" style="margin:4px 0 8px">` +
-            `Pick <b>all_scans.txt</b> from the reader's scans folder, or drop it anywhere on this page. ` +
-            `Only new rows are added, so use the same file every time.</p>`) +
-        `<div${MODE === "shared" ? " hidden" : ""}>` + // the group's market gets its rows from the scanners, not files
-        `<input type="file" id="scf" accept=".txt,text/plain" multiple aria-label="Scan file"><p class="mu" id="e5" role="status"></p>` +
-        `<details><summary class="mu">Paste rows instead</summary><p class="mu">One row per line: item | price | shop | room | channel, ` +
-        `then optional x37 stock, #13 position, sold, @time seen.</p><textarea id="sc" rows="4" aria-label="Scan rows"></textarea>` +
-        `<div class="frm"><button id="scgo">Import rows</button></div></details></div>` +
-        (LIVE ? `<div class="frm"><button id="reload">Reload all</button></div></details>` : `</div>`) +
-        `<details class="card"><summary>Post a listing</summary>` +
-      `<div class="frm"><input id="pi" list="dl" placeholder="Item name" aria-label="Item name"><datalist id="dl">${ITEMS.slice(
-      0,
-      500
-    )
-      .map(i => `<option value="${esc(i.name)}">`)
-      .join(
-        ""
-      )}</datalist></div><div class="frm"><select id="pt" aria-label="Type"><option value="sell">Sell</option><option value="buy">Buy</option>` +
-        `</select><input id="pp" inputmode="numeric" placeholder="Price" aria-label="Price"><input id="pq" inputmode="numeric" value="1" aria-label="Quantity">` +
-        `</div><div class="frm"><input id="ps" value="${esc(S.store || "My shop")}" aria-label="Store name"><select id="pr" aria-label="Room">` +
-        `${roomOptions()}</select></div><div class="frm"><button id="pgo">Post listing</button>` +
-        `</div><p class="err" id="e4" role="alert"></p></details><div id="mb"></div>`;
+        importCard() +
+        postForm() +
+        `<div id="mb"></div>`;
   $("#ms").value = mt.q;
   $("#ms").oninput = e => {
     mt.q = e.target.value;
@@ -1070,6 +1073,71 @@ function drawMarket() {
     e.target.textContent = mt.grp ? "Show listings" : "Group by store";
     drawMB();
   };
+  bindPost();
+  bindImport();
+  drawMB();
+}
+// Older scan files (in the app), the group's "This market" box, or the main import card (the page on its own)
+function importCard() {
+  return (
+        (MODE === "shared"
+          ? `<details class="card"><summary>This market</summary><p class="mu" style="margin:0 0 8px">Listings from everyone ` +
+            `in the group arrive by themselves. <b>Reload all</b> clears this browser's copy and reads everything again.</p>`
+          : LIVE
+          ? `<details class="card"><summary>Older scan files</summary><p class="mu" style="margin:0 0 8px">New listings arrive by themselves. ` +
+            `Pick older scan files here, or drop them on the page; rows already here are skipped. ` +
+            `<b>Reload all</b> clears this page and reads all_scans.txt again.</p>`
+          : `<div class="card imp"><b>Import your scans</b><p class="mu" style="margin:4px 0 8px">` +
+            `Pick <b>all_scans.txt</b> from the reader's scans folder, or drop it anywhere on this page. ` +
+            `Only new rows are added, so use the same file every time.</p>`) +
+        `<div${MODE === "shared" ? " hidden" : ""}>` + // the group's market gets its rows from the scanners, not files
+        `<input type="file" id="scf" accept=".txt,text/plain" multiple aria-label="Scan file"><p class="mu" id="e5" role="status"></p>` +
+        `<details><summary class="mu">Paste rows instead</summary><p class="mu">One row per line: item | price | shop | room | channel, ` +
+        `then optional x37 stock, #13 position, sold, @time seen.</p><textarea id="sc" rows="4" aria-label="Scan rows"></textarea>` +
+        `<div class="frm"><button id="scgo">Import rows</button></div></details></div>` +
+        (LIVE ? `<div class="frm"><button id="reload">Reload all</button></div></details>` : `</div>`)
+  );
+}
+function bindImport() {
+  $("#scf").onchange = async e => {
+    await importFiles(e.target.files);
+    e.target.value = "";
+  };
+  if ($("#reload")) $("#reload").onclick = RESET;
+  $("#scgo").onclick = () => {
+    const b = alertHits().map(K),
+      r = importScan($("#sc").value),
+      nh = alertHits().filter(o => !b.includes(K(o)));
+    $("#e5").textContent = r.added
+      ? `Imported ${r.added} rows. Skipped ${r.skipped}.${nh.length ? ` Alert: ${nh.length} match${nh.length > 1 ? "es" : ""}. ${SEE_DEALS}` : ""}`
+      : r.dup
+        ? "Those rows were already imported."
+        : "Nothing imported. Check the row format.";
+    if (nh.length) beep();
+    if (r.added) {
+      $("#sc").value = "";
+      drawMB();
+    }
+  };
+}
+function postForm(open) {
+  return (
+        `<details class="card"${open ? " open" : ""}><summary>Post a listing</summary>` +
+      `<div class="frm"><input id="pi" list="dl" placeholder="Item name" aria-label="Item name"><datalist id="dl">${ITEMS.slice(
+      0,
+      500
+    )
+      .map(i => `<option value="${esc(i.name)}">`)
+      .join(
+        ""
+      )}</datalist></div><div class="frm"><select id="pt" aria-label="Type"><option value="sell">Sell</option><option value="buy">Buy</option>` +
+        `</select><input id="pp" inputmode="numeric" placeholder="Price" aria-label="Price"><input id="pq" inputmode="numeric" value="1" aria-label="Quantity">` +
+        `</div><div class="frm"><input id="ps" value="${esc(S.store || "My shop")}" aria-label="Store name"><select id="pr" aria-label="Room">` +
+        `${roomOptions()}</select></div><div class="frm"><button id="pgo">Post listing</button>` +
+        `</div><p class="err" id="e4" role="alert"></p></details>`
+  );
+}
+function bindPost() {
   $("#pgo").onclick = () => {
     const o = {
         name: $("#pi").value,
@@ -1098,27 +1166,6 @@ function drawMarket() {
       $("#e4").textContent = "";
     }
   };
-  $("#scf").onchange = async e => {
-    await importFiles(e.target.files);
-    e.target.value = "";
-  };
-  if ($("#reload")) $("#reload").onclick = RESET;
-  $("#scgo").onclick = () => {
-    const b = alertHits().map(K),
-      r = importScan($("#sc").value),
-      nh = alertHits().filter(o => !b.includes(K(o)));
-    $("#e5").textContent = r.added
-      ? `Imported ${r.added} rows. Skipped ${r.skipped}.${nh.length ? ` Alert: ${nh.length} match${nh.length > 1 ? "es" : ""}. See Deals.` : ""}`
-      : r.dup
-        ? "Those rows were already imported."
-        : "Nothing imported. Check the row format.";
-    if (nh.length) beep();
-    if (r.added) {
-      $("#sc").value = "";
-      drawMB();
-    }
-  };
-  drawMB();
 }
 function drawMine() {
   const m = S.listings.filter(x => x.mine),
@@ -1128,9 +1175,14 @@ function drawMine() {
   $("#app").innerHTML =
     `<div class="grid"><div class="m"><div class="mu">Open listings</div><div class="num">${o.length}</div></div><div class="m"><div class="mu">` +
       `Sold, after 3% fee</div><div class="num">${fmt(Math.floor(tot * 0.97))}</div></div></div>${o.length ? o.map(lrow).join("") : '<div class="card">' +
-      '<b>Nothing listed yet</b><p class="mu" style="margin:4px 0 0">Post a listing from Market and it shows up here.</p></div>'}${d.length ? '<h2 style="margin:12px 0 6px">' +
+      '<b>Nothing listed yet</b><p class="mu" style="margin:4px 0 0">' + (SIMPLE ? "Post one below" : "Post a listing from Market") +
+      ' and it shows up here.</p></div>'}${d.length ? '<h2 style="margin:12px 0 6px">' +
       'Sold</h2>' + d.map(x => `<div class="sight"><span>${esc(item(x.item).name)}</span><span class="mu">${fmt(x.price)} x${x.qty}</span>` +
       `</div>`).join("") : ""}`;
+  if (SIMPLE) {
+    $("#app").insertAdjacentHTML("beforeend", postForm(!o.length));
+    bindPost();
+  }
 }
 function listCard(id) {
   const s = stats(id),
@@ -1234,7 +1286,7 @@ function drawDeals() {
       `${fmt(d.o.price)} each × ${d.o.qty || 1} → sell ~${fmt(d.rs)}</div>` +
       `<div class="num up" style="font-size:20px">+${fmt(d.profit)} profit</div><div class="mu">FM ${d.o.room || "?"}, ch ${d.o.ch} · ${esc(d.o.shop)} · after 3% fee</div>` +
       `<div class="frm"><button data-bought="${esc(K(d.o))}">Bought it</button><button data-got="${esc(K(d.o))}">Got it</button></div>` +
-      `</div>`).join("") : '<div class="card mu">No deals right now. Import a scan from Market.</div>'}`;
+      `</div>`).join("") : `<div class="card mu">No deals right now. ${SIMPLE ? "They show up here as you scan." : "Import a scan from Market."}</div>`}`;
   $("#ago").onclick = () => {
     const e = addAlert($("#at").value, $("#am").value);
     if (e) $("#e6").textContent = e;
@@ -1275,17 +1327,157 @@ ${listCard(cur)}${scanCard(cur)}<div class="card"><b>Log a price</b><div class="
     }
   };
 }
+/* ===== The app's simple views ===== Inside MapleReader (and the group's market) there are four tabs: Scan, Prices
+   (one row per item you've scanned), Listings (every shop listing, copies merged) and More (everything else). */
+const SIMPLE = LIVE;
+const SEE_DEALS = SIMPLE ? "See More › Alerts and deals." : "See Deals.";
+const MORE = ["mine", "deals", "sources"]; // reached from the More tab
+let psort = "new",
+  lsort = "new";
+const segBtns = (name, cur, opts) =>
+  `<div class="seg" role="group">${opts.map(([v, t]) => `<button data-${name}="${v}" aria-pressed="${v === cur}">${t}</button>`).join("")}</div>`;
+const pic = name => ico(name) || '<span class="ph"></span>';
+const seenTxt = t => (Date.now() - t < JUST ? '<span class="fresh">just seen</span>' : "seen " + ago(Date.now() - t));
+// For sale now = seen for sale in the last day, and not seen gone or sold since
+const forSale = R => R.filter(o => o.st === "sale" && Date.now() - (o.last || o.first) < DAY);
+function priceRows() {
+  const by = {};
+  analyze().rows.forEach(o => (by[o.item] = by[o.item] || []).push(o));
+  const k = norm(q).split(/\s+/).filter(Boolean);
+  return Object.entries(by)
+    .map(([id, R]) => {
+      const live = forSale(R);
+      return { id, it: item(id), n: live.length, low: live.length ? Math.min(...live.map(o => o.price)) : null,
+        usual: stats(id).usual, seen: Math.max(...R.map(o => o.last || o.first)) };
+    })
+    .filter(p => p.it && k.every(w => norm(p.it.name).includes(w)))
+    .sort((a, b) =>
+      psort === "low" ? (a.low ?? a.usual ?? 9e9) - (b.low ?? b.usual ?? 9e9) : psort === "az" ? a.it.name.localeCompare(b.it.name) : b.seen - a.seen
+    );
+}
+function priceRow(p) {
+  const v = p.low != null ? p.low : p.usual;
+  return `<button class="fr pr" data-open="${p.id}">${pic(p.it.name)}<div style="min-width:0"><div class="t">${esc(p.it.name)}</div>` +
+    `<div class="s">${p.n ? `${p.n} for sale` : "none for sale now"} · ${seenTxt(p.seen)}</div></div>` +
+    `<div class="p"><div class="num">${v == null ? "–" : fmt(v)}</div><div class="mu">${p.low != null ? "cheapest now" : "usual price"}</div></div></button>`;
+}
+const EMPTY_SCAN = MODE === "shared" ? "Nothing yet. Listings appear here as friends scan." :
+  "Nothing scanned yet. Go to <b>Scan</b>, press <b>Start watching</b>, then open shops in the Free Market.";
+function drawPriceList() {
+  const P = priceRows();
+  $("#pcount").textContent = P.length ? `${P.length} item${P.length === 1 ? "" : "s"}` : "";
+  $("#list").innerHTML = P.length ? P.slice(0, 300).map(priceRow).join("") :
+    `<div class="empty">${q.trim() ? `No scanned item matches "${esc(q.trim())}".` : EMPTY_SCAN}</div>`;
+}
+function drawPrices() {
+  $("#app").innerHTML =
+    `<input id="q" type="search" placeholder="Find an item, e.g. scroll" aria-label="Find an item">` +
+    `<div class="bar"><span class="mu" id="pcount"></span>${segBtns("ps", psort, [["new", "Newest"], ["low", "Cheapest"], ["az", "A–Z"]])}</div>` +
+    `<div class="feed" id="list"></div>`;
+  $("#q").value = q;
+  $("#q").oninput = e => {
+    q = e.target.value;
+    drawPriceList();
+  };
+  drawPriceList();
+}
+// Every listing, with identical copies in one shop shown once ("62,999 ×2")
+function listingRows() {
+  const k = norm(mt.q).split(/\s+/).filter(Boolean),
+    g = {};
+  S.listings.filter(x => !x.sold).concat(scanListings()).forEach(x => {
+    const it = item(x.item);
+    if (!it || !k.every(w => norm(it.name + " " + x.store).includes(w))) return;
+    const key = [x.item, x.price, x.store, x.room, x.ch, x.type].join("|"),
+      o = g[key] || (g[key] = { ...x, n: 0 });
+    o.n += x.mine ? x.qty || 1 : 1;
+    o.t = Math.max(o.t, x.t);
+  });
+  return Object.values(g).sort((a, b) => (lsort === "low" ? a.price - b.price : b.t - a.t));
+}
+function listingRow(l) {
+  const it = item(l.item),
+    age = Date.now() - l.t;
+  return `<div class="card fr${age < JUST ? " new" : ""}">${pic(it.name)}<div style="min-width:0">` +
+    `<button class="t lk" data-open="${l.item}">${esc(it.name)}</button>` +
+    `<div class="s">${esc(l.store)} · FM ${l.room || "?"}${l.ch ? " · CH " + l.ch : ""}${l.type === "buy" ? " · buying" : ""}${l.mine ? " · yours" : ""}</div></div>` +
+    `<div class="p"><div class="num">${fmt(l.price)}${l.n > 1 ? ` <span class="cnt">×${l.n}</span>` : ""}</div><div class="mu">` +
+    `${age < JUST ? '<span class="fresh">just listed</span>' : ago(age)}${age > 2 * DAY ? ' · <span class="dn">may be gone</span>' : ""}</div></div></div>`;
+}
+function simpleRows() {
+  const L = listingRows();
+  return L.length ? L.slice(0, 500).map(listingRow).join("") :
+    `<div class="empty">${mt.q.trim() ? `No listing matches "${esc(mt.q.trim())}".` : EMPTY_SCAN}</div>`;
+}
+function drawListings() {
+  $("#app").innerHTML =
+    `<input id="ms" type="search" placeholder="Find an item or shop" aria-label="Find an item or shop">` +
+    `<div class="bar"><span class="mu" id="lcount"></span>${segBtns("ls", lsort, [["new", "Newest"], ["low", "Cheapest"]])}</div><div id="mb"></div>`;
+  $("#ms").value = mt.q;
+  $("#ms").oninput = e => {
+    mt.q = e.target.value;
+    drawMB();
+  };
+  drawMB();
+}
+// One item: what it costs now, where to buy it, and (one click away) its history
+function drawItemSimple() {
+  const it = item(cur),
+    s = stats(cur),
+    live = forSale(analyze(cur).rows),
+    g = {};
+  live.forEach(o => {
+    const key = [o.price, o.shop, o.room, o.ch].join("|"),
+      x = g[key] || (g[key] = { ...o, n: 0 });
+    x.n++;
+    x.last = Math.max(x.last || x.first, o.last || o.first);
+  });
+  const W = Object.values(g).sort((a, b) => a.price - b.price),
+    low = W.length ? W[0].price : null,
+    tile = (k, v, sub) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="mu">${sub}</div></div>`;
+  $("#app").innerHTML =
+    `<button id="back" class="back">‹ Back</button><div class="card"><div class="nm">${ico(it.name, "lg")}<h2>${esc(it.name)}</h2></div>` +
+    `<div class="tiles t3">${tile("Cheapest now", low == null ? "–" : fmt(low), low == null ? "none for sale" : "mesos each")}` +
+    `${tile("Usual price", s.usual == null ? "–" : fmt(s.usual), "last 14 days")}${tile("For sale now", live.length, "copies seen today")}</div></div>` +
+    `<h3 class="ins-h">Where to buy</h3>${W.length ? `<div class="feed">${W.map(o => `<div class="fr nopic"><div style="min-width:0">` +
+      `<div class="t">${esc(o.shop)}</div><div class="s">FM ${o.room || "?"} · CH ${o.ch} · ${seenTxt(o.last)}</div></div>` +
+      `<div class="p"><div class="num">${fmt(o.price)}${o.n > 1 ? ` <span class="cnt">×${o.n}</span>` : ""}</div></div></div>`).join("")}</div>` :
+      '<div class="card mu">Nobody has it for sale today, as far as your scans show.</div>'}` +
+    `<details class="card" style="margin-top:12px"><summary>Price history and best times to buy</summary>${spark(s.list) || ""}${scanCard(cur) ||
+      '<p class="mu">Not enough scans yet.</p>'}</details>` +
+    `<p class="mu">Also check this item on <a href="https://meowdb.com/msclassic/free-market" target="_blank" rel="noopener">MeowDB</a> and ` +
+    `<a href="https://meso.watch" target="_blank" rel="noopener">MesoWatch</a> (links only; nothing is copied).</p>`;
+  $("#back").onclick = () => {
+    cur = null;
+    draw();
+  };
+}
+function drawMore() {
+  const go = (v, t, d) => `<button class="row" data-go="${v}"><span><b>${t}</b><br><span class="mu">${d}</span></span><span class="mu">›</span></button>`;
+  $("#app").innerHTML =
+    go("deals", "Alerts and deals", "Get told when an item you want shows up under your price.") +
+    go("mine", "My shop", "Keep track of what you are selling yourself.") +
+    go("sources", "Where prices come from", "Other Maple price sites. Linked, never copied.") +
+    (MODE === "shared" ? "" : importCard());
+  if (MODE !== "shared") bindImport();
+}
 function draw(f = true) {
   document
     .querySelectorAll("[data-nav]")
     .forEach(b =>
-      b.dataset.nav === view ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")
+      b.dataset.nav === (SIMPLE && MORE.includes(view) ? "more" : view) ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")
     );
   $("#app").classList.toggle("narrow", view !== "scan" || !!cur);
   cur
-    ? drawItem()
+    ? SIMPLE ? drawItemSimple() : drawItem()
     : view === "scan" && HASAPP
       ? drawScan()
+      : SIMPLE && view === "more"
+      ? drawMore()
+      : SIMPLE && view === "browse"
+      ? drawPrices()
+      : SIMPLE && view === "market"
+      ? drawListings()
       : view === "market"
       ? drawMarket()
       : view === "mine"
@@ -1295,7 +1487,19 @@ function draw(f = true) {
           : view === "sources"
             ? drawSources()
             : drawBrowse();
+  if (SIMPLE && MORE.includes(view) && !cur) {
+    $("#app").insertAdjacentHTML("afterbegin", '<button id="tomore" class="back">‹ More</button>');
+    $("#tomore").onclick = () => {
+      view = "more";
+      draw();
+    };
+  }
   if (f) $("#app").focus({ preventScroll: true });
+}
+// New rows arrived: redraw the list on screen (and only the list, so typing and scrolling aren't disturbed)
+function refreshList() {
+  if (view === "market" && $("#mb")) drawMB();
+  else if (SIMPLE && view === "browse" && $("#pcount")) drawPriceList();
 }
 function say(m) {
   $("#live").textContent = m;
@@ -1303,6 +1507,20 @@ function say(m) {
 
 /* ===== Events and start-up ===== */
 document.addEventListener("click", e => {
+  const sg = e.target.closest("[data-ps],[data-ls],[data-go]");
+  if (sg) {
+    const d = sg.dataset;
+    if (d.go) {
+      view = d.go;
+      draw();
+    } else {
+      if (d.ps) psort = d.ps;
+      else lsort = d.ls;
+      sg.parentNode.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === sg));
+      d.ps ? drawPriceList() : drawMB();
+    }
+    return;
+  }
   const is = e.target.closest("[data-isort]");
   if (is) {
     isort = is.dataset.isort;
@@ -1368,6 +1586,11 @@ document.addEventListener("click", e => {
     scrollTo(0, 0);
   }
 });
+if (SIMPLE) {
+  $("nav").innerHTML = '<button data-nav="scan" hidden>Scan</button><button data-nav="browse">Prices</button>' +
+    '<button data-nav="market">Listings</button><button data-nav="more">More</button>';
+  view = "browse";
+}
 document.querySelectorAll("[data-nav]").forEach(
   b =>
     (b.onclick = () => {
@@ -1468,8 +1691,8 @@ function liveChip() {
     (!liveOk
       ? "MapleReader closed"
       : st && st.watching
-        ? `Watching${st.channel ? ` · CH ${st.channel}` : ""}${st.room ? ` · FM ${st.room}` : ""}`
-        : "Connected · not scanning") +
+        ? `Scanning${st.channel ? ` · CH ${st.channel}` : ""}${st.room ? ` · FM ${st.room}` : ""}`
+        : "Ready · not scanning") +
     (FRIENDS && FRIENDS.scanning ? ` · ${FRIENDS.scanning} friend${FRIENDS.scanning > 1 ? "s" : ""} scanning` : "");
 }
 function liveBanner() {
@@ -1527,10 +1750,10 @@ function puller(path, offKey, isMain) {
           liveAdded += res.added;
           liveLast = newestRow() || Date.now();
           const typing = document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
-          if (view === "market" && !cur && !typing) drawMB();
+          if (!cur && !typing) refreshList();
           const nh = alertHits().filter(o => !before.includes(K(o)));
           if (nh.length) {
-            say(`Alert: ${nh.length} new match${nh.length > 1 ? "es" : ""}. See Deals.`);
+            say(`Alert: ${nh.length} new match${nh.length > 1 ? "es" : ""}. ${SEE_DEALS}`);
             beep();
           }
         }
@@ -1570,7 +1793,7 @@ async function loadIcons() {
       before = ICONS.size;
     list.forEach(n => ICONS.add(n));
     const typing = document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
-    if (ICONS.size > before && !typing) view === "market" && !cur ? drawMB() : view !== "scan" && draw(false);
+    if (ICONS.size > before && !typing) view === "market" || view === "browse" ? !cur && refreshList() : view !== "scan" && draw(false);
   } catch (e) {}
   setTimeout(loadIcons, 60000);
 }
@@ -1623,42 +1846,44 @@ async function appPull(first) {
 const STATUS = {
   looking: ["on", "Watching your screen. Open a shop in the Free Market."],
   reading: ["on", "Reading a shop…"],
-  waiting: ["wait", "Shop seen, but I need your channel: open the Change Channel window, or type it below."],
+  waiting: ["wait", "Shop seen, but I don't know your channel yet. Open the Change Channel window once, or press Change next to Channel."],
   stopped: ["", "Not scanning. Press Start when you are in the Free Market."]
 };
 function drawScan() {
   const st = APP.st || {},
-    se = st.settings || {};
+    se = st.settings || {},
+    sh = st.share || {},
+    // channel and room: shown big, with a Change button that opens a small box to type the right number
+    tile = (k, id, ph) => `<div class="tile"><div class="k">${k}</div><div class="v" id="v${id}">—</div>` +
+      `<button class="chg" data-chg="${id}">Change</button><div class="fix" id="f${id}" hidden><input id="i${id}" inputmode="numeric" ` +
+      `placeholder="${ph}" aria-label="${k}"><button id="s${id}">Save</button></div></div>`;
   $("#app").innerHTML =
     `<div class="scan"><div>` +
-    `<div class="card"><button class="go" id="go"></button><p class="st" id="sst"><i></i><span></span></p></div>` +
-    `<div class="card"><div class="tiles">` +
-    `<div class="tile"><div class="k">Channel</div><div class="v" id="vch">—</div><div class="fix"><input id="ich" inputmode="numeric" placeholder="1–40" aria-label="Set channel">` +
-    `<button id="sch">Set</button></div></div>` +
-    `<div class="tile"><div class="k">Room</div><div class="v" id="vrm">—</div><div class="fix"><input id="irm" inputmode="numeric" placeholder="1–11" aria-label="Set room">` +
-    `<button id="srm">Set</button></div></div>` +
+    `<div class="card"><button class="go" id="go"></button><p class="st" id="sst"><i></i><span></span></p><ol class="steps" id="steps"></ol></div>` +
+    `<div class="card"><div class="tiles">${tile("Channel", "ch", "1–40")}${tile("Room", "rm", "1–40")}` +
     `<div class="tile"><div class="k">Saved</div><div class="v gold" id="vtot">0</div><div class="mu" id="vrun">this session</div></div>` +
     `<div class="tile"><div class="k">Shop open</div><p class="shopnow" id="vshop">—</p><div class="mu" id="vrows"></div></div>` +
     `</div></div>` +
-    `<div class="card"><p class="sec">Options</p>` +
+    `<details class="card" id="sets"><summary>Settings</summary>` +
     `<div class="opt"><span>Chime when saved</span><label class="sw"><input type="checkbox" id="oq"${se.quiet ? "" : " checked"}><span>` +
     `</span></label></div>` +
     `<div class="opt"><span>Volume</span><input type="range" id="ov" min="0.02" max="0.4" step="0.01" value="${se.volume || 0.08}" aria-label="Chime volume"></div>` +
     `<div class="opt"><span>Game screen</span><select id="om" aria-label="Screen the game is on">${[1, 2, 3].map(n => `<option value="${n}"${+se.monitor === n ? " selected" : ""}>` +
     `Screen ${n}</option>`).join("")}</select></div>` +
-    `<div class="btns"><label class="bt">Read a screenshot<input type="file" id="opic" accept="image/*"></label><button id="oscans">` +
+    `<div class="btns"><label class="bt">Test a screenshot<input type="file" id="opic" accept="image/*"></label><button id="oscans">` +
     `Open scans folder</button></div>` +
-    `<p class="mu" id="eng" style="margin:10px 0 0"></p></div>` +
-    `<div class="card"><p class="sec">Share with friends</p>` +
+    `<p class="mu" id="eng" style="margin:10px 0 0"></p>` +
+    // sharing with a group market: only shown once it has been turned on (the group market is paused for now)
+    (sh.enabled ? `<p class="sec" style="margin-top:14px">Share with friends</p>` +
     `<div class="opt"><span>Send my scans to the group's market</span><label class="sw"><input type="checkbox" id="shon"` +
-    `${(st.share || {}).enabled ? " checked" : ""}><span></span></label></div>` +
-    `<div class="shf"><label class="mu" for="shsv">Market address</label><input id="shsv" value="${esc((st.share || {}).server || "")}">` +
+    `${sh.enabled ? " checked" : ""}><span></span></label></div>` +
+    `<div class="shf"><label class="mu" for="shsv">Market address</label><input id="shsv" value="${esc(sh.server || "")}">` +
     `<label class="mu" for="shk">Your key</label><input id="shk" type="password" autocomplete="off" ` +
-    `placeholder="${esc((st.share || {}).key_hint || "mm-… from whoever runs the market")}">` +
+    `placeholder="${esc(sh.key_hint || "mm-… from whoever runs the market")}">` +
     `<div class="btns"><button id="shsave">Save</button><a class="bt" id="shopen" target="_blank" rel="noopener" ` +
-    `href="${esc((st.share || {}).server || "#")}">Open group market</a></div></div>` +
-    `<p class="st" id="shst"><i></i><span></span></p></div>` +
-    `<div class="card"><p class="sec">Activity</p><ul class="notes" id="notes"></ul></div>` +
+    `href="${esc(sh.server || "#")}">Open group market</a></div></div>` +
+    `<p class="st" id="shst"><i></i><span></span></p>` : "") + `</details>` +
+    `<div class="card"><p class="sec">Messages</p><ul class="notes" id="notes"></ul></div>` +
     `</div><div><div class="feedh"><h2>Saved this session</h2><span class="mu" id="fcount"></span></div><div class="feed" id="feed"></div></div></div>`;
   $("#go").onclick = async () => {
     if (APP.busy) return;
@@ -1678,17 +1903,26 @@ function drawScan() {
     const r = await api("/api/set", { [key]: v });
     if (!r.ok) return say(r.error);
     $(inp).value = "";
+    $(inp).parentNode.hidden = true;
+    const c = $(`[data-chg="${key === "channel" ? "ch" : "rm"}"]`);
+    if (c) c.textContent = "Change";
     say(`${key === "channel" ? "Channel" : "Room"} set to ${v}`);
   };
   $("#sch").onclick = fix("#ich", "channel", 40);
-  $("#srm").onclick = fix("#irm", "room", 11);
+  $("#srm").onclick = fix("#irm", "room", 40);
   $("#ich").onkeydown = e => e.key === "Enter" && $("#sch").click();
   $("#irm").onkeydown = e => e.key === "Enter" && $("#srm").click();
+  document.querySelectorAll("[data-chg]").forEach(b => (b.onclick = () => {
+    const f = $("#f" + b.dataset.chg);
+    f.hidden = !f.hidden;
+    b.textContent = f.hidden ? "Change" : "Cancel";
+    if (!f.hidden) $("#i" + b.dataset.chg).focus();
+  }));
   $("#oq").onchange = e => api("/api/set", { quiet: !e.target.checked });
   $("#ov").onchange = e => api("/api/set", { volume: +e.target.value });
   $("#om").onchange = e => api("/api/set", { monitor: +e.target.value });
   $("#oscans").onclick = () => api("/api/open-scans");
-  $("#shon").onchange = async e => {
+  if ($("#shon")) $("#shon").onchange = async e => {
     const r = await api("/api/set", { share_on: e.target.checked });
     if (!r.ok) {
       e.target.checked = false;
@@ -1696,7 +1930,7 @@ function drawScan() {
       $("#shk").focus();
     }
   };
-  $("#shsave").onclick = async () => {
+  if ($("#shsave")) $("#shsave").onclick = async () => {
     const r = await api("/api/set", { share_server: $("#shsv").value, share_key: $("#shk").value, share_on: true });
     if (!r.ok) return say(r.error);
     $("#shk").value = "";
@@ -1750,6 +1984,13 @@ function updScan(feedChanged, lost) {
       : STATUS[on ? st.status : "stopped"] || STATUS.looking;
   $("#sst").className = "st " + cls;
   $("#sst span").textContent = text;
+  // the three steps tick themselves off, and go away once the first listing is saved
+  $("#steps").hidden = (st.total || 0) > 0 || lost;
+  $("#steps").innerHTML = [
+    [on, "Press <b>Start watching</b>."],
+    [!!st.channel, "Open the <b>Change Channel</b> window once, so I know your channel."],
+    [(st.total || 0) > 0, "Open any shop in the Free Market. Its listings are saved by themselves."]
+  ].map(([d, t]) => `<li class="${d ? "done" : ""}"><span>${t}</span></li>`).join("");
   $("#vch").textContent = st.channel || "—";
   $("#vrm").textContent = st.room || "—";
   $("#vtot").textContent = st.total || 0;
@@ -1767,8 +2008,10 @@ function updScan(feedChanged, lost) {
           : sh.state === "offline" || sh.state === "retrying"
             ? ["wait", sh.error || "Trying again shortly."]
             : ["bad", sh.error || "Type your key and press Save."];
-  $("#shst").className = "st " + shText[0];
-  $("#shst span").textContent = shText[1];
+  if ($("#shst")) {
+    $("#shst").className = "st " + shText[0];
+    $("#shst span").textContent = shText[1];
+  }
   if (sh.server && $("#shopen")) $("#shopen").href = sh.server;
   $("#eng").textContent = !st.tesseract ? "" : st.engine === "fast" ? `MapleReader ${st.version} · fast reading` : `MapleReader ${st.version} · standard reading`;
   $("#notes").innerHTML = APP.notes.length
