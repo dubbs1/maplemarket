@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Stand-in for apt-get: "installing" nginx makes the folders a real nginx package makes and marks it running.
+echo "apt-get $*" >> /tmp/fake-calls
+[[ "${FAKE_APT_FAIL:-0}" == 1 && "$1" == install ]] && { echo "E: Unable to locate package nginx"; exit 100; }
+if [[ "$1" == install && " $* " == *" nginx "* ]]; then
+  mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled /etc/nginx/conf.d
+  echo "server { listen 80 default_server; }" > /etc/nginx/sites-available/default
+  ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+  touch /tmp/fake-active-nginx
+fi
+exit 0

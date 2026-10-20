@@ -1,0 +1,8 @@
+# Scripts run on Linux need Linux line endings even when checked out on Windows; Windows scripts the opposite.
+*.sh   text eol=lf
+dev-tests/e2e/stubs/* text eol=lf
+*.bat  text eol=crlf
+*.ps1  text eol=crlf
+*.png  binary
+*.jpg  binary
+*.ico  binary

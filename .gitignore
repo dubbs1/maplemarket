@@ -11,6 +11,7 @@ MapleReader/build_tmp/
 # group server data and upload package
 maple-server/data/
 maple-server/maple-upload.tar.gz
+maple-server/deploy-target.json
 # tools
 __pycache__/
 *.pyc
