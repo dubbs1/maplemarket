@@ -15,6 +15,7 @@ from collections import deque
 
 from . import __version__, engine
 from .config import APP_DIR, UPDATE_EVERY, VOLUME
+from .exp import ExpTracker
 from .icons import slug
 from .location import RoomWatcher, read_channel
 from .names import load_items
@@ -66,6 +67,7 @@ class Controller:
         self.engine = engine.mode() if self.tesseract else 'none'
         self._tess_check = 0                         # when we last looked for a newly installed Tesseract
         self.scanner = None
+        self.exp = ExpTracker()                      # kept across stop/start: Reset clears it
         self.seq = 0
         self.events = deque(maxlen=400)              # saved rows and notes, newest last
         self.state = dict(watching=False, status='stopped', channel=0, room=0, shop=None, shop_rows=0,
@@ -95,6 +97,7 @@ class Controller:
         s.setdefault('share_server', share.DEFAULT_SERVER)
         s.setdefault('share_key', '')
         s.setdefault('auto_start', True)             # start watching as soon as the app opens
+        s.setdefault('exp', True)                    # read the EXP line on the status bar
         return s
 
     def _save(self):
@@ -187,7 +190,7 @@ class Controller:
             self.last_seen = time.time()
             settings = {k: v for k, v in self.settings.items() if k != 'share_key'}   # the key never leaves the app
             return dict(self.state, version=__version__, engine=self.engine, tesseract=self.tesseract, update=self.update_info,
-                        settings=settings, share=self.share_status(), seq=self.seq,
+                        settings=settings, share=self.share_status(), exp=self.exp.summary(), seq=self.seq,
                         events=[e for e in self.events if e['seq'] > since])
 
     # --- buttons ---
@@ -199,7 +202,8 @@ class Controller:
                 return {'ok': True}
             items = load_items(os.path.join(APP_DIR, 'items.txt'))
             sc = Scanner(items, int(channel or 0), monitor=int(self.settings['monitor']),
-                         volume=float(self.settings['volume']), quiet=bool(self.settings['quiet']), events=_Feed(self))
+                         volume=float(self.settings['volume']), quiet=bool(self.settings['quiet']), events=_Feed(self),
+                         exp=self.exp if self.settings.get('exp', True) else None)
             self.scanner = sc
         self.set(watching=True, status='looking', channel=sc.state['ch'], room=0, shop=None, shop_rows=0, total=0,
                  started=time.time())
@@ -217,6 +221,11 @@ class Controller:
         threading.Thread(target=run, daemon=True).start()
         return {'ok': True}
 
+    def exp_reset(self):
+        self.exp.reset()
+        self.note('EXP tracking restarted.')
+        return {'ok': True}
+
     def autostart(self):
         """When the app opens: start watching straight away, unless that's switched off in Settings."""
         if self.settings.get('auto_start', True) and self.tesseract:
@@ -231,7 +240,7 @@ class Controller:
         return {'ok': True}
 
     def update(self, d):
-        """Settings and corrections from the window: channel, room, volume, quiet, monitor."""
+        """Settings and corrections from the window: channel, room, volume, quiet, monitor, auto_start, exp, sharing."""
         if 'channel' in d:
             ch = int(d['channel'])
             if not 1 <= ch <= 40:
@@ -248,9 +257,11 @@ class Controller:
             if self.scanner:
                 self.scanner.set_room(rm)
             self.note(f'Room set to {rm}.')
-        for k, conv in (('volume', float), ('quiet', bool), ('monitor', int), ('auto_start', bool)):
+        for k, conv in (('volume', float), ('quiet', bool), ('monitor', int), ('auto_start', bool), ('exp', bool)):
             if k in d:
                 self.settings[k] = conv(d[k])
+        if 'exp' in d and self.scanner:
+            self.scanner.exp = self.exp if self.settings['exp'] else None
         if self.scanner and ('volume' in d or 'quiet' in d):
             self.scanner.set_sound(volume=self.settings['volume'], quiet=self.settings['quiet'])
         if 'monitor' in d and self.scanner:
