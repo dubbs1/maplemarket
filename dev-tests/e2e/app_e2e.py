@@ -1,5 +1,5 @@
-import os
 import sys, os, types, time, json, tempfile, asyncio, urllib.request, urllib.error
+os.environ.setdefault('MAPLEREADER_UPDATE_API', 'off')   # never ask the real GitHub from a test
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the repository
 R = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_ROOT, 'MapleReader')
 OUT = sys.argv[2] if len(sys.argv) > 2 else tempfile.mkdtemp(prefix='mr_shots_')   # screenshots go here
@@ -46,6 +46,13 @@ async def main():
                 ok('A2b three steps to follow, none done yet', await pg.locator('#steps li').count() == 3 and await pg.locator('#steps li.done').count() == 0)
                 ok('A2c channel and room boxes stay closed until Change', await pg.locator('#ich').is_hidden())
                 ok('A2d group sharing is not shown while it is off', await pg.locator('#shst').count() == 0)
+                ok('A2e no update card when there is nothing to update', await pg.locator('#upd').is_hidden())
+                ctl.update_info = {'state': 'available', 'version': '2099-01-01', 'can_install': False, 'page': 'https://example.com/r'}
+                await pg.wait_for_timeout(1600)
+                ok('A2f a new version shows at the top of Scan', await pg.locator('#upd').is_visible() and
+                   'A new version is ready' in await pg.inner_text('#upd') and 'Download page' in await pg.inner_text('#upd'))
+                ctl.update_info = {'state': 'none'}; await pg.wait_for_timeout(1600)
+                ok('A2g and goes away again', await pg.locator('#upd').is_hidden())
                 await pg.screenshot(path=OUT + '_idle.png')
                 await pg.click('[data-chg=ch]'); await pg.fill('#ich', '99'); await pg.click('#sch'); await pg.wait_for_timeout(300)
                 ok('A3 bad channel refused', ctl.state['channel'] == 0)

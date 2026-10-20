@@ -1,0 +1,132 @@
+# Automatic checks and builds.
+#   linux:   every push and pull request: all page, server, reader, browser and install-script checks.
+#   windows: main, pull requests, version tags, a manual run, or a push whose message says [windows]
+#            (Windows minutes cost double on a private repository): the reader checks with real Windows
+#            Tesseract, then builds MapleReader.exe and the installer, and tries both for real.
+#   release: a tag like v2026-10-20g (matching shopreader/__init__.py) publishes the installer as a release.
+name: Checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      MAPLEREADER_UPDATE_API: "off"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Tesseract and Python packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q tesseract-ocr
+          tesseract --version | head -1
+          python -m pip install -q pillow pytesseract mss playwright pyflakes
+          python -m playwright install --with-deps chromium
+          npm ci
+      - name: Code check (pyflakes)
+        run: python -m pyflakes MapleReader maple-server tools dev-tests
+      - name: All checks
+        run: bash dev-tests/run_all.sh
+      - name: Install-script checks (this machine is thrown away afterwards)
+        run: sudo bash dev-tests/e2e/test_install.sh | tee install.log && grep -q "ALL INSTALL CHECKS PASSED" install.log
+
+  windows:
+    if: >-
+      github.event_name != 'push' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') ||
+      contains(github.event.head_commit.message, '[windows]')
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      MAPLEREADER_UPDATE_API: "off"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Tesseract, Inno Setup and Python packages
+        run: |
+          choco install tesseract innosetup -y --no-progress
+          if (-not (Test-Path "C:\Program Files\Tesseract-OCR\tesseract.exe")) { throw "Tesseract is not where MapleReader looks for it" }
+          & "C:\Program Files\Tesseract-OCR\tesseract.exe" --version
+          python -m pip install -q pillow pytesseract mss pyinstaller
+      - name: Reader checks (real Windows Tesseract)
+        working-directory: MapleReader
+        run: |
+          $ErrorActionPreference = "Stop"; $PSNativeCommandUseErrorActionPreference = $true
+          foreach ($t in "test_pictures", "test_session", "test_scroll", "test_market", "test_update") { python "tests\$t.py" }
+      - name: Version
+        id: ver
+        run: |
+          $v = python -c "import sys; sys.path.insert(0, 'MapleReader'); from shopreader import __version__; print(__version__)"
+          if ("${{ github.ref_type }}" -eq "tag" -and "${{ github.ref_name }}" -ne "v$v") { throw "Tag ${{ github.ref_name }} doesn't match the app's version $v" }
+          "version=$v" >> $env:GITHUB_OUTPUT
+      - name: Build MapleReader.exe
+        run: python MapleReader\build_app.py --dist dist
+      - name: Self-check the built exe
+        run: |
+          $p = Start-Process dist\MapleReader\MapleReader.exe -ArgumentList "--self-check", "$pwd\exe_check.txt" -Wait -PassThru
+          Get-Content exe_check.txt
+          if ($p.ExitCode -ne 0) { throw "The built exe failed its self-check" }
+      - name: Build the installer
+        run: |
+          $v = "${{ steps.ver.outputs.version }}"
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /Q "/DAppVersion=$v" "/DSrc=$pwd\dist\MapleReader" "/O$pwd\out" MapleReader\installer\MapleReader.iss
+          if ($LASTEXITCODE -ne 0) { throw "The installer didn't build" }
+          $name = "MapleReader-Setup-$v.exe"
+          $hash = (Get-FileHash "out\$name" -Algorithm SHA256).Hash.ToLower()
+          [IO.File]::WriteAllText("$pwd\out\$name.sha256", "$hash  $name`n")
+          Get-ChildItem out
+      - name: Install it quietly, self-check the installed copy, uninstall
+        run: |
+          $v = "${{ steps.ver.outputs.version }}"
+          $p = Start-Process "out\MapleReader-Setup-$v.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "The installer failed ($($p.ExitCode))" }
+          Start-Sleep 5
+          Get-Process MapleReader -ErrorAction SilentlyContinue | Stop-Process -Force   # it starts the app after installing
+          $app = "$env:LOCALAPPDATA\Programs\MapleReader"
+          if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\MapleReader.lnk")) { throw "No Start-menu icon" }
+          $p = Start-Process "$app\MapleReader.exe" -ArgumentList "--self-check", "$pwd\installed_check.txt" -Wait -PassThru
+          Get-Content installed_check.txt
+          if ($p.ExitCode -ne 0) { throw "The installed copy failed its self-check" }
+          $p = Start-Process "$app\unins000.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES" -Wait -PassThru
+          Start-Sleep 3
+          if (Test-Path "$app\MapleReader.exe") { throw "Uninstall left the program behind" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MapleReader-Setup-${{ steps.ver.outputs.version }}
+          path: out/*
+          retention-days: 14
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, windows]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: out/*
+          generate_release_notes: true

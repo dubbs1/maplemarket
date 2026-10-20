@@ -46,3 +46,7 @@ FORGET_AFTER = 10 * 60         # log the same listing again after 10 minutes
 # --- sound ---
 VOLUME = 0.08                  # chime loudness, 0.03 (very soft) to 1.0
 CHIME_FILE = 'chime2.wav'      # written next to maple_shop_reader.py the first time it plays
+
+# --- updates ---
+UPDATE_REPO = 'dubbs1/maplemarket'   # GitHub repository whose releases carry MapleReader-Setup-<version>.exe
+UPDATE_EVERY = 6 * 3600        # look for a new version this often while the app is open

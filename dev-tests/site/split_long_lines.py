@@ -2,7 +2,7 @@ import sys
 s=open(sys.argv[1]).read(); LIMIT=int(sys.argv[2]) if len(sys.argv)>2 else 140
 out=[]; st=[]; brace=[]; i=0; n=len(s); col=0; indent=0; prev=''   # prev = last significant code char
 def emit(t):
-    global col, indent
+    global col
     for ch in t:
         out.append(ch)
         if ch=='\n': col=0

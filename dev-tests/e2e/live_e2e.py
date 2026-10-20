@@ -1,5 +1,4 @@
-import os
-import sys, os, time, json, tempfile, asyncio, urllib.request
+import sys, os, time, tempfile, asyncio, urllib.request
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the repository
 R = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_ROOT, 'MapleReader'); sys.path.insert(0, R)
 work = tempfile.mkdtemp(prefix='mr_live_'); os.makedirs(os.path.join(work, 'scans'))

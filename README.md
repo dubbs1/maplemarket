@@ -10,7 +10,7 @@ Free Market prices for MapleStory Classic, collected from your own screen while 
 
 | I want to… | Read |
 |---|---|
-| Install and use MapleReader on Windows | [`MapleReader/GUIDE.md`](MapleReader/GUIDE.md) |
+| Install and use MapleReader on Windows | the installer from **Releases**, or [`MapleReader/GUIDE.md`](MapleReader/GUIDE.md) |
 | Put the group market online (its own DigitalOcean droplet) | [`maple-server/SETUP.md`](maple-server/SETUP.md) |
 | Work on the code (or have Claude Code work on it) | [`CLAUDE.md`](CLAUDE.md) |
 

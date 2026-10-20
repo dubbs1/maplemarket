@@ -1,5 +1,6 @@
 """One pretend friend: their own MapleReader (app backend + local page) scanning pretend frames."""
 import sys, os, types, time, json
+os.environ.setdefault('MAPLEREADER_UPDATE_API', 'off')   # never ask the real GitHub from a test
 R, work, port, key, server, which, secs = sys.argv[1:8]
 sys.path.insert(0, R); sys.path.insert(0, os.path.join(R, 'tests'))
 os.makedirs(work, exist_ok=True); os.chdir(work)
