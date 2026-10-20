@@ -43,6 +43,8 @@ async def main():
             if scheme == 'dark':
                 ok('A1 opens on the Scanner tab', await pg.get_attribute('[data-nav=scan]', 'aria-current') == 'page')
                 ok('A2 says not scanning', 'Not scanning' in await pg.inner_text('#sst'))
+                lb = await pg.evaluate("document.querySelector('.scan > div').getBoundingClientRect().bottom")
+                ok(f'A1b the Scan tab fits the window without scrolling (left column ends at {lb:.0f} of 860)', lb <= 860)
                 ok('A2b three steps to follow, none done yet', await pg.locator('#steps li').count() == 3 and await pg.locator('#steps li.done').count() == 0)
                 ok('A2c channel and room boxes stay closed until Change', await pg.locator('#ich').is_hidden())
                 ok('A2d group sharing is not shown while it is off', await pg.locator('#shst').count() == 0)

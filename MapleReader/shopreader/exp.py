@@ -320,6 +320,8 @@ def _fmt_eta(seconds):
     if seconds is None:
         return None
     m = int(seconds // 60)
+    if m >= 24 * 60:
+        return f'{m // 1440} d {m % 1440 // 60} h'   # (short enough for the EXP card)
     return f'{m // 60} h {m % 60} min' if m >= 60 else f'{max(1, m)} min'
 
 
