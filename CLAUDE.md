@@ -42,6 +42,7 @@ Group server (maple.vendormarket.app, its own droplet, behind nginx + certbot) -
 | `config.py` | every tuning number; `APP_DIR` |
 | `engine.py` | Tesseract in-process via ctypes (`libtesseract-5.dll`), about 4× faster; self-tests in a throwaway process, falls back to tesseract.exe; `OMP_THREAD_LIMIT=1` |
 | `layout.py`, `rows.py`, `title.py`, `names.py`, `ocr.py` | finding the list, reading rows (normal and faded/sold), shop name, name fixes. A list whose visible rows are **all** sold has no blue row to find it by: `list_boxes` then takes a tall faded block, the layout gets `faded: True`, text is read split black/white at (background grey − 20), and each row is confirmed with `read_row` (fixture `allsold.png`) |
+| `rows.parse_frame` (sizes) | the game's **UI Size** setting (Default / Default with filter / Ideal) and the window or full-screen resolution change the row height. Reading is tuned for 54-80 px rows (`ROW_OK`); outside that, the shop area is cropped and resized to `REF_ROW` 63 px, read, and positions mapped back to screen pixels (`lay['zoom']`). The row height is guessed from the list's width (blue area about 4.2 rows wide, an all-sold faded area about 5.3); if the layout then measures a different height, it reads once more at the right size; if nothing is found and the guess is >10% off, it tries the usual size. Blue patches under 100 px wide (name tags, buttons) are never lists (`blue_lists`). The watching loop drops its saved layout when the list's left/right edges change (a resize), else the old row height made phantom extra copies (`tests/test_resize.py` proves both) |
 | `scroll.py` | scrollbar handle position, then slot numbers, so long lists of identical items count right (solves the row count N by consistency) |
 | `location.py` | room from the minimap; channel from the Change Channel window |
 | `scanner.py` | the watching loop (shared by app and CLI), `Saver` (10-minute de-dupe by item+price+room+ch+sold+copy). The room search is forced only on the session's first shop. `color_boxes` (layout.py) does its pixel work in Pillow: a look at a 1440p screen with no shop takes ~13 ms; keep it that way (it runs every 0.15 s) |
@@ -89,7 +90,7 @@ In live modes the page keeps 30 days in the browser's localStorage (about 40,000
 | What | How |
 |---|---|
 | On Windows | `MapleReader\run_tests.bat`: pictures (tolerant of Tesseract 5.3 vs 5.5), pretend session, scrolling, local server |
-| On Linux/macOS | `cd MapleReader && python3 tests/test_pictures.py && python3 tests/test_session.py && python3 tests/test_scroll.py && python3 tests/test_market.py` |
+| On Linux/macOS | `cd MapleReader && python3 tests/test_pictures.py && python3 tests/test_session.py && python3 tests/test_scroll.py && python3 tests/test_resize.py && python3 tests/test_market.py && python3 tests/test_update.py` |
 | Market page | `npm install && npm test` (jsdom; 138 checks; t13 runs the app's simple layout via `window.MAPLE={mode:'shared'}`). Keep script lines ≤ 200 characters (a check enforces it) |
 | Group server | `python3 maple-server/tests/test_server.py` |
 | End-to-end in a real browser | `python3 dev-tests/e2e/<name>.py` (no arguments needed; `app_e2e.py` covers the simple layout), needs `pip install playwright` (`PW_CHROMIUM=/path/to/chrome` optional): `live_e2e.py`, `app_e2e.py`, `share_e2e.py` (pretend friends + server) |
@@ -100,7 +101,7 @@ Tesseract versions differ: the expected outputs were made with 5.3. Linux wheels
 
 ## Known open items
 
-- **Name misreads:** Tesseract 5.5 sometimes reads "Mystery" as "Iystery" on quick re-reads, and single-letter shop names ("S" → "3"). An `items.txt` list fixes names; a shared one via the server is an idea.
+- **Name misreads:** Tesseract 5.5 sometimes reads "Mystery" as "Iystery" on quick re-reads, and single-letter shop names ("S" → "3"). `names.fix_w` turns a capital W read as two marks at a word's start (Vv, Yw, yy, Y¥, ¥¥…) into W, for items and shop titles; "Biue"/"Hiue"/"bIUe" → "Blue". At other interface sizes about 90-95% of listings read right (was 68-80%); blurry "Filter Applied" text is the hardest. An `items.txt` list fixes names; a shared one via the server is an idea.
 - **Stack counts:** the numbers on item icons (e.g. 100) aren't read yet; every listing counts as quantity 1.
 - **Fast scrolling:** flicking or dragging straight to the bottom of a long identical list undercounts (by design it never overcounts).
 - **Untested for real:** the Windows exe + Edge app window on the owner's PC, and the install on a real droplet (real certbot, real DNS). Ask for screenshots or output on the first run.

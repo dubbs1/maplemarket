@@ -25,6 +25,14 @@ ROW_BG = (205, 217, 227)       # pale blue of a shop's item rows
 ROW_FADED = (242, 245, 248)    # near-white of a sold (faded) row
 BUTTON_GREY = (177, 177, 177)  # grey channel buttons in the Change Channel window
 
+# --- size of the game's interface ---
+# The game's "UI Size" setting and the window size change how tall shop rows are on screen. Reading is tuned
+# for rows 54-80 px tall; outside that the shop area is enlarged or shrunk to REF_ROW before reading.
+REF_ROW = 63                   # row height (px) the reading is tuned for
+ROW_OK = (54, 80)              # rows this tall are read as they are (crisp text reads well at all of these)
+LIST_ROWS_WIDE = 4.2           # a shop list's blue area is about this many row heights wide
+FADED_ROWS_WIDE = 5.3          # ...and a list of only sold (faded) rows, whose pale area is wider
+
 # --- names ---
 NAME_MATCH = 0.85              # how close a read name must be to an items.txt name to be snapped onto it
 
