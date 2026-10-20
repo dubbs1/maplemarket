@@ -85,9 +85,10 @@ def list_boxes(img):
         out.append((x0, y0, x1, y1))
     if not out:
         # every row showing is sold: no normal (blue) row to find the list by. A list of faded rows is a
-        # tall block (6 rows high, about 5 wide); wide strips (title bars, the Change Channel window) and
-        # thin ones (scrollbar tracks) are something else.
-        out = [f for f in faded if f[2] - f[0] >= 150 and f[3] - f[1] >= 1.1 * (f[2] - f[0])][:1]
+        # tall block (6 rows high, about 5 wide: 1.2 times taller than wide, measured as 0.95 to 1.3 times on the
+        # colour search's 24 px grid, depending on where the window is); wide strips (title bars, the Change Channel
+        # window) and thin ones (scrollbar tracks) are something else.
+        out = [f for f in faded if f[2] - f[0] >= 150 and f[3] - f[1] >= 0.9 * (f[2] - f[0])][:1]
     return out
 
 
