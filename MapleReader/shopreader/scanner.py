@@ -189,12 +189,60 @@ class Saver:
                 self._save(r_, rm_, whole)
 
 
+class ExpRunner:
+    """Records EXP on its own: reads the status bar's EXP line every few seconds, whether or not shops are being
+    watched (out hunting, say). Its own screenshots, about one a second (cheap next to the shop reading)."""
+    def __init__(self, tracker, monitor=1, events=None, every=1.0):
+        self.tracker, self.monitor, self.every = tracker, monitor, every
+        self.events = events or Events()
+        self.watcher = ExpWatcher()
+        self._stop = threading.Event()
+
+    @property
+    def found(self):
+        """Is the EXP line on screen (the status bar found)?"""
+        return bool(self.watcher.bar)
+
+    def stop(self):
+        self._stop.set()
+
+    def run(self):
+        import mss
+        sct, fails, pause = None, 0, 0
+        try:
+            while not self._stop.is_set():
+                time.sleep(self.every)
+                try:
+                    if sct is None:
+                        sct = (getattr(mss, 'MSS', None) or mss.mss)()
+                        mon = sct.monitors[min(self.monitor, len(sct.monitors) - 1)]
+                    shot = sct.grab(mon)
+                    fails = 0
+                except Exception:
+                    fails += 1                        # (PC locked, a Windows Yes/No prompt): try again shortly
+                    if fails % 5 == 0 and sct is not None:
+                        getattr(sct, 'close', lambda: None)()
+                        sct = None
+                    time.sleep(2)
+                    continue
+                if time.time() < pause:
+                    continue
+                try:
+                    img = Image.frombytes('RGB', shot.size, shot.bgra, 'raw', 'BGRX')
+                    reading = self.watcher.update(img)
+                    if reading and self.tracker.add(reading):
+                        self.events.exp(self.tracker.summary())
+                except Exception:
+                    pause = time.time() + 30          # a reading that went wrong: never stop for good
+        finally:
+            if sct is not None:
+                getattr(sct, 'close', lambda: None)()
+
+
 class Scanner:
     """Watches the screen until stop() is called. Safe to run in a background thread."""
-    def __init__(self, items=(), channel=0, interval=INTERVAL, monitor=1, volume=VOLUME, quiet=False, events=None,
-                 exp=None):
+    def __init__(self, items=(), channel=0, interval=INTERVAL, monitor=1, volume=VOLUME, quiet=False, events=None):
         self.items, self.interval, self.monitor = list(items), interval, monitor
-        self.exp = exp                               # an ExpTracker to feed status-bar readings to (None: don't read)
         self.events = events or Events()
         self.state = {'ch': channel if 1 <= channel <= 40 else 0, 'room': 0}
         os.makedirs('scans', exist_ok=True)
@@ -229,7 +277,6 @@ class Scanner:
         title_tries, last_room = 0, None
         watcher = RoomWatcher()
         tracker, shop_now = ScrollTracker(), None
-        expw = ExpWatcher()
 
         def set_status(s):
             nonlocal status
@@ -238,7 +285,7 @@ class Scanner:
                 ev.status(s)
 
         set_status('looking')
-        sct, fails, exp_pause = None, 0, 0
+        sct, fails = None, 0
         try:
             while not self._stop.is_set():
                 time.sleep(self.interval)
@@ -258,14 +305,6 @@ class Scanner:
                     time.sleep(2)
                     continue
                 img = Image.frombytes('RGB', shot.size, shot.bgra, 'raw', 'BGRX')
-                tr = self.exp                        # (switched off from the window at any moment: use one look)
-                if tr is not None and time.time() >= exp_pause:   # the EXP line, every few seconds (its own pace)
-                    try:
-                        reading = expw.update(img)
-                        if reading and tr.add(reading):
-                            ev.exp(tr.summary())
-                    except Exception:
-                        exp_pause = time.time() + 30  # never let the EXP tracker stop the shop reading
                 boxes = list_boxes(img)              # is a shop list on screen? (colour check, instant)
                 if not boxes:
                     prev_t = done_t = None

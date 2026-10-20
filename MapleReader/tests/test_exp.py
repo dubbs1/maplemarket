@@ -6,7 +6,7 @@
 3. A picture without a status bar finds none.
 4. The tracker: starts when two readings agree, adds up gains, drops a misread, counts a death's loss and a level-up,
    works out EXP per hour and the time to the next level.
-5. The watching loop feeds the tracker (pretend screenshots, as in test_session.py).
+5. EXP is recorded on its own, apart from the shop scanner (pretend screenshots, as in test_session.py).
 """
 import os, sys, types
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -114,7 +114,7 @@ def tracker():
 
 
 def loop():
-    print('The watching loop feeds the tracker:')
+    print('EXP is recorded on its own (no shop watching needed):')
     pics = [load('live_shop.png')] * 4
 
     class Shot:
@@ -148,12 +148,14 @@ def loop():
     old = os.getcwd()
     os.chdir(work)
     try:
-        sc = scanner.Scanner(events=Ev(), exp=t, interval=0)
+        sc = scanner.ExpRunner(t, events=Ev(), every=0)
         sc.run()
     finally:
         os.chdir(old)
     s = t.summary()
-    check(bool(seen) and s and (s['exp'], s['pct'], s['level']) == TRUE, f'the tracker got {s and (s["exp"], s["pct"], s["level"])}')
+    check(bool(seen) and s and (s['exp'], s['pct'], s['level']) == TRUE, f'the EXP recorder got {s and (s["exp"], s["pct"], s["level"])}')
+    import inspect
+    check('exp' not in inspect.signature(scanner.Scanner).parameters, 'the shop scanner doesn\'t read EXP (they are separate)')
 
 
 if __name__ == '__main__':

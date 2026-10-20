@@ -21,7 +21,7 @@ from .location import RoomWatcher, read_channel
 from .names import load_items
 from .ocr import find_tesseract
 from .rows import parse_frame
-from .scanner import Events, Scanner
+from .scanner import Events, ExpRunner, Scanner
 from . import share
 from . import update as updater
 
@@ -74,6 +74,7 @@ class Controller:
         self._tess_check = 0                         # when we last looked for a newly installed Tesseract
         self.scanner = None
         self.exp = ExpTracker()                      # kept across stop/start: Reset clears it
+        self.exp_runner = None                       # records EXP on its own, apart from the shop scanner
         self.seq = 0
         self.events = deque(maxlen=400)              # saved rows and notes, newest last
         self.state = dict(watching=False, status='stopped', channel=0, room=0, shop=None, shop_rows=0,
@@ -103,7 +104,7 @@ class Controller:
         s.setdefault('share_server', share.DEFAULT_SERVER)
         s.setdefault('share_key', '')
         s.setdefault('auto_start', True)             # start watching as soon as the app opens
-        s.setdefault('exp', True)                    # read the EXP line on the status bar
+        s.setdefault('exp', True)                    # record EXP (on its own, whether or not shops are watched)
         return s
 
     def _save(self):
@@ -199,7 +200,8 @@ class Controller:
             self.last_seen = time.time()
             settings = {k: v for k, v in self.settings.items() if k != 'share_key'}   # the key never leaves the app
             return dict(self.state, version=__version__, engine=self.engine, tesseract=self.tesseract, update=self.update_info,
-                        settings=settings, share=self.share_status(), exp=self.exp.summary(), seq=self.seq,
+                        settings=settings, share=self.share_status(), exp=self.exp.summary(), exp_on=bool(self.exp_runner),
+                        exp_found=bool(self.exp_runner and self.exp_runner.found), seq=self.seq,
                         events=[e for e in self.events if e['seq'] > since])
 
     # --- buttons ---
@@ -211,8 +213,7 @@ class Controller:
                 return {'ok': True}
             items = load_items(os.path.join(APP_DIR, 'items.txt'))
             sc = Scanner(items, int(channel or 0), monitor=int(self.settings['monitor']),
-                         volume=float(self.settings['volume']), quiet=bool(self.settings['quiet']), events=_Feed(self),
-                         exp=self.exp if self.settings.get('exp', True) else None)
+                         volume=float(self.settings['volume']), quiet=bool(self.settings['quiet']), events=_Feed(self))
             self.scanner = sc
         self.set(watching=True, status='looking', channel=sc.state['ch'], room=0, shop=None, shop_rows=0, total=0,
                  started=time.time())
@@ -230,15 +231,42 @@ class Controller:
         threading.Thread(target=run, daemon=True).start()
         return {'ok': True}
 
+    # --- EXP: recorded apart from shops, with its own Start/Stop (the `exp` setting) ---
+    def exp_start(self):
+        with self._start_lock:
+            if self.exp_runner:
+                return {'ok': True}
+            r = self.exp_runner = ExpRunner(self.exp, monitor=int(self.settings['monitor']), events=_Feed(self))
+
+        def run():
+            try:
+                r.run()
+            except Exception as e:
+                self.note(f'EXP recording stopped: {type(e).__name__}: {e}. Send this line to Claude.', 'error')
+            finally:
+                if self.exp_runner is r:
+                    self.exp_runner = None
+        threading.Thread(target=run, daemon=True, name='exp').start()
+        return {'ok': True}
+
+    def exp_stop(self):
+        r, self.exp_runner = self.exp_runner, None
+        if r:
+            r.stop()
+        return {'ok': True}
+
     def exp_reset(self):
         self.exp.reset()
         self.note('EXP tracking restarted.')
         return {'ok': True}
 
     def autostart(self):
-        """When the app opens: start watching straight away, unless that's switched off in Settings."""
+        """When the app opens: start watching shops (unless switched off in Options) and recording EXP (if it was on;
+        EXP has its own switch and doesn't need Tesseract)."""
         if self.settings.get('auto_start', True) and self.tesseract:
             self.start()
+        if self.settings.get('exp', True):
+            self.exp_start()
 
     def stop(self):
         sc, self.scanner = self.scanner, None
@@ -269,8 +297,13 @@ class Controller:
         for k, conv in (('volume', float), ('quiet', bool), ('monitor', int), ('auto_start', bool), ('exp', bool)):
             if k in d:
                 self.settings[k] = conv(d[k])
-        if 'exp' in d and self.scanner:
-            self.scanner.exp = self.exp if self.settings['exp'] else None
+        if 'exp' in d:
+            if self.settings['exp']:
+                self.exp_start()
+                self.note('Recording your EXP (shops are watched separately).')
+            else:
+                self.exp_stop()
+                self.note('EXP recording stopped.')
         if self.scanner and ('volume' in d or 'quiet' in d):
             self.scanner.set_sound(volume=self.settings['volume'], quiet=self.settings['quiet'])
         if 'monitor' in d and self.scanner:
@@ -336,6 +369,7 @@ class Controller:
             return {'text': '', 'next': start, 'more': False, 'reset': False, 'error': str(e)}
 
     def shutdown(self):
+        self.exp_stop()
         if self.sharer:
             self.sharer.stop()
         if self.scanner:
