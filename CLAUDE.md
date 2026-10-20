@@ -7,7 +7,7 @@ This project was built in a long claude.ai conversation (October 2026) and moved
 - The owner is a beginner on Windows. Give **step-by-step instructions**, one action per step, each with "You should see …" and "If … then …". Plain words; avoid jargon or explain it once.
 - Their PC: the app folder is `C:\Users\bbuda\OneDrive\Desktop\MapleReader`. Python 3.13 runs as `py -3.13`. Tesseract 5.5.3 is in `C:\Program Files\Tesseract-OCR`.
 - **Updates:** they extract a zip over the folder ("Replace the files"). When handing over changes, give only the changed files. Send the **full** folder whenever new files were added: a partial zip once left their folder missing `shopreader/config.py`. Now that the code is in git, they may pull instead; ask which they prefer.
-- They also run **Rev Market** (vendormarket.app), a separate Ragnarok Online market site on its own DigitalOcean droplet. It must never be touched by Maple work. The owner wants Maple to stand alone, so the group market gets **its own droplet** (decided October 20, 2026); only the DNS record `maple` under vendormarket.app is shared. Rev Market lives in `/home/market/revenant-market`, `/root/revenant-market` and `/etc/revenant-market.env`. Its design language (clean, everything visible, no hover-only controls, cards never touching, item pictures on rows, "just listed" in green) is the standard for this UI too.
+- They also run **Rev Market** (vendormarket.app), a separate Ragnarok Online market site on its own DigitalOcean droplet. It must never be touched by Maple work. The owner wants Maple to stand alone, so the group market gets **its own droplet** (decided October 20, 2026); only the DNS record `maple` under vendormarket.app is shared. **DigitalOcean is paused (October 20, 2026):** the owner uses MapleReader locally only for now. Don't push the group market unless they bring it back. Rev Market lives in `/home/market/revenant-market`, `/root/revenant-market` and `/etc/revenant-market.env`. Its design language (clean, everything visible, no hover-only controls, cards never touching, item pictures on rows, "just listed" in green) is the standard for this UI too.
 
 ## Hard rules
 
@@ -54,18 +54,20 @@ Group server (maple.vendormarket.app, its own droplet, behind nginx + certbot) -
 
 | Mode | When | What it does |
 |---|---|---|
-| `local` | served by the app (127.0.0.1) | Scanner tab, live feed from all_scans.txt, plus friends' rows via `/api/shared/rows` when sharing is on |
+| `local` | served by the app (127.0.0.1) | Scan tab, live feed from all_scans.txt, plus friends' rows via `/api/shared/rows` when sharing is on |
 | `shared` | served by the group server (sets `window.MAPLE`) | no Scanner tab; live feed from the server |
 | `static` | the copy on claude.ai | sample data, manual import |
 
 In live modes the page keeps 30 days in the browser's localStorage (about 40,000 listings fit).
+
+**Simple layout (`SIMPLE`, = live modes; asked for October 20, 2026: "a much easier user experience").** Four tabs: **Scan** (`data-nav=scan`), **Prices** (`browse`: one row per scanned item, cheapest for sale now = seen for sale in the last day), **Listings** (`market`: search + Newest/Cheapest, identical copies merged as "×2") and **More** (`more`: links to `mine`, `deals`, `sources`, plus the import card). The item page (`drawItemSimple`) shows cheapest now / usual / for sale, "Where to buy", and the history behind a `<details>`. The Scan tab has a 3-step checklist that ticks itself, Change buttons for channel/room, Settings folded, and the sharing block only when sharing is already on. The `static` copy keeps the full original layout and demo data (the jsdom checks test that one).
 
 ### Group server (`maple-server/`)
 
 - **Code:** stdlib Python + SQLite. `server.py` listens on 127.0.0.1:8790; `manage.py` handles keys (add/list/revoke/restore/purge/stats).
 - **Install:** `install.sh` creates its own user/folder/env/service. On a fresh droplet (nothing on ports 80/443) it installs nginx + certbot itself. On a shared server it detects the front door (nginx, Caddy or a Cloudflare tunnel), refuses if another site already uses the address, backs up, validates, rolls back if refused. `--check` changes nothing; `--remove` takes the site down and keeps the data. `MAPLE_DOMAIN` / `MAPLE_EMAIL` set the address and certificate email.
 - **Deploy:** `deploy-maple.ps1` (from Windows: tar → scp → ssh → install.sh). It asks for the droplet's login once and remembers it in `deploy-target.json` (not in git). `-Check`, `-Remove`, `-Domain`, `-Email`, `-Server`.
-- **Status:** not yet installed as of October 20, 2026. The owner follows `maple-server/SETUP.md` (make droplet → DNS → `-Check` → install → keys). This session couldn't reach DigitalOcean or SSH, so the owner runs it.
+- **Status:** paused (see top). Not installed as of October 20, 2026. The owner follows `maple-server/SETUP.md` (make droplet → DNS → `-Check` → install → keys). This session couldn't reach DigitalOcean or SSH, so the owner runs it.
 
 ## Checks (run before handing anything over)
 
@@ -75,7 +77,7 @@ In live modes the page keeps 30 days in the browser's localStorage (about 40,000
 | On Linux/macOS | `cd MapleReader && python3 tests/test_pictures.py && python3 tests/test_session.py && python3 tests/test_scroll.py && python3 tests/test_market.py` |
 | Market page | `npm install && npm test` (jsdom; 128 checks). Keep script lines ≤ 200 characters (a check enforces it) |
 | Group server | `python3 maple-server/tests/test_server.py` |
-| End-to-end in a real browser | `python3 dev-tests/e2e/<name>.py` (no arguments needed), needs `pip install playwright` (`PW_CHROMIUM=/path/to/chrome` optional): `live_e2e.py`, `app_e2e.py`, `share_e2e.py` (pretend friends + server) |
+| End-to-end in a real browser | `python3 dev-tests/e2e/<name>.py` (no arguments needed; `app_e2e.py` covers the simple layout), needs `pip install playwright` (`PW_CHROMIUM=/path/to/chrome` optional): `live_e2e.py`, `app_e2e.py`, `share_e2e.py` (pretend friends + server) |
 | Install script | `bash dev-tests/e2e/test_install.sh` (28 checks): only in a throwaway container as root, with the stub tools in `dev-tests/e2e/stubs` (fresh droplet, nginx, Caddy, tunnel, address clash, port moves, remove) |
 | Deploy script | needs `pwsh`; run it with fake `scp`/`ssh` that run the command locally, against the same stubs |
 
