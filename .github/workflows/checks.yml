@@ -22,11 +22,11 @@ jobs:
     env:
       MAPLEREADER_UPDATE_API: "off"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -57,8 +57,8 @@ jobs:
     env:
       MAPLEREADER_UPDATE_API: "off"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
       - name: Tesseract, Inno Setup and Python packages
@@ -81,8 +81,11 @@ jobs:
       - name: Build MapleReader.exe
         run: python MapleReader\build_app.py --dist dist
       - name: Self-check the built exe
+        timeout-minutes: 10
         run: |
-          $p = Start-Process dist\MapleReader\MapleReader.exe -ArgumentList "--self-check", "$pwd\exe_check.txt" -Wait -PassThru
+          # wait for that one program only (Start-Process -Wait would also wait for anything it starts), at most 5 minutes
+          $p = Start-Process dist\MapleReader\MapleReader.exe -ArgumentList "--self-check", "$pwd\exe_check.txt" -PassThru
+          if (-not $p.WaitForExit(300000)) { $p | Stop-Process -Force; throw "The self-check didn't finish in 5 minutes" }
           Get-Content exe_check.txt
           if ($p.ExitCode -ne 0) { throw "The built exe failed its self-check" }
       - name: Build the installer
@@ -95,21 +98,42 @@ jobs:
           [IO.File]::WriteAllText("$pwd\out\$name.sha256", "$hash  $name`n")
           Get-ChildItem out
       - name: Install it quietly, self-check the installed copy, uninstall
+        timeout-minutes: 20
         run: |
+          # Start-Process -Wait would wait for everything a program starts, and the setup starts MapleReader
+          # (which runs until its window closes), so wait for each program itself, at most 5 minutes
+          function Run-And-Wait($file, $argv, $what) {
+            $p = Start-Process $file -ArgumentList $argv -PassThru
+            if (-not $p.WaitForExit(300000)) { $p | Stop-Process -Force; throw "$what didn't finish in 5 minutes" }
+            return $p.ExitCode
+          }
           $v = "${{ steps.ver.outputs.version }}"
-          $p = Start-Process "out\MapleReader-Setup-$v.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait -PassThru
-          if ($p.ExitCode -ne 0) { throw "The installer failed ($($p.ExitCode))" }
-          Start-Sleep 5
-          Get-Process MapleReader -ErrorAction SilentlyContinue | Stop-Process -Force   # it starts the app after installing
+          $code = Run-And-Wait "out\MapleReader-Setup-$v.exe" @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART") "The installer"
+          if ($code -ne 0) { throw "The installer failed ($code)" }
+          Start-Sleep 8
+          $started = @(Get-Process MapleReader -ErrorAction SilentlyContinue).Count
+          "MapleReader started by the installer: $started"
+          if ($started -lt 1) { throw "The installer didn't start MapleReader (updates rely on that)" }
+          Get-Process MapleReader, msedge -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep 2
           $app = "$env:LOCALAPPDATA\Programs\MapleReader"
           if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\MapleReader.lnk")) { throw "No Start-menu icon" }
-          $p = Start-Process "$app\MapleReader.exe" -ArgumentList "--self-check", "$pwd\installed_check.txt" -Wait -PassThru
+          $code = Run-And-Wait "$app\MapleReader.exe" @("--self-check", "$pwd\installed_check.txt") "The installed copy's self-check"
           Get-Content installed_check.txt
-          if ($p.ExitCode -ne 0) { throw "The installed copy failed its self-check" }
-          $p = Start-Process "$app\unins000.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES" -Wait -PassThru
+          if ($code -ne 0) { throw "The installed copy failed its self-check" }
+          # a quiet update over the top: the files are replaced, and the scans folder stays
+          New-Item -ItemType Directory -Force "$app\scans" | Out-Null; Set-Content "$app\scans\all_scans.txt" "kept"
+          $code = Run-And-Wait "out\MapleReader-Setup-$v.exe" @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART") "The update"
+          Start-Sleep 8
+          Get-Process MapleReader, msedge -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep 2
+          if ($code -ne 0) { throw "Installing over the top failed ($code)" }
+          if ((Get-Content "$app\scans\all_scans.txt") -ne "kept") { throw "An update lost the scans" }
+          $code = Run-And-Wait "$app\unins000.exe" @("/VERYSILENT", "/SUPPRESSMSGBOXES") "The uninstaller"
           Start-Sleep 3
           if (Test-Path "$app\MapleReader.exe") { throw "Uninstall left the program behind" }
-      - uses: actions/upload-artifact@v4
+          "install, update over the top, self-check and uninstall all fine"
+      - uses: actions/upload-artifact@v5
         with:
           name: MapleReader-Setup-${{ steps.ver.outputs.version }}
           path: out/*
@@ -122,7 +146,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           path: out
           merge-multiple: true
