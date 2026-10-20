@@ -6,6 +6,7 @@ small requests. Everything here is safe to call from the web server's threads.
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -77,6 +78,8 @@ class Controller:
         self.update_info = {'state': 'checking'}
         self._update_at = 0
         self.quit_requested = False                  # set when an update is about to install: the window closes
+        if self.frozen:                              # an earlier update's setup file is no longer needed
+            shutil.rmtree(os.path.join(APP_DIR, 'updates'), ignore_errors=True)
 
     # --- settings ---
     def _load(self):
