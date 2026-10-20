@@ -51,6 +51,11 @@ class _Feed(Events):
     def shop(self, name, rows_seen):
         self.c.set(shop=name, shop_rows=rows_seen)
 
+    def gone(self, rows, room, ch):
+        names = sorted({r['item'] for r in rows})
+        self.c.note(f'{len(rows)} listing{"s" if len(rows) > 1 else ""} no longer in "{rows[0]["shop"]}": ' +
+                    ', '.join(names[:3]) + ('…' if len(names) > 3 else '') + '. Taken off the market.')
+
     def saved(self, rows, room, ch, total):
         now = time.time()
         self.c.set(total=total, room=room, channel=ch)

@@ -77,7 +77,7 @@ jobs:
         working-directory: MapleReader
         run: |
           $ErrorActionPreference = "Stop"; $PSNativeCommandUseErrorActionPreference = $true
-          foreach ($t in "test_pictures", "test_session", "test_scroll", "test_resize", "test_exp", "test_market", "test_update") { python "tests\$t.py" }
+          foreach ($t in "test_pictures", "test_session", "test_scroll", "test_resize", "test_exp", "test_revisit", "test_market", "test_update") { python "tests\$t.py" }
       - name: Version
         id: ver
         run: |

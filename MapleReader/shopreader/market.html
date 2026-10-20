@@ -522,7 +522,7 @@ function scanAll() {
       G = o => SHOPK(o) + "|" + o.item + "|" + o.price,
       forSale = {},
       groups = {};
-    sc.rows.forEach(r => r.st !== "sold" && (forSale[G(r)] = (forSale[G(r)] || 0) + 1));
+    sc.rows.forEach(r => r.st === "sale" && (forSale[G(r)] = (forSale[G(r)] || 0) + 1));
     Object.keys(m).forEach(k => {
       const o = m[k];
       if (o.st === "sale" && shops.has(SHOPK(o))) (groups[G(o)] = groups[G(o)] || []).push(k);
@@ -535,8 +535,13 @@ function scanAll() {
     });
     sc.rows.forEach(r => {
       const k = K(r),
-        at = r.t || sc.t,
-        o = m[k] || (m[k] = { ...r, first: at, st: "sale", soldFirst: r.st === "sold" });
+        at = r.t || sc.t;
+      if (r.st === "gone") {
+        // the reader saw the shop's whole list again and this listing wasn't in it (bought, taken back, re-priced)
+        if (m[k] && m[k].st === "sale") m[k].st = "gone";
+        return;
+      }
+      const o = m[k] || (m[k] = { ...r, first: at, st: "sale", soldFirst: r.st === "sold" });
       o.last = Math.max(o.last || 0, at);
       if (r.st === "sold" && o.st !== "sold") {
         o.st = "sold";
@@ -644,7 +649,7 @@ function parseScanRows(text) {
         rm = +p[3],
         ch = +p[4],
         ex = p.slice(5),
-        st = ex.some(x => /^sold$/i.test(x)) ? "sold" : "sale",
+        st = ex.some(x => /^sold$/i.test(x)) ? "sold" : ex.some(x => /^gone$/i.test(x)) ? "gone" : "sale",
         qt = ex.map(x => x.replace(/^x/i, "")).find(x => /^\d+$/.test(x)),
         ps = ex.find(x => /^#\d+$/.test(x)),
         at = seenAt(ex),
