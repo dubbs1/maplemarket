@@ -73,3 +73,5 @@ asyncio.run(main())
 for pr in (pA, pB, pC, psrv, nonlocal_pB2[0]):
     if pr: pr.kill()
 print('ALL SHARE CHECKS PASSED' if not fails else f'{len(fails)} FAILED')
+
+sys.exit(1 if fails else 0)   # so a runner sees a failure, not just the printed line

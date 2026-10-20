@@ -44,7 +44,7 @@ Group server (maple.vendormarket.app, its own droplet, behind nginx + certbot) -
 | `layout.py`, `rows.py`, `title.py`, `names.py`, `ocr.py` | finding the list, reading rows (normal and faded/sold), shop name, name fixes. A list whose visible rows are **all** sold has no blue row to find it by: `list_boxes` then takes a tall faded block, the layout gets `faded: True`, text is read split black/white at (background grey − 20), and each row is confirmed with `read_row` (fixture `allsold.png`) |
 | `scroll.py` | scrollbar handle position, then slot numbers, so long lists of identical items count right (solves the row count N by consistency) |
 | `location.py` | room from the minimap; channel from the Change Channel window |
-| `scanner.py` | the watching loop (shared by app and CLI), `Saver` (10-minute de-dupe by item+price+room+ch+sold+copy) |
+| `scanner.py` | the watching loop (shared by app and CLI), `Saver` (10-minute de-dupe by item+price+room+ch+sold+copy). The room search is forced only on the session's first shop. `color_boxes` (layout.py) does its pixel work in Pillow: a look at a 1440p screen with no shop takes ~13 ms; keep it that way (it runs every 0.15 s) |
 | `icons.py` | keeps one picture per item (a clear one replaces a faded one) |
 | `controller.py`, `market_server.py`, `desktop.py` | the app: background scanner, local HTTP API (POSTs need the `X-MapleReader: 1` header; Host check), Edge app-mode window, exits when the window closes |
 | `share.py` | uploader: tails all_scans.txt from a saved offset (`scans/share_state.json`); survives offline and restarts |
@@ -60,7 +60,9 @@ Group server (maple.vendormarket.app, its own droplet, behind nginx + certbot) -
 
 In live modes the page keeps 30 days in the browser's localStorage (about 40,000 listings fit).
 
-**Simple layout (`SIMPLE`, = live modes; asked for October 20, 2026: "a much easier user experience").** Four tabs: **Scan** (`data-nav=scan`), **Prices** (`browse`: one row per scanned item, cheapest for sale now = seen for sale in the last day), **Listings** (`market`: search + Newest/Cheapest, identical copies merged as "×2") and **More** (`more`: links to `mine`, `deals`, `sources`, plus the import card). The item page (`drawItemSimple`) shows cheapest now / usual / for sale, "Where to buy", and the history behind a `<details>`. The Scan tab has a 3-step checklist that ticks itself, Change buttons for channel/room, Settings folded, and the sharing block only when sharing is already on. The `static` copy keeps the full original layout and demo data (the jsdom checks test that one).
+**Simple layout (`SIMPLE`, = live modes; asked for October 20, 2026: "a much easier user experience").** Four tabs: **Scan** (`data-nav=scan`), **Prices** (`browse`: one row per scanned item, cheapest for sale now = seen for sale in the last day), **Listings** (`market`: search + Newest/Cheapest, identical copies merged as "×2") and **More** (`more`: links to `mine`, `deals`, `sources`, plus the import card). The item page (`drawItemSimple`) shows cheapest now / usual / for sale, "Where to buy", and the history behind a `<details>`. The Scan tab has a 3-step checklist that ticks itself, Change buttons for channel/room, Settings folded, and the sharing block only when sharing is already on. The `static` copy keeps the full original layout and demo data (most jsdom checks test that one). Listings shows listings seen in the last 3 days (`RECENT`, "Show older" button); ages and "may be gone" use the **last** sighting (`seen`), "just listed" the first. The item page has a one-click price alert. `say()` messages show as a fading notice at the bottom of the window. `/` focuses search, Esc leaves an item page.
+
+**App behaviour:** the app starts watching when it opens (`auto_start` setting, default on, `Controller.autostart()` from `desktop.run`). Without Tesseract the big button runs the winget installer, and the controller looks again every 5 s, so no restart is needed.
 
 ### Group server (`maple-server/`)
 
@@ -71,11 +73,13 @@ In live modes the page keeps 30 days in the browser's localStorage (about 40,000
 
 ## Checks (run before handing anything over)
 
+**All at once (Linux):** `bash dev-tests/run_all.sh` (`--quick` skips pictures and browser tests; `--install` adds the install-script checks, throwaway container only). It prints one PASS/FAIL line per check and fails if any does.
+
 | What | How |
 |---|---|
 | On Windows | `MapleReader\run_tests.bat`: pictures (tolerant of Tesseract 5.3 vs 5.5), pretend session, scrolling, local server |
 | On Linux/macOS | `cd MapleReader && python3 tests/test_pictures.py && python3 tests/test_session.py && python3 tests/test_scroll.py && python3 tests/test_market.py` |
-| Market page | `npm install && npm test` (jsdom; 128 checks). Keep script lines ≤ 200 characters (a check enforces it) |
+| Market page | `npm install && npm test` (jsdom; 138 checks; t13 runs the app's simple layout via `window.MAPLE={mode:'shared'}`). Keep script lines ≤ 200 characters (a check enforces it) |
 | Group server | `python3 maple-server/tests/test_server.py` |
 | End-to-end in a real browser | `python3 dev-tests/e2e/<name>.py` (no arguments needed; `app_e2e.py` covers the simple layout), needs `pip install playwright` (`PW_CHROMIUM=/path/to/chrome` optional): `live_e2e.py`, `app_e2e.py`, `share_e2e.py` (pretend friends + server) |
 | Install script | `bash dev-tests/e2e/test_install.sh` (28 checks): only in a throwaway container as root, with the stub tools in `dev-tests/e2e/stubs` (fresh droplet, nginx, Caddy, tunnel, address clash, port moves, remove) |
