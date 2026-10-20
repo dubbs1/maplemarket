@@ -117,6 +117,22 @@ def main():
         print(('ok     ' if ok else 'FAILED ') + f'pictures drawn at {f:.0%} size: {good} of {want_n} listings read right')
         if not ok:
             fails.append(f'size {f}')
+    # a shop whose visible rows are all sold, with its window anywhere on screen: the list is found by its faded
+    # block, whose measured size depends on where it falls on the colour search's grid
+    sold = load('allsold.png')
+    want = Counter(expected('allsold.png'))
+    misses = []
+    for x0 in range(330, 354, 4):
+        for y0 in range(70, 94, 6):
+            RW.ROW_CACHE.clear()
+            got = Counter((r['item'], str(r['each']), bool(r.get('sold')))
+                          for r in RW.parse_frame(sold.crop((x0, y0, 1160, 800)), [])[0])
+            if got != want:
+                misses.append((x0, y0))
+    print(('ok     ' if not misses else 'FAILED ') + f'an all-sold shop at 24 window positions: {24 - len(misses)} read right' +
+          (f' (missed at {misses[:4]})' if misses else ''))
+    if misses:
+        fails.append('all-sold positions')
     real = set(by_shop) <= {'White Crusader Chainmail', 'Cheapest NX <3', '711'}
     print(('ok     ' if real else 'FAILED ') + f'every shop name is a real one {sorted(by_shop)}')
     if not real:

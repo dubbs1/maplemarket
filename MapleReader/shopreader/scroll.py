@@ -78,6 +78,18 @@ def _icon(img, x, y, h):
     return out
 
 
+def empty_slot(img, lay, k):
+    """Is the k-th visible row of the list an empty slot (the list ended above it)? An empty slot is plain row
+    colour; every listing has dark text (for sale) or light grey text (sold) in it."""
+    h, x, y = lay['h'], lay['cols'][0], lay['top'] + k * lay['h']
+    box = (x, int(y - 0.38 * h), min(img.width, x + int(3.4 * h)), int(y + 0.38 * h))
+    if box[3] > img.height or box[2] <= box[0]:
+        return False
+    px = list(img.crop(box).getdata())
+    ink = sum(max(p) < 215 for p in px)
+    return ink < 0.01 * len(px)
+
+
 class ScrollTracker:
     """One shop visit. Call reset() when a different shop opens."""
     def __init__(self):
@@ -92,6 +104,10 @@ class ScrollTracker:
         self.views = []            # (fraction down the list, {visible row: (text, icon, row)})
         self.rows_n = VISIBLE
         self._gaps = {}
+        self.handle = False        # a scrollbar handle was seen: the list is longer than the window
+        self.bottom = False        # ...and was scrolled to its end
+        self.short = False         # no handle, and the slot after the last listing is empty
+        self.whole = False         # every listing of the shop has been seen in this visit
 
     def _bar(self, img, lay):
         sb = find_scrollbar(img, lay, self.x) or (find_scrollbar(img, lay) if self.x else None)
@@ -164,8 +180,18 @@ class ScrollTracker:
         self.views.append((f, view))
         if p is not None:
             self.last_seen = p
+            self.handle = True
+            self.bottom = self.bottom or f >= 0.99
+        elif view and sorted(view) == list(range(len(view))):
+            # no handle: the whole list fits in the window. Sure only if the slot after the last listing is empty
+            # (not a listing whose text wasn't read)
+            self.short = len(view) == VISIBLE or empty_slot(img, lay, len(view))
         self.rows_n = self._solve()
         slots, _ = self._layout(self.rows_n)
+        if self.handle:
+            self.whole = self.bottom and sorted(slots) == list(range(self.rows_n))
+        else:
+            self.whole = self.short
         out, seen = [], {}
         for s in sorted(slots):
             text, _, r = slots[s]

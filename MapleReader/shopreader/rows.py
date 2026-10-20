@@ -306,13 +306,15 @@ def _parse_frame(img, items=(), region=None, allow_find=True):
 
 
 def fmt(r, room, ch, when=None):
-    """One saved line: item | each | shop | room | channel [| sold] [| c2] [| @time seen].
+    """One saved line: item | each | shop | room | channel [| sold] [| gone] [| c2] [| @time seen].
     c2 = the 2nd identical listing in that shop, so friends scanning the same shop count it once.
     The time carries this PC's UTC offset (@2026-10-19T15:31:08-04:00), so a friend in another time
     zone sees the right "just listed" and ages."""
     line = f"{r['item'].replace('|', ' ')} | {r['each']} | {r['shop'].replace('|', ' ')} | {room} | {ch}"
     if r.get('sold'):
         line += ' | sold'
+    if r.get('gone'):
+        line += ' | gone'                       # no longer in the shop's list (see scanner.Saver)
     if r.get('copy'):
         line += f" | c{r['copy']}"
     if when:
