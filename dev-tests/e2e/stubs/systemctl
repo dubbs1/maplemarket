@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 case "$1" in
   is-active) [[ "$2" == "--quiet" ]] && shift; for s in ${FAKE_ACTIVE:-}; do [[ "$s" == "$2" ]] && exit 0; done
+             [[ -f "/tmp/fake-active-$2" ]] && exit 0
              [[ "$2" == maple-market && -f /tmp/fake-maple.pid ]] && kill -0 "$(cat /tmp/fake-maple.pid)" 2>/dev/null && exit 0; exit 3;;
   restart) if [[ "$2" == maple-market ]]; then
              [[ -f /tmp/fake-maple.pid ]] && kill "$(cat /tmp/fake-maple.pid)" 2>/dev/null; sleep 0.5
              set -a; . /etc/maple-market.env; set +a; export MAPLE_QUIET=1
              runuser -u maple -- env MAPLE_PORT="$MAPLE_PORT" MAPLE_DATA="$MAPLE_DATA" MAPLE_QUIET=1 python3 /home/maple/maple-market/server.py >/tmp/fake-maple.log 2>&1 &
              echo $! > /tmp/fake-maple.pid; fi; echo "systemctl $*" >> /tmp/fake-calls;;
+  disable) [[ " $* " == *" maple-market "* && -f /tmp/fake-maple.pid ]] && kill "$(cat /tmp/fake-maple.pid)" 2>/dev/null && rm -f /tmp/fake-maple.pid
+           echo "systemctl $*" >> /tmp/fake-calls;;
   *) echo "systemctl $*" >> /tmp/fake-calls;;
 esac
