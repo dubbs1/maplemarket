@@ -197,7 +197,9 @@ class Scanner:
                     shop_now = rows[0]['shop']
                 rows = tracker.place(img, found or region, rows) or rows   # every row of the list seen so far
                 ev.shop(shop_now, len(rows))
-                room = watcher.update(img, [], force=not watcher.box) or state['room'] or 0   # rooms change only via portals
+                # rooms change only through portals: look hard on the first shop, then at the watcher's own pace
+                # (forcing it on every read cost ~0.35 s per shop and per scroll whenever the minimap was closed)
+                room = watcher.update(img, [], force=last_room is None) or state['room'] or 0
                 if room != last_room:
                     last_room = room
                     ev.room(room)
