@@ -222,6 +222,8 @@ def classify(m, font):
     best.sort()
     if not best or best[0][0] > MATCH:
         return None
+    if font == 'tile' and (best[0][0] > TILE_MATCH or (len(best) > 1 and best[1][0] - best[0][0] < 0.05)):
+        return ''                                    # the level's font: only some digits are known, so no near guesses
     if len(best) > 2 and best[2][0] - best[0][0] < 0.02:
         return ''                                    # three about as close: too blurred to tell
     if len(best) > 1 and best[1][0] - best[0][0] < 0.06:
@@ -235,6 +237,7 @@ def classify(m, font):
 
 
 MATCH = 0.3                    # how different (0-1) a character may be from its known shape
+TILE_MATCH = 0.14              # the same for the level's digits (known ones match within 0.13; 3 and 8 are 0.13+ apart)
 
 
 def _text(img, bar, part):
@@ -247,7 +250,7 @@ def _text(img, bar, part):
             out += '' if out.endswith('.') else '.'
             continue
         ch = classify(_shade(img, box, part), FONT_OF[part])
-        if ch is None:
+        if ch is None and part != 'level':           # (Tesseract reads the level's font poorly: no guess there)
             ch = _guess(img, box, part)
         if not ch:
             return None                              # unclear: skip this reading (the next is a few seconds away)
@@ -366,8 +369,8 @@ class ExpTracker:
                 return False
         _, lv0, exp0, pct0 = self.last
         if exp == exp0 and pct == pct0:
-            if level and level != lv0:
-                self.last = (now, level, exp, pct)       # the level, read for the first time (or more surely)
+            if level and not lv0:
+                self.last = (now, level, exp, pct)       # the level, read for the first time
                 return True
             return False
         fits = self._fits(need, self.need)
@@ -382,7 +385,7 @@ class ExpTracker:
                 self.gained += max(0, round(self.need) - exp0) + exp
             self.levels += 1
             self.need = need
-            level = level or (lv0 + 1 if lv0 else None)
+            lv0 = lv0 + 1 if lv0 else None             # counted from the level known before, not re-read
         elif not fits:
             return False                                 # a misread: the number and the percentage disagree
         elif exp >= exp0:
@@ -391,7 +394,7 @@ class ExpTracker:
                 self.need = need                         # keep refining it (a bigger percentage is more exact)
         else:
             self.lost += exp0 - exp                     # EXP lost (from dying)
-        self.last = (now, level or lv0, exp, pct)
+        self.last = (now, lv0 or level, exp, pct)       # once known, the level changes only by levelling up
         self.history.append((now, self.gained))
         self.history = [h for h in self.history if now - h[0] <= self.RECENT] or [(now, self.gained)]
         return True
