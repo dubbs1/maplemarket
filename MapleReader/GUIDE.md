@@ -166,8 +166,9 @@ A. Make `MapleReader.exe` (once, and again after each update):
    - If your antivirus warns about the new exe: home-made exes are sometimes flagged because they aren't signed. It was built on your PC from the files in this folder. `start_app.bat` opens the same app without an exe.
 B. Use it:
    1. Double-click `MapleReader.exe`.
-      - You should see a window open on the **Scan** tab, with a big yellow **Start watching** button and three numbered steps under it. (It uses the Edge browser that comes with Windows, without the address bar, so it looks like an app.)
-   2. Click **Start watching**.
+      - You should see a window open on the **Scan** tab, with three numbered steps. It starts watching by itself, so step 1 already has a green tick and the top right says `Scanning`. (It uses the Edge browser that comes with Windows, without the address bar, so it looks like an app.)
+      - If the big button says **Install Tesseract**: click it, click **Yes** if Windows asks, and wait about a minute. When the black window says `Done`, close it. The button changes to **Start watching** by itself; click it.
+   2. If it isn't watching yet (the big yellow button says **Start watching**), click it.
       - You should see step 1 get a green tick, and the top right say `Scanning`.
    3. In the game, open the Change Channel window once, then close it.
       - You should see step 2 get a tick and your channel appear under **Channel**.
@@ -175,10 +176,12 @@ B. Use it:
    4. Open shops in the Free Market as usual.
       - You should hear a soft chime and see each listing appear on the right with its picture. New ones say **just listed** in green for a few minutes. The steps go away once the first listing is saved.
       - If the room shows `—`: check the minimap is open, or click **Change** under Room and type it.
-   5. To look up a price, click **Prices**, type part of the name (for example `scroll`), and click the item.
+   5. To look up a price, click **Prices**, type part of the name (for example `scroll`), and click the item. (Shortcut: press `/` to jump to the search box, `Esc` to go back.)
       - You should see the cheapest price now, the usual price, and a **Where to buy** list with the shop, room (FM) and channel (CH).
+      - To be told when it gets cheaper: under **Price alert**, type the most you'd pay and click **Tell me when it's this price or less**. You'll hear a chime when a scan finds one.
+      - **Listings** shows what was seen in the last 3 days; the button at the bottom shows older ones.
    6. When you're done, click **Stop**, or just close the window (closing it closes MapleReader).
-   - **Settings** (on the Scan tab; click it to open): chime on or off and its volume, the screen the game is on, **Test a screenshot** to check a saved picture, and **Open scans folder**.
+   - **Settings** (on the Scan tab; click it to open): start watching when MapleReader opens (on unless you switch it off), chime on or off and its volume, the screen the game is on, **Test a screenshot** to check a saved picture, and **Open scans folder**.
    - Pictures are cut from the shop window the first time each item is seen, and kept in `scans\icons`.
    - The first time, the app reads all of `all_scans.txt`, so everything you scanned before is there. **More > Older scan files > Reload all** clears it and reads the file again.
    - The copy of the market on Claude still works, but it doesn't update by itself and has no pictures: there you import `all_scans.txt` as before (Part G).
