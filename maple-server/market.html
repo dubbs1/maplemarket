@@ -192,6 +192,27 @@ button.fr:last-child{border-bottom:0}
 .steps li.done{color:var(--mu)}
 .steps li.done::before{content:"✓";background:var(--ok);border-color:var(--ok);color:var(--card)}
 #sets[open]>summary{margin-bottom:4px}
+/* Scan tab: fits the app window (about 860 px tall) without scrolling */
+.strip{margin-bottom:12px;padding:10px}
+.tiles.t4{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media(max-width:700px){.tiles.t4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.strip .tile{padding:8px 12px}.strip .tile .v{font-size:22px;margin:0 0 4px}.strip .shopnow{font-size:16px}
+.scan .card{margin:0 0 12px;padding:12px 14px}
+.scan .go{min-height:46px;font-size:16px}
+.scan .st{margin-top:8px}
+.scan .steps{margin-top:8px;font-size:13px}.scan .steps li{padding:4px 0}
+.xh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:8px}
+.xl{font-family:var(--mono);font-size:24px;font-weight:500}
+.xbar{height:8px;border-radius:99px;background:var(--sf);overflow:hidden;margin:6px 0 10px}
+.xbar i{display:block;height:100%;background:#7fa32a;border-radius:99px}
+.xs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.xs .k{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mu);font-weight:600}
+.xs .num{font-size:16px}.xs .num.gold{color:var(--ac)}.xs .mu{font-size:12px}
+#notes{max-height:96px;overflow-y:auto}
+.msgs{margin-bottom:12px;padding:10px 14px}.msgs .sec{margin-bottom:4px}
+.strip .tile{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;align-items:center}
+.strip .tile>.k,.strip .tile>.fix,.strip .tile>.mu{grid-column:1/-1}
+.strip .tile>.chg{align-self:center}
 .upd{border:2px solid var(--ac)}
 /* Prices: one big search, item cards, and the chosen item's details beside them */
 .bigl{display:block;font-family:var(--display);font-size:24px;font-weight:700;margin:2px 0 10px}
@@ -2072,20 +2093,21 @@ function drawScan() {
     tile = (k, id, ph) => `<div class="tile"><div class="k">${k}</div><div class="v" id="v${id}">—</div>` +
       `<button class="chg" data-chg="${id}">Change</button><div class="fix" id="f${id}" hidden><input id="i${id}" inputmode="numeric" ` +
       `placeholder="${ph}" aria-label="${k}"><button id="s${id}">Save</button></div></div>`;
+  // laid out to fit the app window without scrolling: the four tiles in one row on top, then the controls beside the feed
   $("#app").innerHTML =
-    `<div class="scan"><div>` +
     `<div class="card upd" id="upd" hidden></div>` +
-    `<div class="card"><button class="go" id="go"></button><p class="st" id="sst"><i></i><span></span></p><ol class="steps" id="steps"></ol></div>` +
-    `<div class="card"><div class="tiles">${tile("Channel", "ch", "1–40")}${tile("Room", "rm", "1–40")}` +
+    `<div class="card strip"><div class="tiles t4">${tile("Channel", "ch", "1–40")}${tile("Room", "rm", "1–40")}` +
     `<div class="tile"><div class="k">Saved</div><div class="v gold" id="vtot">0</div><div class="mu" id="vrun">this session</div></div>` +
     `<div class="tile"><div class="k">Shop open</div><p class="shopnow" id="vshop">—</p><div class="mu" id="vrows"></div></div>` +
     `</div></div>` +
+    `<div class="scan"><div>` +
+    `<div class="card"><button class="go" id="go"></button><p class="st" id="sst"><i></i><span></span></p><ol class="steps" id="steps"></ol></div>` +
     // the EXP tracker: reads the EXP line at the bottom of the game window while watching
     `<div class="card" id="expc"${se.exp === false ? " hidden" : ""}><div class="row"><p class="sec" style="margin:0">Your EXP</p>` +
-    `<button id="expreset" class="chg">Reset</button></div><div class="tiles" id="expt"></div><p class="mu" id="expn" style="margin:8px 0 0">` +
+    `<button id="expreset" class="chg">Reset</button></div><div id="expt"></div><p class="mu" id="expn" style="margin:6px 0 0">` +
     `</p></div>` +
-    `<div class="card"><p class="sec">Messages</p><ul class="notes" id="notes"></ul></div>` +
-    `</div><div><div class="feedh"><h2>Saved this session</h2><span class="mu" id="fcount"></span></div><div class="feed" id="feed"></div></div></div>`;
+    `</div><div><div class="card msgs"><p class="sec">Messages</p><ul class="notes" id="notes"></ul></div>` +
+    `<div class="feedh"><h2>Saved this session</h2><span class="mu" id="fcount"></span></div><div class="feed" id="feed"></div></div></div>`;
   $("#go").onclick = async () => {
     if (APP.busy) return;
     if (APP.st && !APP.st.tesseract) {               // nothing can be read without it: offer to install it
@@ -2225,18 +2247,19 @@ function drawFeed() {
 function drawExp(x, on) {
   const t = $("#expt");
   if (!t) return;
-  const tile = (k, v, sub, cls) => `<div class="tile"><div class="k">${k}</div><div class="v${cls ? " " + cls : ""}">${v}</div>` +
-    `<div class="mu">${sub}</div></div>`;
+  // compact: the level and a bar on one line, then three small figures side by side
+  const fig = (k, v, sub, cls) => `<div><div class="k">${k}</div><div class="num${cls ? " " + cls : ""}">${v}</div><div class="mu">${sub}</div></div>`;
   const html = !x ? "" :
-    tile("Level", x.level || "—", `${x.pct.toFixed(2)}% · ${fmt(x.exp)} EXP`) +
-    tile("EXP per hour", x.per_hour == null ? "…" : fmt(x.per_hour),
-      x.pct_per_hour == null ? "shown after a minute" : `${x.pct_per_hour}% of the level per hour`, "gold") +
-    tile("Gained", fmt(x.gained), `in ${x.minutes} min${x.levels ? ` · ${x.levels} level${x.levels === 1 ? "" : "s"} up` : ""}`) +
-    tile("Next level", x.eta_text || "—", x.left == null ? "" : `${fmt(x.left)} EXP to go`);
+    `<div class="xh"><span class="xl">Lv. ${x.level || "—"}</span><span class="mu">${x.pct.toFixed(2)}% · ${fmt(x.exp)} EXP</span></div>` +
+    `<div class="xbar" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, x.pct))}%"></i></div><div class="xs">` +
+    fig("Per hour", x.per_hour == null ? "…" : fmt(x.per_hour), x.pct_per_hour == null ? "after a minute" : `${x.pct_per_hour}%/h`, "gold") +
+    fig("Gained", fmt(x.gained), `in ${x.minutes} min${x.levels ? ` · ${x.levels} up` : ""}`) +
+    fig("Next level", x.eta_text || "—", x.left == null ? "" : `${fmt(x.left)} to go`) + `</div>`;
   if (t.dataset.html !== html) t.innerHTML = t.dataset.html = html;
   t.hidden = !x;
+  $("#expn").hidden = !!x && !x.lost;              // (only when there's something to say: keeps the card short)
   $("#expn").textContent = x
-    ? (x.lost ? `Lost ${fmt(x.lost)} EXP (from dying). ` : "") + "Reset starts counting again from now."
+    ? (x.lost ? `Lost ${fmt(x.lost)} EXP (from dying).` : "")
     : on ? "Looking for the EXP line at the bottom of the game window. Keep it on screen (not covered)."
       : "Starts when you press Start watching.";
 }
