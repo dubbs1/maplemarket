@@ -45,6 +45,8 @@ def pictures():
         check(got == TRUE, f'{name} (size {bar["size"]:.2f}): {got}')
     got = read(load('status38.png'))
     check(got == (36420, 15.14, 38), f'status38.png (your bar at level 38, with 5s and an 8): {got}')
+    got = read(load('status38_lowmp.png'))
+    check(got == (80101, 33.31, 38), f'status38_lowmp.png (HP 1146/1325, MP 471/1089: the MP bar drawn dark): {got}')
     check(E.find_bar(load('allsold.png')) is None, 'allsold.png: no status bar (a shop picture without one)')
 
 
@@ -61,6 +63,38 @@ def sizes():
                     right += got[:2] == TRUE[:2]
                     wrong += got[:2] != TRUE[:2] or got[2] not in (None, TRUE[2])
         check(wrong == 0 and right >= 3, f'x{f}: {right} of 4 read right, {wrong} wrong')
+
+
+def low_bars():
+    print('HP and MP not full, the EXP line covered for a while:')
+    from PIL import ImageDraw
+    base = load('live_shop.png')
+    bar = E.find_bar(base)
+    hp, mp = bar['hp'], bar['mp']
+    for f in (0.8, 1.0, 1.3):
+        for hp_left, mp_left, mp_col in ((0.5, 0.2, (52, 52, 52)), (0.9, 0.6, (0, 46, 70)), (0.3, 0.9, (52, 52, 52))):
+            im = base.copy()
+            d = ImageDraw.Draw(im)
+            d.rectangle((hp[0] + int((hp[2] - hp[0]) * hp_left), hp[1], hp[2], hp[3]), fill=(191, 173, 172))  # HP used up
+            if mp_col == (0, 46, 70):                                       # low MP: the fill drawn dark navy
+                d.rectangle((mp[0], mp[1], mp[0] + int((mp[2] - mp[0]) * mp_left), mp[3]), fill=mp_col)
+            d.rectangle((mp[0] + int((mp[2] - mp[0]) * mp_left), mp[1], mp[2], mp[3]), fill=(52, 52, 52))     # MP used up
+            if f != 1:
+                im = im.resize((round(im.width * f), round(im.height * f)), Image.BILINEAR)
+            got = read(im)
+            check(got and got[:2] == TRUE[:2], f'x{f}, HP {hp_left:.0%} MP {mp_left:.0%} full: {got}')
+    w = E.ExpWatcher()
+    first = w.update(base, now=1000)
+    covered = base.copy()
+    ImageDraw.Draw(covered).rectangle((bar['label'][2], bar['line'][0], bar['label'][2] + 300, bar['line'][1]), fill=(0, 0, 0))
+    no_mp = covered.copy()
+    ImageDraw.Draw(no_mp).rectangle(mp, fill=(52, 52, 52))                  # and MP all gone: the bar can't be found again
+    for i in range(8):
+        w.update(no_mp, now=1003 + i * 3)
+    back = base.copy()
+    ImageDraw.Draw(back).rectangle(mp, fill=(52, 52, 52))
+    again = w.update(back, now=1100)
+    check(first and again and again['exp'] == TRUE[0], 'covered for a while with MP gone: keeps reading where the bar was')
 
 
 def tracker():
@@ -163,6 +197,7 @@ if __name__ == '__main__':
         sys.exit('Tesseract not found')
     pictures()
     sizes()
+    low_bars()
     tracker()
     loop()
     print()
