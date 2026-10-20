@@ -1,5 +1,4 @@
-import os
-import sys, os, time, json, subprocess, tempfile, asyncio, shutil, urllib.request
+import sys, os, time, json, subprocess, tempfile, asyncio, urllib.request
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the repository
 R = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_ROOT, 'MapleReader')
 SRV = sys.argv[2] if len(sys.argv) > 2 else os.path.join(_ROOT, 'maple-server')

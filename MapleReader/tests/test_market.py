@@ -4,6 +4,7 @@ import json, os, sys, tempfile, urllib.error, urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 work = tempfile.mkdtemp(prefix='maplereader_market_')
+os.environ.setdefault('MAPLEREADER_UPDATE_API', 'off')    # these checks never ask GitHub (test_update.py does that)
 import shopreader.config as C                           # noqa: E402
 C.APP_DIR = work
 from shopreader import market_server as M               # noqa: E402

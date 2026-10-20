@@ -52,6 +52,24 @@ The more actionable discovery is how much of the data problem is still open. Bun
 
 ---
 
+# The easy way: the MapleReader installer
+
+The installer needs nothing else first (no Python, no `setup.bat`, no `build_exe.bat`). Updates then come by themselves.
+
+1. Download `MapleReader-Setup-<version>.exe` from the project's **Releases** page on GitHub (or from the file Claude sends you).
+2. Double-click it.
+   - If Windows says "Windows protected your PC": click **More info**, then **Run anyway**. (The installer isn't signed with a paid certificate; it was built automatically from this project's code.)
+   - You should see "Setup - MapleReader". Click **Next**, then **Install**, then **Finish** with "Start MapleReader" ticked.
+3. MapleReader opens on the **Scan** tab and starts watching.
+   - If you used the zip version before, the first message says `Brought over your scans from ...`: everything you scanned is already there. The old folder isn't changed; you can delete it later.
+   - If the big button says **Install Tesseract**, click it (see Part G2).
+4. From now on, open MapleReader from the Start menu or the desktop icon.
+5. **Updates:** when a new version is out, a card at the top of the Scan tab says **A new version is ready**. Click **Update now**. MapleReader closes, updates and opens again by itself within a minute. Your scans and settings stay.
+   - Settings (on the Scan tab) shows `Updates: ...` and has a **Check now** button.
+   - To remove MapleReader: Windows Settings > Apps > MapleReader > Uninstall. Your scans stay in `%LOCALAPPDATA%\Programs\MapleReader\scans` until you delete that folder.
+
+The rest of this guide is the manual way (the zip folder), which still works.
+
 # Step-by-step guide (starting from: Python 3.13 already installed)
 
 Do the steps in order. Do one thing at a time and check that you see what is described before moving on.
@@ -211,7 +229,8 @@ The group market (a shared website for you and your friends) is paused for now, 
 |---|---|
 | `MapleReader.exe` | The app: scanner and market in one window (after running `build_exe.bat`) |
 | `start_app.bat` | Opens the same app window without building the exe |
-| `build_exe.bat` | Builds `MapleReader.exe` |
+| `build_exe.bat` | Builds `MapleReader.exe` (it runs `build_app.py`) |
+| `installer\MapleReader.iss` | How the installer is made (the automatic build on GitHub uses it) |
 | `start.bat` | Starts watching the screen in the black window |
 | `market.bat` | Opens the live market without the app (for `start.bat` users) |
 | `test.bat` | Reads one screenshot you drop on it |

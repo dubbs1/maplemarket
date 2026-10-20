@@ -13,7 +13,7 @@ import time
 from collections import deque
 
 from . import __version__, engine
-from .config import APP_DIR, VOLUME
+from .config import APP_DIR, UPDATE_EVERY, VOLUME
 from .icons import slug
 from .location import RoomWatcher, read_channel
 from .names import load_items
@@ -21,6 +21,7 @@ from .ocr import find_tesseract
 from .rows import parse_frame
 from .scanner import Events, Scanner
 from . import share
+from . import update as updater
 
 SETTINGS = os.path.join(APP_DIR, 'settings.json')
 
@@ -71,6 +72,11 @@ class Controller:
         self.last_seen = time.time()                 # when the window last asked for news
         self.sharer = None
         self._share_restart()
+        # updates: only the installed app (MapleReader.exe) can install one; the zip version is told where to get it
+        self.frozen = bool(getattr(sys, 'frozen', False))
+        self.update_info = {'state': 'checking'}
+        self._update_at = 0
+        self.quit_requested = False                  # set when an update is about to install: the window closes
 
     # --- settings ---
     def _load(self):
@@ -131,14 +137,53 @@ class Controller:
             self.tesseract = True
             self.note('Tesseract found. Press Start watching.')
 
+    # --- updates ---
+    def check_update(self, wait=False):
+        """Look for a newer version in the background (or right away with wait=True)."""
+        self._update_at = time.time()
+
+        def look():
+            info = updater.check()
+            if self.update_info.get('state') not in ('downloading', 'installing'):
+                self.update_info = dict(info, can_install=self.frozen)
+        if wait:
+            look()
+        else:
+            threading.Thread(target=look, daemon=True).start()
+        return {'ok': True}
+
+    def install_update(self):
+        """Download the new version, check its fingerprint, and hand over to its setup (which restarts us)."""
+        info = self.update_info
+        if info.get('state') != 'available':
+            return {'ok': False, 'error': 'No update to install.'}
+        if not self.frozen:
+            return {'ok': False, 'error': 'This copy runs from the zip folder: download the new version from the release page.'}
+
+        def go():
+            self.update_info = dict(info, state='downloading')
+            try:
+                path = updater.download(info, os.path.join(APP_DIR, 'updates'))
+                self.update_info = dict(info, state='installing')
+                self.note('Installing the update. MapleReader closes now and opens again by itself in a minute.')
+                updater.start_install(path)
+                self.quit_requested = True
+            except (OSError, ValueError) as e:
+                self.update_info = dict(info, state='available', error=f'The update could not be installed: {e}')
+                self.note(f'The update could not be installed: {e}', 'error')
+        threading.Thread(target=go, daemon=True).start()
+        return {'ok': True}
+
     def snapshot(self, since=0):
+        if time.time() - self._update_at > UPDATE_EVERY:
+            self.check_update()
         if not self.tesseract and time.time() - self._tess_check > 5:
             self._tess_check = time.time()
             threading.Thread(target=self._look_for_tesseract, daemon=True).start()
         with self.lock:
             self.last_seen = time.time()
             settings = {k: v for k, v in self.settings.items() if k != 'share_key'}   # the key never leaves the app
-            return dict(self.state, version=__version__, engine=self.engine, tesseract=self.tesseract,
+            return dict(self.state, version=__version__, engine=self.engine, tesseract=self.tesseract, update=self.update_info,
                         settings=settings, share=self.share_status(), seq=self.seq,
                         events=[e for e in self.events if e['seq'] > since])
 

@@ -47,6 +47,8 @@ Group server (maple.vendormarket.app, its own droplet, behind nginx + certbot) -
 | `scanner.py` | the watching loop (shared by app and CLI), `Saver` (10-minute de-dupe by item+price+room+ch+sold+copy). The room search is forced only on the session's first shop. `color_boxes` (layout.py) does its pixel work in Pillow: a look at a 1440p screen with no shop takes ~13 ms; keep it that way (it runs every 0.15 s) |
 | `icons.py` | keeps one picture per item (a clear one replaces a faded one) |
 | `controller.py`, `market_server.py`, `desktop.py` | the app: background scanner, local HTTP API (POSTs need the `X-MapleReader: 1` header; Host check), Edge app-mode window, exits when the window closes |
+| `update.py` | updates: reads the latest GitHub release of `UPDATE_REPO` (config.py); a release must carry `MapleReader-Setup-<v>.exe` **and** `<that>.sha256`, and the download only runs if the SHA-256 matches. Installing: PowerShell waits for this process to exit, then runs the setup `/VERYSILENT`; the setup's [Run] starts the app again. Only the installed (frozen) app installs; the zip version gets a "Download page" button. `MAPLEREADER_UPDATE_API` = another address (tests) or `off` (all checks set it). Controller field is `update_info` (not `update`: that's the settings method) |
+| `migrate.py` | the installed app's first run copies `scans/`, `settings.json`, `items.txt` from an older zip folder (Desktop / OneDrive\Desktop / Documents / Downloads `\MapleReader`), never `share_state.json`, never changing the old folder |
 | `share.py` | uploader: tails all_scans.txt from a saved offset (`scans/share_state.json`); survives offline and restarts |
 | `market.html` | **the one true copy of the market page.** Run `python tools/sync_market.py` after editing it to copy it to `maple-server/` |
 
@@ -71,6 +73,14 @@ In live modes the page keeps 30 days in the browser's localStorage (about 40,000
 - **Deploy:** `deploy-maple.ps1` (from Windows: tar → scp → ssh → install.sh). It asks for the droplet's login once and remembers it in `deploy-target.json` (not in git). `-Check`, `-Remove`, `-Domain`, `-Email`, `-Server`.
 - **Status:** paused (see top). Not installed as of October 20, 2026. The owner follows `maple-server/SETUP.md` (make droplet → DNS → `-Check` → install → keys). This session couldn't reach DigitalOcean or SSH, so the owner runs it.
 
+## Building and releasing
+
+- `MapleReader/build_app.py` builds the exe (PyInstaller); `build_exe.bat` calls it. `MapleReader.exe --self-check out.txt` starts the app's parts in a scratch folder and writes PASSED/FAILED (the exe has no console); exit code 0 = good.
+- `MapleReader/installer/MapleReader.iss` (Inno Setup 6): per-user install to `%LOCALAPPDATA%\Programs\MapleReader`, no admin, Start-menu + desktop icon, `_internal` replaced whole on update, data next to the app kept.
+- `.github/workflows/checks.yml`: **linux** on every push (pyflakes, `run_all.sh`, install-script checks); **windows** on main, PRs, `v*` tags, manual runs, or a commit message containing `[windows]` (Windows minutes cost 2× on a private repo): reader checks with real Windows Tesseract, build exe, self-check it, build installer + `.sha256`, silent install, self-check the installed copy, uninstall; uploads the installer as an artifact. **release** on a tag `v<__version__>` (the job refuses a mismatch) publishes the installer + `.sha256`.
+- To release: bump `__version__` in `shopreader/__init__.py`, merge to main, push tag `v<version>`.
+- **The repository is private (October 2026):** release downloads need a GitHub login, so installed apps report "Updates: none published yet". Updates reach users only once releases are public (make the repo public, or publish releases from a public repo and point `UPDATE_REPO` at it). Ask the owner.
+
 ## Checks (run before handing anything over)
 
 **All at once (Linux):** `bash dev-tests/run_all.sh` (`--quick` skips pictures and browser tests; `--install` adds the install-script checks, throwaway container only). It prints one PASS/FAIL line per check and fails if any does.
@@ -93,4 +103,4 @@ Tesseract versions differ: the expected outputs were made with 5.3. Linux wheels
 - **Stack counts:** the numbers on item icons (e.g. 100) aren't read yet; every listing counts as quantity 1.
 - **Fast scrolling:** flicking or dragging straight to the bottom of a long identical list undercounts (by design it never overcounts).
 - **Untested for real:** the Windows exe + Edge app window on the owner's PC, and the install on a real droplet (real certbot, real DNS). Ask for screenshots or output on the first run.
-- **Possible next steps:** stack counts; a shared items.txt; MapleReader auto-update from GitHub releases.
+- **Possible next steps** (from the October 20 plan): recognise items by their icon to fix misread names; the MapleClassic Wiki item list (CC BY-SA, credit) for names and categories; Windows notifications for alerts; stack counts; a "report a problem" button; CSV export.

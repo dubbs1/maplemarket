@@ -4,6 +4,7 @@
 #   --install  also run the install-script checks (ONLY in a throwaway container, as root)
 # Needs: python3 with pillow, pytesseract, mss; tesseract; node + npm install; playwright for the browser tests.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT" || exit 1
+export MAPLEREADER_UPDATE_API="${MAPLEREADER_UPDATE_API:-off}"   # checks never ask the real GitHub for updates
 QUICK=0; INSTALL=0
 for a in "$@"; do case "$a" in --quick) QUICK=1;; --install) INSTALL=1;; *) echo "unknown option $a"; exit 2;; esac; done
 results=(); bad=0
@@ -18,6 +19,7 @@ run "group server"       python3 maple-server/tests/test_server.py
 run "reader: session"    bash -c 'cd MapleReader && python3 tests/test_session.py'
 run "reader: scrolling"  bash -c 'cd MapleReader && python3 tests/test_scroll.py'
 run "reader: app server" bash -c 'cd MapleReader && python3 tests/test_market.py'
+run "reader: updates"    bash -c 'cd MapleReader && python3 tests/test_update.py'
 if [[ $QUICK == 0 ]]; then
   run "reader: pictures" bash -c 'cd MapleReader && python3 tests/test_pictures.py'
   if python3 -c 'import playwright' 2>/dev/null; then

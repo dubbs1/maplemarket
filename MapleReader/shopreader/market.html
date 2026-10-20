@@ -192,6 +192,7 @@ button.fr:last-child{border-bottom:0}
 .steps li.done{color:var(--mu)}
 .steps li.done::before{content:"✓";background:var(--ok);border-color:var(--ok);color:var(--card)}
 #sets[open]>summary{margin-bottom:4px}
+.upd{border:2px solid var(--ac)}
 /* Import card: the main thing you do on Market, so it comes first */
 .imp{border:2px solid var(--sky)}
 .imp input[type=file]{width:100%;box-sizing:border-box}
@@ -1915,6 +1916,7 @@ function drawScan() {
       `placeholder="${ph}" aria-label="${k}"><button id="s${id}">Save</button></div></div>`;
   $("#app").innerHTML =
     `<div class="scan"><div>` +
+    `<div class="card upd" id="upd" hidden></div>` +
     `<div class="card"><button class="go" id="go"></button><p class="st" id="sst"><i></i><span></span></p><ol class="steps" id="steps"></ol></div>` +
     `<div class="card"><div class="tiles">${tile("Channel", "ch", "1–40")}${tile("Room", "rm", "1–40")}` +
     `<div class="tile"><div class="k">Saved</div><div class="v gold" id="vtot">0</div><div class="mu" id="vrun">this session</div></div>` +
@@ -1931,6 +1933,8 @@ function drawScan() {
     `<div class="btns"><label class="bt">Test a screenshot<input type="file" id="opic" accept="image/*"></label><button id="oscans">` +
     `Open scans folder</button></div>` +
     `<p class="mu" id="eng" style="margin:10px 0 0"></p>` +
+    `<div class="opt" style="border-top:1px solid var(--bd);margin-top:8px"><span id="updline" class="mu">Updates</span>` +
+    `<button id="updcheck" class="chg">Check now</button></div>` +
     // sharing with a group market: only shown once it has been turned on (the group market is paused for now)
     (sh.enabled ? `<p class="sec" style="margin-top:14px">Share with friends</p>` +
     `<div class="opt"><span>Send my scans to the group's market</span><label class="sw"><input type="checkbox" id="shon"` +
@@ -1985,6 +1989,17 @@ function drawScan() {
   $("#ov").onchange = e => api("/api/set", { volume: +e.target.value });
   $("#om").onchange = e => api("/api/set", { monitor: +e.target.value });
   $("#oscans").onclick = () => api("/api/open-scans");
+  $("#updcheck").onclick = async () => {
+    $("#updline").textContent = "Checking for updates…";
+    await api("/api/update-check");
+  };
+  $("#upd").onclick = async e => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    if (b.dataset.page) return void window.open(b.dataset.page, "_blank", "noopener");
+    const r = await api("/api/update");
+    if (!r.ok) say(r.error);
+  };
   if ($("#shon")) $("#shon").onchange = async e => {
     const r = await api("/api/set", { share_on: e.target.checked });
     if (!r.ok) {
@@ -2034,6 +2049,35 @@ function drawFeed() {
         .join("")
     : `<div class="empty">Nothing saved yet. Press Start, then open shops in the Free Market. Each listing appears here with its picture.</div>`;
 }
+// A newer MapleReader: a card at the top of Scan (only when there's something to do) and a line in Settings
+function drawUpdate(u, lost) {
+  const card = $("#upd");
+  if (!card) return;
+  const v = esc(u.version || ""),
+    busy = u.state === "downloading" || u.state === "installing";
+  card.hidden = lost || !(u.state === "available" || busy);
+  const html = busy
+    ? `<b>Updating to ${v}…</b><p class="mu" style="margin:4px 0 0">${u.state === "downloading" ? "Downloading the new version." :
+      "Installing. MapleReader closes and opens again by itself in about a minute."}</p>`
+    : u.state === "available"
+      ? `<div class="row" style="margin:0"><span><b>A new version is ready</b><br><span class="mu">MapleReader ${v}` +
+        `${u.error ? ` · <span class="dn">${esc(u.error)}</span>` : ""}</span></span>` +
+        (u.can_install ? `<button class="go" style="width:auto;min-height:44px;font-size:15px;padding:0 18px">Update now</button>` :
+          `<button data-page="${esc(u.page || "")}">Download page</button>`) + `</div>`
+      : "";
+  if (card.dataset.html !== html) card.innerHTML = card.dataset.html = html; // don't redraw (and lose a click) every second
+  const line = $("#updline");
+  if (line) line.textContent = {
+    none: "Updates: you have the newest version",
+    available: `Updates: ${u.version} is ready (see the top of this tab)`,
+    downloading: "Updates: downloading…",
+    installing: "Updates: installing…",
+    checking: "Updates: checking…",
+    offline: "Updates: can't reach GitHub right now",
+    unavailable: "Updates: none published yet",
+    off: "Updates: switched off"
+  }[u.state] || "Updates";
+}
 function updScan(feedChanged, lost) {
   const st = APP.st || {};
   if (!$("#go")) return;
@@ -2047,6 +2091,7 @@ function updScan(feedChanged, lost) {
       : STATUS[on ? st.status : "stopped"] || STATUS.looking;
   $("#sst").className = "st " + cls;
   $("#sst span").textContent = text;
+  drawUpdate(st.update || {}, lost);
   // the three steps tick themselves off, and go away once the first listing is saved
   $("#steps").hidden = (st.total || 0) > 0 || lost;
   $("#steps").innerHTML = [
