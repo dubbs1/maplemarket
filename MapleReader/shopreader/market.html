@@ -193,6 +193,45 @@ button.fr:last-child{border-bottom:0}
 .steps li.done::before{content:"✓";background:var(--ok);border-color:var(--ok);color:var(--card)}
 #sets[open]>summary{margin-bottom:4px}
 .upd{border:2px solid var(--ac)}
+/* Prices: one big search, item cards, and the chosen item's details beside them */
+.bigl{display:block;font-family:var(--display);font-size:24px;font-weight:700;margin:2px 0 10px}
+.bigq{display:flex;align-items:center;gap:10px;background:var(--card);border:2px solid var(--ac);border-radius:14px;padding:0 16px}
+.bigq svg{flex:none;color:var(--mu)}
+.bigq input{border:0;min-height:56px;font-size:18px;padding:0;background:transparent}
+.bigq input:focus-visible{outline:none}.bigq:focus-within{outline:2px solid var(--sky);outline-offset:2px}
+.pgrid{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.cards{flex:2 1 420px;min-width:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.cards>.empty{grid-column:1/-1;background:var(--card);border:1px solid var(--bd);border-radius:12px}
+.pc{display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:14px;border-radius:12px;border:2px solid var(--bd);background:var(--card);
+  text-align:left;min-height:0;width:100%;color:var(--tx)}
+.pc[aria-pressed=true]{border-color:var(--ac)}.pc:hover{border-color:var(--sky)}
+.pc>span{display:block;min-width:0}.pc>.nm{display:flex;margin-bottom:6px}
+.pc .t{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc .k,.oc .k{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mu);font-weight:600}
+.pc .num{font-size:22px}
+#ipanel{flex:1 1 300px;min-width:0;margin:0}
+@media(max-width:560px){.cards,#mb.lcards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.pc,#mb.lcards>.card{padding:10px}.pc .num{font-size:18px}
+  .bigl{font-size:20px}.bigq input{font-size:16px;min-height:50px}}
+#ipanel .ins-h{margin-top:14px}
+#ipanel .feed .fr{padding:8px 12px}
+/* Listings as cards (Compact is the ruled list above) */
+#mb.lcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;background:none;border:0;overflow:visible}
+#mb.lcards>.card{border:1px solid var(--bd);border-radius:12px;margin:0;display:flex;flex-direction:column;gap:6px;padding:14px}
+#mb.lcards>.card:last-child{border-bottom:1px solid var(--bd)}
+#mb.lcards .nm{justify-content:space-between}#mb.lcards .num{font-size:20px!important}
+#mb.lcards .more-old{grid-column:1/-1;border:1px solid var(--bd);border-radius:10px}
+/* Options: every setting is a card with its switch */
+.oh2{margin:4px 0 10px}
+.ocards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin-bottom:20px}
+.oc{margin:0;display:flex;flex-direction:column;gap:8px}
+.oc p{margin:0}
+.oc .oh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.oc .oh label:first-child{cursor:pointer}
+.oc input[type=range]{min-height:0;padding:0;border:0;background:none;accent-color:var(--ac)}
+.oc select{width:auto;align-self:flex-start}
+.oc .btns{margin-top:4px}
+button.oc{text-align:left;align-items:flex-start;min-height:0;padding:16px;border-radius:10px;color:var(--tx)}
+button.oc .k{margin-top:auto;color:var(--sky)}
 /* Import card: the main thing you do on Market, so it comes first */
 .imp{border:2px solid var(--sky)}
 .imp input[type=file]{width:100%;box-sizing:border-box}
@@ -1341,10 +1380,12 @@ ${listCard(cur)}${scanCard(cur)}<div class="card"><b>Log a price</b><div class="
 /* ===== The app's simple views ===== Inside MapleReader (and the group's market) there are four tabs: Scan, Prices
    (one row per item you've scanned), Listings (every shop listing, copies merged) and More (everything else). */
 const SIMPLE = LIVE;
-const SEE_DEALS = SIMPLE ? "See More › Alerts and deals." : "See Deals.";
-const MORE = ["mine", "deals", "sources"]; // reached from the More tab
+const SEE_DEALS = SIMPLE ? "See Options › Alerts and deals." : "See Deals.";
+const MORE = ["mine", "deals", "sources"]; // reached from the Options tab
 let psort = "new",
   lsort = "new",
+  lview = "compact", // Listings: "compact" rows or "cards"
+  pick = null, // Prices: the item whose details show beside the cards
   lold = false; // Listings: also show listings nobody has seen for 3 days
 const RECENT = 3 * DAY;
 const segBtns = (name, cur, opts) =>
@@ -1370,23 +1411,37 @@ function priceRows() {
 }
 function priceRow(p) {
   const v = p.low != null ? p.low : p.usual;
-  return `<button class="fr pr" data-open="${p.id}">${pic(p.it.name)}<div style="min-width:0"><div class="t">${esc(p.it.name)}</div>` +
-    `<div class="s">${p.n ? `${p.n} for sale` : "none for sale now"} · ${seenTxt(p.seen)}</div></div>` +
-    `<div class="p"><div class="num">${v == null ? "–" : fmt(v)}</div><div class="mu">${p.low != null ? "cheapest now" : "usual price"}</div></div></button>`;
+  return `<button class="pc" data-open="${p.id}" aria-pressed="${p.id === pick}"><span class="nm">${pic(p.it.name)}<span class="t">${esc(p.it.name)}</span></span>` +
+    `<span class="k">${p.low != null ? "Cheapest now" : "Usual price"}</span><span class="num">${v == null ? "–" : fmt(v)}</span>` +
+    `<span class="mu">${p.n ? `${p.n} for sale` : "none for sale now"} · ${seenTxt(p.seen)}</span></button>`;
 }
 const EMPTY_SCAN = MODE === "shared" ? "Nothing yet. Listings appear here as friends scan." :
   "Nothing scanned yet. Go to <b>Scan</b>, press <b>Start watching</b>, then open shops in the Free Market.";
 function drawPriceList() {
-  const P = priceRows();
+  const P = priceRows(),
+    was = pick;
+  if (!P.some(p => p.id === pick)) pick = P.length ? P[0].id : null; // show the first item's details until one is picked
   $("#pcount").textContent = P.length ? `${P.length} item${P.length === 1 ? "" : "s"}` : "";
   $("#list").innerHTML = P.length ? P.slice(0, 300).map(priceRow).join("") :
     `<div class="empty">${q.trim() ? `No scanned item matches "${esc(q.trim())}".` : EMPTY_SCAN}</div>`;
+  drawPanel(pick !== was);
+}
+// The picked item's details beside the cards; not redrawn under someone typing an alert price in it
+function drawPanel(force) {
+  const el = $("#ipanel");
+  if (!el) return;
+  el.hidden = !pick;
+  if (!pick || (!force && el.contains(document.activeElement) && document.activeElement !== el)) return;
+  el.innerHTML = itemHtml(pick);
+  bindItem(pick);
 }
 function drawPrices() {
   $("#app").innerHTML =
-    `<input id="q" type="search" placeholder="Find an item, e.g. scroll   (press / to jump here)" aria-label="Find an item">` +
+    `<label class="bigl" for="q">How much is it?</label><div class="bigq"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" ` +
+    `stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>` +
+    `<input id="q" type="search" placeholder="Type an item, for example scroll   (press / to jump here)"></div>` +
     `<div class="bar"><span class="mu" id="pcount"></span>${segBtns("ps", psort, [["new", "Newest"], ["low", "Cheapest"], ["az", "A–Z"]])}</div>` +
-    `<div class="feed" id="list"></div>`;
+    `<div class="pgrid"><div class="cards" id="list"></div><section class="card" id="ipanel" aria-label="Item details" hidden></section></div>`;
   $("#q").value = q;
   $("#q").oninput = e => {
     q = e.target.value;
@@ -1416,6 +1471,12 @@ function listingRow(l) {
   const it = item(l.item),
     fresh = Date.now() - l.t < JUST, // first seen in the last few minutes
     age = Date.now() - l.seen;
+  if (lview === "cards")
+    return `<div class="card${fresh ? " new" : ""}"><div class="nm">${pic(it.name)}<span class="mu">${fresh ? '<span class="fresh">just listed</span>' :
+      "seen " + ago(age)}</span></div><button class="t lk" data-open="${l.item}">${esc(it.name)}</button>` +
+      `<div class="num">${fmt(l.price)}${l.n > 1 ? ` <span class="cnt">×${l.n}</span>` : ""}</div>` +
+      `<div class="mu">${esc(l.store)}<br>FM ${l.room || "?"}${l.ch ? " · CH " + l.ch : ""}${l.type === "buy" ? " · buying" : ""}${l.mine ? " · yours" : ""}` +
+      `${age > 2 * DAY ? ' · <span class="dn">may be gone</span>' : ""}</div></div>`;
   return `<div class="card fr${fresh ? " new" : ""}">${pic(it.name)}<div style="min-width:0">` +
     `<button class="t lk" data-open="${l.item}">${esc(it.name)}</button>` +
     `<div class="s">${esc(l.store)} · FM ${l.room || "?"}${l.ch ? " · CH " + l.ch : ""}${l.type === "buy" ? " · buying" : ""}${l.mine ? " · yours" : ""}</div></div>` +
@@ -1431,7 +1492,8 @@ function simpleRows(L = listingRows()) {
 function drawListings() {
   $("#app").innerHTML =
     `<input id="ms" type="search" placeholder="Find an item or shop" aria-label="Find an item or shop">` +
-    `<div class="bar"><span class="mu" id="lcount"></span>${segBtns("ls", lsort, [["new", "Newest"], ["low", "Cheapest"]])}</div><div id="mb"></div>`;
+    `<div class="bar"><span class="mu" id="lcount"></span><span class="hr">${segBtns("ls", lsort, [["new", "Newest"], ["low", "Cheapest"]])}` +
+    `${segBtns("lv", lview, [["compact", "Compact"], ["cards", "Cards"]])}</span></div><div id="mb"${lview === "cards" ? ' class="lcards"' : ""}></div>`;
   $("#ms").value = mt.q;
   $("#ms").oninput = e => {
     mt.q = e.target.value;
@@ -1441,9 +1503,17 @@ function drawListings() {
 }
 // One item: what it costs now, where to buy it, and (one click away) its history
 function drawItemSimple() {
-  const it = item(cur),
-    s = stats(cur),
-    live = forSale(analyze(cur).rows),
+  $("#app").innerHTML = `<button id="back" class="back">‹ Back</button><div class="card">${itemHtml(cur)}</div>`;
+  $("#back").onclick = () => {
+    cur = null;
+    draw();
+  };
+  bindItem(cur);
+}
+function itemHtml(id) {
+  const it = item(id),
+    s = stats(id),
+    live = forSale(analyze(id).rows),
     g = {};
   live.forEach(o => {
     const key = [o.price, o.shop, o.room, o.ch].join("|"),
@@ -1454,23 +1524,21 @@ function drawItemSimple() {
   const W = Object.values(g).sort((a, b) => a.price - b.price),
     low = W.length ? W[0].price : null,
     tile = (k, v, sub) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="mu">${sub}</div></div>`;
-  $("#app").innerHTML =
-    `<button id="back" class="back">‹ Back</button><div class="card"><div class="nm">${ico(it.name, "lg")}<h2>${esc(it.name)}</h2></div>` +
+  return `<div class="nm">${ico(it.name, "lg")}<h2>${esc(it.name)}</h2></div>` +
     `<div class="tiles t3">${tile("Cheapest now", low == null ? "–" : fmt(low), low == null ? "none for sale" : "mesos each")}` +
-    `${tile("Usual price", s.usual == null ? "–" : fmt(s.usual), "last 14 days")}${tile("For sale now", live.length, "copies seen today")}</div></div>` +
+    `${tile("Usual price", s.usual == null ? "–" : fmt(s.usual), "last 14 days")}${tile("For sale now", live.length, "copies seen today")}</div>` +
     `<h3 class="ins-h">Where to buy</h3>${W.length ? `<div class="feed">${W.map(o => `<div class="fr nopic"><div style="min-width:0">` +
       `<div class="t">${esc(o.shop)}</div><div class="s">FM ${o.room || "?"} · CH ${o.ch} · ${seenTxt(o.last)}</div></div>` +
       `<div class="p"><div class="num">${fmt(o.price)}${o.n > 1 ? ` <span class="cnt">×${o.n}</span>` : ""}</div></div></div>`).join("")}</div>` :
       '<div class="card mu">Nobody has it for sale today, as far as your scans show.</div>'}` +
     alertCard(it, low == null ? s.usual : low) +
-    `<details class="card" style="margin-top:12px"><summary>Price history and best times to buy</summary>${spark(s.list) || ""}${scanCard(cur) ||
+    `<details class="card" style="margin-top:12px"><summary>Price history and best times to buy</summary>${spark(s.list) || ""}${scanCard(id) ||
       '<p class="mu">Not enough scans yet.</p>'}</details>` +
     `<p class="mu">Also check this item on <a href="https://meowdb.com/msclassic/free-market" target="_blank" rel="noopener">MeowDB</a> and ` +
     `<a href="https://meso.watch" target="_blank" rel="noopener">MesoWatch</a> (links only; nothing is copied).</p>`;
-  $("#back").onclick = () => {
-    cur = null;
-    draw();
-  };
+}
+function bindItem(id) {
+  const it = item(id);
   if ($("#iago"))
     $("#iago").onclick = () => {
       const e = addAlert(it.name.slice(0, 40), $("#iam").value);
@@ -1489,14 +1557,54 @@ function alertCard(it, price) {
     `value="${price ? Math.round(price) : ""}" aria-label="Alert price"><button id="iago">Tell me when it's this price or less</button></div>` +
     `<p class="err" id="e7" role="alert"></p></div>`;
 }
+// Options: settings (when the app is running) and the theme as cards with switches, then the other pages, then importing
+const isDark = () => {
+  const r = document.documentElement;
+  return r.dataset.theme === "dark" || (!r.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+};
+const optCard = (id, title, desc, on) => `<div class="card oc"><div class="oh"><label for="${id}"><b>${title}</b></label><label class="sw">` +
+  `<input type="checkbox" id="${id}"${on ? " checked" : ""}><span></span></label></div><p class="mu">${desc}</p></div>`;
 function drawMore() {
-  const go = (v, t, d) => `<button class="row" data-go="${v}"><span><b>${t}</b><br><span class="mu">${d}</span></span><span class="mu">›</span></button>`;
-  $("#app").innerHTML =
+  const st = APP.st || {},
+    se = st.settings || {},
+    sh = st.share || {},
+    go = (v, t, d) => `<button class="card oc" data-go="${v}"><b>${t}</b><span class="mu">${d}</span><span class="k">Open ›</span></button>`,
+    theme = optCard("odk", "Dark theme", "Easier on the eyes at night.", isDark());
+  $("#app").innerHTML = (HASAPP ? `<h2 class="oh2">Settings</h2><div class="ocards">` +
+    optCard("oa", "Start when MapleReader opens", "Starts watching your screen as soon as the app opens.", se.auto_start !== false) +
+    optCard("oq", "Chime when saved", "A soft chime each time a shop is saved, so you know you can move on.", !se.quiet) +
+    optCard("ox", "Track my EXP", "Reads the EXP line at the bottom of the game: EXP per hour and time to level.", se.exp !== false) + theme +
+    `<div class="card oc"><label for="ov"><b>Chime volume</b></label><p class="mu">How loud the saved chime is.</p>` +
+    `<input type="range" id="ov" min="0.02" max="0.4" step="0.01" value="${se.volume || 0.08}"></div>` +
+    `<div class="card oc"><label for="om"><b>Game screen</b></label><p class="mu">Which screen the game is on, if you have more than one.</p>` +
+    `<select id="om">${[1, 2, 3].map(n => `<option value="${n}"${+se.monitor === n ? " selected" : ""}>Screen ${n}</option>`).join("")}</select></div>` +
+    `<div class="card oc"><b>Your scans</b><p class="mu">Check a saved screenshot, or open the folder your scans are kept in.</p>` +
+    `<div class="btns"><label class="bt">Test a screenshot<input type="file" id="opic" accept="image/*"></label><button id="oscans">Open scans folder</button></div></div>` +
+    `<div class="card oc"><b>Updates</b><p class="mu" id="updline">Updates</p><p class="mu" id="eng"></p>` +
+    `<button id="updcheck" style="align-self:flex-start">Check now</button></div>` +
+    // sharing with a group market: only shown once it has been turned on (the group market is paused for now)
+    (sh.enabled ? `<div class="card oc"><div class="oh"><label for="shon"><b>Share with friends</b></label><label class="sw"><input type="checkbox" ` +
+      `id="shon"${sh.enabled ? " checked" : ""}><span></span></label></div><p class="st" id="shst"><i></i><span></span></p>` +
+      `<div class="shf"><label class="mu" for="shsv">Market address</label><input id="shsv" value="${esc(sh.server || "")}">` +
+      `<label class="mu" for="shk">Your key</label><input id="shk" type="password" autocomplete="off" ` +
+      `placeholder="${esc(sh.key_hint || "mm-… from whoever runs the market")}">` +
+      `<div class="btns"><button id="shsave">Save</button><a class="bt" id="shopen" target="_blank" rel="noopener" ` +
+      `href="${esc(sh.server || "#")}">Open group market</a></div></div></div>` : "") + `</div>`
+    : `<div class="ocards">${theme}</div>`) +
+    `<h2 class="oh2">More</h2><div class="ocards">` +
     go("deals", "Alerts and deals", "Get told when an item you want shows up under your price.") +
     go("mine", "My shop", "Keep track of what you are selling yourself.") +
-    go("sources", "Where prices come from", "Other Maple price sites. Linked, never copied.") +
+    go("sources", "Where prices come from", "Other Maple price sites. Linked, never copied.") + `</div>` +
     (MODE === "shared" ? "" : importCard());
+  $("#odk").onchange = e => setTheme(e.target.checked);
+  if (HASAPP) bindSettings();
   if (MODE !== "shared") bindImport();
+}
+function setTheme(dark) {
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  try {
+    localStorage.setItem(KEY + ":theme", dark ? "dark" : "light");
+  } catch (e) {}
 }
 function draw(f = true) {
   document
@@ -1504,7 +1612,7 @@ function draw(f = true) {
     .forEach(b =>
       b.dataset.nav === (SIMPLE && MORE.includes(view) ? "more" : view) ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")
     );
-  $("#app").classList.toggle("narrow", view !== "scan" || !!cur);
+  $("#app").classList.toggle("narrow", !!cur || !["scan", "browse", "more", "market"].includes(view));
   cur
     ? SIMPLE ? drawItemSimple() : drawItem()
     : view === "scan" && HASAPP
@@ -1525,7 +1633,7 @@ function draw(f = true) {
             ? drawSources()
             : drawBrowse();
   if (SIMPLE && MORE.includes(view) && !cur) {
-    $("#app").insertAdjacentHTML("afterbegin", '<button id="tomore" class="back">‹ More</button>');
+    $("#app").insertAdjacentHTML("afterbegin", '<button id="tomore" class="back">‹ Options</button>');
     $("#tomore").onclick = () => {
       view = "more";
       draw();
@@ -1553,12 +1661,18 @@ document.addEventListener("click", e => {
     drawMB();
     return;
   }
-  const sg = e.target.closest("[data-ps],[data-ls],[data-go]");
+  const sg = e.target.closest("[data-ps],[data-ls],[data-lv],[data-go]");
   if (sg) {
     const d = sg.dataset;
     if (d.go) {
       view = d.go;
       draw();
+    } else if (d.lv) {
+      lview = d.lv;
+      try {
+        localStorage.setItem(KEY + ":lview", lview);
+      } catch (e) {}
+      draw(false);
     } else {
       if (d.ps) psort = d.ps;
       else lsort = d.ls;
@@ -1626,6 +1740,13 @@ document.addEventListener("click", e => {
     return;
   }
   const b = e.target.closest("[data-open]");
+  if (b && b.classList.contains("pc") && $("#ipanel")) {   // Prices: show its details beside the cards
+    pick = b.dataset.open;
+    document.querySelectorAll("#list .pc").forEach(x => x.setAttribute("aria-pressed", x === b));
+    drawPanel(true);
+    if (innerWidth < 900) $("#ipanel").scrollIntoView({ block: "start" });
+    return;
+  }
   if (b) {
     cur = b.dataset.open;
     draw();
@@ -1634,7 +1755,7 @@ document.addEventListener("click", e => {
 });
 if (SIMPLE) {
   $("nav").innerHTML = '<button data-nav="scan" hidden>Scan</button><button data-nav="browse">Prices</button>' +
-    '<button data-nav="market">Listings</button><button data-nav="more">More</button>';
+    '<button data-nav="market">Listings</button><button data-nav="more">Options</button>';
   view = "browse";
 }
 document.querySelectorAll("[data-nav]").forEach(
@@ -1697,11 +1818,15 @@ const RESET = () => {
 };
 $("#reset").onclick = RESET;
 $("#theme").onclick = () => {
-  const r = document.documentElement,
-    d =
-      r.dataset.theme === "dark" || (!r.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
-  r.dataset.theme = d ? "light" : "dark";
+  setTheme(!isDark());
+  if ($("#odk")) $("#odk").checked = isDark();
 };
+try {
+  const t = localStorage.getItem(KEY + ":theme"),
+    v = localStorage.getItem(KEY + ":lview");
+  if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+  if (v === "cards" || v === "compact") lview = v;
+} catch (e) {}
 S = load();
 ITEMS.push(...S.custom);
 draw(false);
@@ -1900,6 +2025,7 @@ async function appPull(first) {
       }
       draw(false);
     } else if (view === "scan" && !cur) updScan(j.events.length > 0);
+    else if (view === "more" && !cur) updOpts(j);
   } catch (e) {
     if (HASAPP && view === "scan" && !cur) updScan(false, true);
   }
@@ -1931,31 +2057,6 @@ function drawScan() {
     `<div class="card" id="expc"${se.exp === false ? " hidden" : ""}><div class="row"><p class="sec" style="margin:0">Your EXP</p>` +
     `<button id="expreset" class="chg">Reset</button></div><div class="tiles" id="expt"></div><p class="mu" id="expn" style="margin:8px 0 0">` +
     `</p></div>` +
-    `<details class="card" id="sets"><summary>Settings</summary>` +
-    `<div class="opt"><span>Start watching when MapleReader opens</span><label class="sw"><input type="checkbox" id="oa"` +
-    `${se.auto_start === false ? "" : " checked"}><span></span></label></div>` +
-    `<div class="opt"><span>Track my EXP (from the EXP line at the bottom of the game)</span><label class="sw"><input type="checkbox" ` +
-    `id="ox"${se.exp === false ? "" : " checked"}><span></span></label></div>` +
-    `<div class="opt"><span>Chime when saved</span><label class="sw"><input type="checkbox" id="oq"${se.quiet ? "" : " checked"}><span>` +
-    `</span></label></div>` +
-    `<div class="opt"><span>Volume</span><input type="range" id="ov" min="0.02" max="0.4" step="0.01" value="${se.volume || 0.08}" aria-label="Chime volume"></div>` +
-    `<div class="opt"><span>Game screen</span><select id="om" aria-label="Screen the game is on">${[1, 2, 3].map(n => `<option value="${n}"${+se.monitor === n ? " selected" : ""}>` +
-    `Screen ${n}</option>`).join("")}</select></div>` +
-    `<div class="btns"><label class="bt">Test a screenshot<input type="file" id="opic" accept="image/*"></label><button id="oscans">` +
-    `Open scans folder</button></div>` +
-    `<p class="mu" id="eng" style="margin:10px 0 0"></p>` +
-    `<div class="opt" style="border-top:1px solid var(--bd);margin-top:8px"><span id="updline" class="mu">Updates</span>` +
-    `<button id="updcheck" class="chg">Check now</button></div>` +
-    // sharing with a group market: only shown once it has been turned on (the group market is paused for now)
-    (sh.enabled ? `<p class="sec" style="margin-top:14px">Share with friends</p>` +
-    `<div class="opt"><span>Send my scans to the group's market</span><label class="sw"><input type="checkbox" id="shon"` +
-    `${sh.enabled ? " checked" : ""}><span></span></label></div>` +
-    `<div class="shf"><label class="mu" for="shsv">Market address</label><input id="shsv" value="${esc(sh.server || "")}">` +
-    `<label class="mu" for="shk">Your key</label><input id="shk" type="password" autocomplete="off" ` +
-    `placeholder="${esc(sh.key_hint || "mm-… from whoever runs the market")}">` +
-    `<div class="btns"><button id="shsave">Save</button><a class="bt" id="shopen" target="_blank" rel="noopener" ` +
-    `href="${esc(sh.server || "#")}">Open group market</a></div></div>` +
-    `<p class="st" id="shst"><i></i><span></span></p>` : "") + `</details>` +
     `<div class="card"><p class="sec">Messages</p><ul class="notes" id="notes"></ul></div>` +
     `</div><div><div class="feedh"><h2>Saved this session</h2><span class="mu" id="fcount"></span></div><div class="feed" id="feed"></div></div></div>`;
   $("#go").onclick = async () => {
@@ -1995,22 +2096,9 @@ function drawScan() {
     b.textContent = f.hidden ? "Change" : "Cancel";
     if (!f.hidden) $("#i" + b.dataset.chg).focus();
   }));
-  $("#oq").onchange = e => api("/api/set", { quiet: !e.target.checked });
-  $("#oa").onchange = e => api("/api/set", { auto_start: e.target.checked });
-  $("#ox").onchange = e => {
-    $("#expc").hidden = !e.target.checked;
-    api("/api/set", { exp: e.target.checked });
-  };
   $("#expreset").onclick = async () => {
     await api("/api/exp-reset");
     say("EXP tracking starts again from now");
-  };
-  $("#ov").onchange = e => api("/api/set", { volume: +e.target.value });
-  $("#om").onchange = e => api("/api/set", { monitor: +e.target.value });
-  $("#oscans").onclick = () => api("/api/open-scans");
-  $("#updcheck").onclick = async () => {
-    $("#updline").textContent = "Checking for updates…";
-    await api("/api/update-check");
   };
   $("#upd").onclick = async e => {
     const b = e.target.closest("button");
@@ -2018,6 +2106,23 @@ function drawScan() {
     if (b.dataset.page) return void window.open(b.dataset.page, "_blank", "noopener");
     const r = await api("/api/update");
     if (!r.ok) say(r.error);
+  };
+  updScan(true);
+}
+// The Options tab's settings: each sends its change to MapleReader straight away
+function bindSettings() {
+  $("#oq").onchange = e => api("/api/set", { quiet: !e.target.checked });
+  $("#oa").onchange = e => api("/api/set", { auto_start: e.target.checked });
+  $("#ox").onchange = e => {
+    if ($("#expc")) $("#expc").hidden = !e.target.checked;
+    api("/api/set", { exp: e.target.checked });
+  };
+  $("#ov").onchange = e => api("/api/set", { volume: +e.target.value });
+  $("#om").onchange = e => api("/api/set", { monitor: +e.target.value });
+  $("#oscans").onclick = () => api("/api/open-scans");
+  $("#updcheck").onclick = async () => {
+    $("#updline").textContent = "Checking for updates…";
+    await api("/api/update-check");
   };
   if ($("#shon")) $("#shon").onchange = async e => {
     const r = await api("/api/set", { share_on: e.target.checked });
@@ -2045,9 +2150,30 @@ function drawScan() {
       text: `${f.name}: ${r.rows.length} listing${r.rows.length === 1 ? "" : "s"}` +
         `${r.rows.length ? " (" + r.rows.slice(0, 3).map(x => x.item).join(", ") + (r.rows.length > 3 ? "…" : "") + ")" : ""}, ` +
         `room ${r.room || "not found"}${r.channel ? `, channel window shows ${r.channel}` : ""}` });
+    say(APP.notes[0].text + " (also under Messages on Scan)");
     updScan(false);
   };
-  updScan(true);
+  updOpts(APP.st || {});
+}
+function updOpts(st) {
+  drawUpdLine(st.update || {});
+  const sh = st.share || {},
+    shText = !sh.enabled
+      ? ["", "Off. Your scans stay on this PC."]
+      : sh.state === "ok"
+        ? ["on", `Sharing${sh.who ? " as " + sh.who : ""} · ${(sh.sent || 0).toLocaleString()} sent` +
+            (sh.last_ok ? ` · checked ${ago(Date.now() - sh.last_ok * 1000).replace("1 min ago", "just now")}` : "")]
+        : sh.state === "starting"
+          ? ["wait", "Connecting…"]
+          : sh.state === "offline" || sh.state === "retrying"
+            ? ["wait", sh.error || "Trying again shortly."]
+            : ["bad", sh.error || "Type your key and press Save."];
+  if ($("#shst")) {
+    $("#shst").className = "st " + shText[0];
+    $("#shst span").textContent = shText[1];
+  }
+  if (sh.server && $("#shopen")) $("#shopen").href = sh.server;
+  if ($("#eng")) $("#eng").textContent = !st.tesseract ? "" : st.engine === "fast" ? `MapleReader ${st.version} · fast reading` : `MapleReader ${st.version} · standard reading`;
 }
 function drawFeed() {
   const f = $("#feed");
@@ -2089,6 +2215,7 @@ function drawExp(x, on) {
 }
 // A newer MapleReader: a card at the top of Scan (only when there's something to do) and a line in Settings
 function drawUpdate(u, lost) {
+  drawUpdLine(u);
   const card = $("#upd");
   if (!card) return;
   const v = esc(u.version || ""),
@@ -2104,10 +2231,12 @@ function drawUpdate(u, lost) {
           `<button data-page="${esc(u.page || "")}">Download page</button>`) + `</div>`
       : "";
   if (card.dataset.html !== html) card.innerHTML = card.dataset.html = html; // don't redraw (and lose a click) every second
+}
+function drawUpdLine(u) {
   const line = $("#updline");
   if (line) line.textContent = {
     none: "Updates: you have the newest version",
-    available: `Updates: ${u.version} is ready (see the top of this tab)`,
+    available: `Updates: ${u.version} is ready (see the top of the Scan tab)`,
     downloading: "Updates: downloading…",
     installing: "Updates: installing…",
     checking: "Updates: checking…",
@@ -2144,23 +2273,7 @@ function updScan(feedChanged, lost) {
   $("#vshop").textContent = on && st.shop ? st.shop : "—";
   drawExp(st.exp, on);
   $("#vrows").textContent = on && st.shop ? `${st.shop_rows} listing${st.shop_rows === 1 ? "" : "s"} read · scroll with the wheel for more` : "";
-  const sh = st.share || {},
-    shText = !sh.enabled
-      ? ["", "Off. Your scans stay on this PC."]
-      : sh.state === "ok"
-        ? ["on", `Sharing${sh.who ? " as " + sh.who : ""} · ${(sh.sent || 0).toLocaleString()} sent` +
-            (sh.last_ok ? ` · checked ${ago(Date.now() - sh.last_ok * 1000).replace("1 min ago", "just now")}` : "")]
-        : sh.state === "starting"
-          ? ["wait", "Connecting…"]
-          : sh.state === "offline" || sh.state === "retrying"
-            ? ["wait", sh.error || "Trying again shortly."]
-            : ["bad", sh.error || "Type your key and press Save."];
-  if ($("#shst")) {
-    $("#shst").className = "st " + shText[0];
-    $("#shst span").textContent = shText[1];
-  }
-  if (sh.server && $("#shopen")) $("#shopen").href = sh.server;
-  $("#eng").textContent = !st.tesseract ? "" : st.engine === "fast" ? `MapleReader ${st.version} · fast reading` : `MapleReader ${st.version} · standard reading`;
+  updOpts(st);
   $("#notes").innerHTML = APP.notes.length
     ? APP.notes
         .map(n => `<li class="${n.level || ""}"><b>${new Date((n.t || 0) * 1000).toTimeString().slice(0, 5)}</b><span>${esc(n.text)}</span></li>`)
