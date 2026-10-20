@@ -253,6 +253,7 @@ The group market (a shared website for you and your friends) is paused for now, 
 | Black or blank screenshots | Game in exclusive fullscreen | Use windowed or borderless windowed (step 11) |
 | Wrong item names | Small text misread | Add an items.txt list so names get corrected |
 | Wrong room | Room not read from the minimap | Type `room 9` with the right number (step 16) |
+| Item or shop names come out garbled ("Biue yyaIcn") after you resize the game or change its resolution | The game draws its shop text at a different size, and the "Filter Applied" setting blurs it | MapleReader now adjusts to the new size by itself. For the clearest reading: game **Options > Graphics > UI Size**: choose **Default Ratio** or **Ideal Ratio** (not "Filter Applied") |
 | Wrong channel | Change Channel window not opened since you switched | Open it once, or type the number |
 | `No module named shopreader` | `shopreader` folder missing or moved | Extract the full zip again so `shopreader` sits next to `maple_shop_reader.py` |
 | Rows missed when scrolling | You dragged the handle or jumped down the list | Scroll with the mouse wheel (step 15) |

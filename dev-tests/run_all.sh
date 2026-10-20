@@ -18,6 +18,7 @@ run "market page"        npm test --silent
 run "group server"       python3 maple-server/tests/test_server.py
 run "reader: session"    bash -c 'cd MapleReader && python3 tests/test_session.py'
 run "reader: scrolling"  bash -c 'cd MapleReader && python3 tests/test_scroll.py'
+run "reader: resizing"   bash -c 'cd MapleReader && python3 tests/test_resize.py'
 run "reader: app server" bash -c 'cd MapleReader && python3 tests/test_market.py'
 run "reader: updates"    bash -c 'cd MapleReader && python3 tests/test_update.py'
 if [[ $QUICK == 0 ]]; then

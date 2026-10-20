@@ -67,11 +67,17 @@ def color_boxes(img, col, tol=6, cell=24, minc=8, vgap=8):
     return [b for _, b in sorted(comps, reverse=True)]
 
 
+def blue_lists(img):
+    """Blocks of the normal (blue) row colour wide enough to be a shop list (240 px and up at the usual size).
+    Smaller blue patches are name tags and buttons, which grow big enough to count when the game is stretched."""
+    return [b for b in color_boxes(img, ROW_BG, minc=3) if b[2] - b[0] >= 100]
+
+
 def list_boxes(img):
     """Shop list areas: blocks of normal row colour, stretched over sold (faded) rows in the same column."""
     out = []
     faded = color_boxes(img, ROW_FADED, minc=4)
-    for b in color_boxes(img, ROW_BG, minc=3)[:2]:
+    for b in blue_lists(img)[:2]:
         x0, y0, x1, y1 = b
         for f in faded:
             if f[0] < x1 and f[2] > x0 and f[1] < y1 + 400 and f[3] > y0 - 400 and (f[2] - f[0]) < 2 * (x1 - x0) + 100:
@@ -89,7 +95,7 @@ def find_layout(img):
     """Find shop lists by their row colour and read them. Returns (layout, lines).
     layout['faded'] = the list was found by its sold rows only, so its faint text is read the way sold rows are."""
     L = []
-    faded = not color_boxes(img, ROW_BG, minc=3)
+    faded = not blue_lists(img)
     for b in list_boxes(img):
         L += read_box(img, (max(0, b[0] - 10), max(0, b[1] - 10), min(img.width, b[2] + 30), min(img.height, b[3] + 10)), faded)
     lay = fit_layout(L, None)

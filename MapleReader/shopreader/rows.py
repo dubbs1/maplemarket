@@ -2,8 +2,8 @@
 import hashlib
 import os
 from PIL import Image, ImageOps
-from .config import CFG, PRICE, ROW_FADED
-from .layout import find_layout, fit_layout, read_list
+from .config import CFG, FADED_ROWS_WIDE, LIST_ROWS_WIDE, PRICE, REF_ROW, ROW_FADED, ROW_OK
+from .layout import blue_lists, find_layout, fit_layout, list_boxes, read_list
 from .names import fix_name, real_name
 from .ocr import to_number
 from .title import read_title
@@ -146,7 +146,89 @@ def fast_rows(img, lay, items):
     return rows or None
 
 
+# --- other interface sizes: read the shop area at the size the reading is tuned for ---
+
+def _view_for(img, box, h):
+    """The part of the screen around a list: its item pictures on the left, the scrollbar on the right, the title above."""
+    return (max(0, int(box[0] - 3 * h)), max(0, int(box[1] - 7 * h)), min(img.width, int(box[2] + 6 * h)),
+            min(img.height, int(box[3] + 2.5 * h)))
+
+
+def _plan(img, region):
+    """(zoom, part of the screen, guessed row height) to read; zoom 1 = the screenshot as it is. The row height comes
+    from the layout already found, else from the shop list's width (about 4.2 rows wide), so no text is read for it."""
+    if region:
+        z, h = region.get('zoom', 1), region['h']
+        if z == 1:
+            return 1, None, h
+        box = (min(region['cols']), region['top'], max(region['cols']) + region['width'], region['bottom'])
+    else:
+        boxes = list_boxes(img)
+        if not boxes:
+            return 1, None, None
+        wide = LIST_ROWS_WIDE if blue_lists(img) else FADED_ROWS_WIDE
+        h = (boxes[0][2] - boxes[0][0]) / wide
+        if ROW_OK[0] <= h <= ROW_OK[1]:
+            return 1, _view_for(img, (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes),
+                                      max(b[3] for b in boxes)), h), h
+        z = REF_ROW / h
+        box = (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
+    return z, _view_for(img, box, h), h
+
+
+def _moved(lay, view, z, to_screen):
+    """A layout in screen pixels <-> the same layout in the enlarged/shrunk view."""
+    if not lay:
+        return lay
+    if to_screen:
+        fx, fy, s = (lambda v: v / z + view[0]), (lambda v: v / z + view[1]), (lambda v: v / z)
+    else:
+        fx, fy, s = (lambda v: (v - view[0]) * z), (lambda v: (v - view[1]) * z), (lambda v: v * z)
+    out = dict(lay, cols=[int(round(fx(c))) for c in lay['cols']], top=int(round(fy(lay['top']))),
+               bottom=int(round(fy(lay['bottom']))), h=int(round(s(lay['h']))), width=int(round(s(lay['width']))))
+    if to_screen:
+        out['zoom'] = z
+    return out
+
+
 def parse_frame(img, items=(), region=None, allow_find=True):
+    """Return (rows, None, layout) like _parse_frame, in screen pixels, whatever size the game draws its interface:
+    rows outside the comfortable size are read from the shop area enlarged or shrunk to the usual size."""
+    z, view, guess = _plan(img, region)
+    rows, x, lay = _read_at(img, items, region, allow_find, z, None if z == 1 else view)
+    if not lay and not region and z == 1 and guess and view and abs(guess / REF_ROW - 1) > 0.1:
+        # nothing found at the size it's drawn, and the rows look bigger or smaller than usual (blurry text from
+        # the game's "UI Size" filter reads worse there): look again at the usual size
+        return _read_at(img, items, None, allow_find, REF_ROW / guess, view)
+    if lay and not region:
+        # a newly found list: its rows' real height is known now. If the guess from the list's width was off
+        # (rows read at an uncomfortable size), read once more at the size that real height asks for.
+        h = lay['h']
+        if not ROW_OK[0] <= h * z <= ROW_OK[1]:
+            z2 = 1 if ROW_OK[0] <= h <= ROW_OK[1] else REF_ROW / h
+            if abs(z2 - z) > 0.03:
+                box = (min(lay['cols']), lay['top'], max(lay['cols']) + lay['width'], lay['bottom'])
+                again = _read_at(img, items, None, allow_find, z2, None if z2 == 1 else _view_for(img, box, h))
+                if len(again[0]) >= len(rows):
+                    return again
+    return rows, x, lay
+
+
+def _read_at(img, items, region, allow_find, z, view):
+    if z == 1:
+        rows, x, lay = _parse_frame(img, items, region and dict(region, zoom=1), allow_find)
+        if lay:
+            lay['zoom'] = 1
+        return rows, x, lay
+    part = img.crop(view)
+    part = part.resize((max(1, round(part.width * z)), max(1, round(part.height * z))), Image.LANCZOS)
+    rows, x, lay = _parse_frame(part, items, _moved(region, view, z, False) if region else None, allow_find)
+    for r in rows:
+        r['x'], r['y'] = int(round(r['x'] / z + view[0])), int(round(r['y'] / z + view[1]))
+    return rows, x, _moved(lay, view, z, True)
+
+
+def _parse_frame(img, items=(), region=None, allow_find=True):
     """Return (rows, None, layout). rows = list of dict(item, each, shop).
     Pass the layout from the last shop to skip the slow whole-screen search."""
     L, lay = [], None
