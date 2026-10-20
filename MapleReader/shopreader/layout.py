@@ -1,5 +1,5 @@
 """Finding the shop list on screen by its colours, and measuring its rows."""
-from PIL import Image
+from PIL import Image, ImageOps
 from .config import PRICE, ROW_BG, ROW_FADED
 from .ocr import ocr_lines, pitch
 
@@ -69,15 +69,24 @@ def list_boxes(img):
             if f[0] < x1 and f[2] > x0 and f[1] < y1 + 400 and f[3] > y0 - 400 and (f[2] - f[0]) < 2 * (x1 - x0) + 100:
                 y0, y1 = min(y0, f[1]), max(y1, f[3])
         out.append((x0, y0, x1, y1))
+    if not out:
+        # every row showing is sold: no normal (blue) row to find the list by. A list of faded rows is a
+        # tall block (6 rows high, about 5 wide); wide strips (title bars, the Change Channel window) and
+        # thin ones (scrollbar tracks) are something else.
+        out = [f for f in faded if f[2] - f[0] >= 150 and f[3] - f[1] >= 1.1 * (f[2] - f[0])][:1]
     return out
 
 
 def find_layout(img):
-    """Find shop lists by their row colour and read them. Returns (layout, lines)."""
+    """Find shop lists by their row colour and read them. Returns (layout, lines).
+    layout['faded'] = the list was found by its sold rows only, so its faint text is read the way sold rows are."""
     L = []
+    faded = not color_boxes(img, ROW_BG, minc=3)
     for b in list_boxes(img):
-        L += read_box(img, (max(0, b[0] - 10), max(0, b[1] - 10), min(img.width, b[2] + 30), min(img.height, b[3] + 10)))
+        L += read_box(img, (max(0, b[0] - 10), max(0, b[1] - 10), min(img.width, b[2] + 30), min(img.height, b[3] + 10)), faded)
     lay = fit_layout(L, None)
+    if lay and faded:
+        lay['faded'] = True
     return lay, L
 
 
@@ -94,16 +103,24 @@ def read_list(img, lay, up=1.2, down=0.7):
     for x in lay['cols']:
         box = (max(0, x - 6), max(0, int(lay['top'] - up * h)), min(img.width, int(x + max(5.2 * h, lay['width'] + 0.6 * h))),
                min(img.height, int(max(lay['bottom'] + down * h, lay['top'] + 6.1 * h))))   # the list always shows 6 rows
-        for l in read_box(img, box):
+        for l in read_box(img, box, lay.get('faded')):
             if not any(l['text'] == k['text'] and abs(l['y0'] - k['y0']) < 8 and abs(l['x0'] - k['x0']) < 30 for k in L):
                 L.append(l)
     return L
 
 
-def read_box(img, box):
-    """Read the text in one area; a second red-channel pass only if there's an orange (selected) row."""
+def faded_threshold(crop):
+    """Where to split a sold row's faint grey text from its near-white background: a little below the
+    background's own grey (the commonest one), so brighter or darker screens work the same."""
+    h = ImageOps.grayscale(crop).histogram()
+    return max(range(256), key=lambda v: h[v]) - 20
+
+
+def read_box(img, box, faded=False):
+    """Read the text in one area; a second red-channel pass only if there's an orange (selected) row.
+    faded=True: the area is sold rows only, so read their faint text split into black and white."""
     c = img.crop(box)
-    got = ocr_lines(c, ox=box[0], oy=box[1])
+    got = ocr_lines(c, ox=box[0], oy=box[1], thr=faded_threshold(c) if faded else None)
     if _orange(c):
         for l in ocr_lines(c, red=True, ox=box[0], oy=box[1]):
             if not any(abs(l['y0'] - k['y0']) < 8 and abs(l['x0'] - k['x0']) < 25 for k in got):

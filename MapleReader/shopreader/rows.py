@@ -160,13 +160,15 @@ def parse_frame(img, items=(), region=None, allow_find=True):
     if region:
         L = read_list(img, region)
         lay = fit_layout(L, region)
+        if lay and region.get('faded'):
+            lay['faded'] = True
         if lay and (lay['top'] < region['top'] - 0.3 * lay['h'] or lay['bottom'] > region['bottom'] + 0.3 * lay['h']):
             L = read_list(img, lay)                  # list grew: read the larger area once more
     if not lay and allow_find:
         lay, L = find_layout(img)                    # colour finder: where the list is
         if lay:
             L = read_list(img, lay)                  # then a clean read of just the text column (no icons)
-            lay = fit_layout(L, lay) or lay
+            lay = dict(fit_layout(L, lay) or lay, **({'faded': True} if lay.get('faded') else {}))
     if not lay:
         return [], None, None
     rows = []
@@ -195,6 +197,13 @@ def parse_frame(img, items=(), region=None, allow_find=True):
         got = listing(name['text'], ptext, items)
         if got:
             rows.append(dict(item=got[0], each=got[1], x=x, y=y))
+    if lay.get('faded'):
+        # the list was found by its sold rows only: read each row once more on its own, the way sold rows are
+        # read (closer and more reliable than the whole column at once); that also says whether it's sold
+        for r in rows:
+            one, _ = read_row(img, r['x'], r['y'], h, lay['width'], items)
+            if isinstance(one, dict):
+                r.update(item=one['item'], each=one['each'], sold=one['sold'])
     rows += faded_rows(img, lay, rows, items)
     rows.sort(key=lambda r: (r['x'] // 50, r['y']))
     if rows:                                         # the first row may be a sold one: the title sits above it
