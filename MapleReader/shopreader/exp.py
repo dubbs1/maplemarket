@@ -18,7 +18,9 @@ from . import engine
 from .exp_font import GLYPHS
 
 HP_RED, MP_BLUE = (204, 8, 0), (0, 124, 204)        # the status bar's HP and MP fill colours
+MP_LOW = (0, 46, 70)           # the MP fill drawn dark navy (with a red outline) when MP is low
 HP_BAR = 168                   # width (px) of the HP bar at the usual interface size
+BAR_STEP = 169                 # from the HP fill's left edge to the MP fill's at the usual size (exact edges)
 
 _white = lambda p: min(p) > 130 and max(p) - min(p) < 45           # the EXP number and the percentage digits
 _green = lambda p: p[1] > 110 and p[1] - p[0] > 30 and p[1] - p[2] > 60   # the [ ] around the numbers
@@ -46,7 +48,9 @@ def snug(img, box):
     px = img.load()
     rows = [y for y in range(max(0, y0 - 2), min(img.height, y1 + 2))
             if any(min(px[x, y]) > 170 for x in range(x0, min(img.width, x1)))]
-    run = next((r for r in _runs(rows) if r[1] - r[0] >= 4), None)   # the first tall enough to be letters
+    wide = lambda y: sum(min(px[x, y]) > 170 for x in range(x0, min(img.width, x1))) > 0.85 * (x1 - x0)
+    # the first block tall enough to be letters (not the status bar's light border, which runs right across)
+    run = next((r for r in _runs(rows) if r[1] - r[0] >= 4 and not all(wide(y) for y in range(r[0], r[1] + 1))), None)
     if not run:
         return box
     ys, ye = run[0], run[1] + 1
@@ -59,28 +63,48 @@ def snug(img, box):
     return (x0, ys, xe + 1, ye)
 
 
+_red = lambda p: p[0] > 150 and p[1] < 90 and p[2] < 90
+_mp = lambda p: (p[2] > 130 and p[0] < 90) or (p[0] < 40 and p[2] > 45 and p[2] - p[1] > 15)   # blue, or low-MP navy
+
+
+def _start(img, x, y0, y1, test):
+    """The exact left edge of a bar's fill near x (the colour search's boxes are on an 8 px grid)."""
+    px = img.load()
+    for y in (y0 + y1) // 2, (y0 + 2 * y1) // 3, (2 * y0 + y1) // 3:
+        if not 0 <= y < img.height:
+            continue
+        xs = [i for i in range(max(0, x - 12), min(img.width, x + 12)) if test(px[i, y])]
+        if xs:
+            return xs[0]
+    return x
+
+
 def find_bar(img):
-    """Find the status bar by its HP bar (red) with the MP bar (blue) right beside it, the same size: colour only,
-    fast, at any interface size. Returns where its parts are, or None. Everything is measured in HP-bar widths:
-    the texts are above the bars, the "EXP" label right of the MP bar, the level's tiles left of the HP bar."""
+    """Find the status bar by its HP bar (red) with the MP bar (blue) beside it: colour only, fast, at any interface
+    size. Returns where its parts are, or None. The bars are measured from where their fills START (a fill always
+    starts at its bar's left edge), so low HP or MP doesn't matter. Everything is measured in HP-bar widths: the
+    texts are above the bars, the "EXP" label right of the MP bar, the level's tiles left of the HP bar."""
     reds = color_boxes(img, HP_RED, tol=40, cell=8, minc=4, vgap=1)[:6]
-    blues = color_boxes(img, MP_BLUE, tol=40, cell=8, minc=4, vgap=1)[:6]
+    blues = (color_boxes(img, MP_BLUE, tol=40, cell=8, minc=2, vgap=1)[:8] +
+             color_boxes(img, MP_LOW, tol=30, cell=8, minc=2, vgap=1)[:8])
     for r in reds:
-        w, bh = r[2] - r[0], r[3] - r[1]
-        if w < 4 * bh:
-            continue                                 # not bar-shaped
+        bh = r[3] - r[1]
+        rx = _start(img, r[0], r[1], r[3], _red)
         for b in blues:
-            if abs(b[1] - r[1]) <= 8 and 0 <= b[0] - r[2] <= 24 and 0.8 <= (b[2] - b[0]) / w <= 1.25:
-                y = r[1]
-                area = (b[2], max(0, int(y - 0.2 * w)), min(img.width, int(b[2] + 0.3 * w)), int(y + 0.02 * w))
-                label = snug(img, area)
-                if label == area or label[3] - label[1] < 6:
-                    continue                         # no white "EXP" letters where they should be
-                lh = label[3] - label[1]
-                return {'hp': r, 'mp': b, 'size': w / HP_BAR, 'label': label,
-                        'line': (max(0, label[1] - 2), min(img.height, label[3] + max(1, lh // 7))),
-                        'level': (max(0, int(r[0] - 2.0 * w)), max(0, int(y - 0.2 * w)), max(1, int(r[0] - 1.1 * w)),
-                                  min(img.height, int(y + 0.15 * w)))}
+            mx = _start(img, b[0], b[1], b[3], _mp)
+            w = mx - rx                              # one bar's width (and the gap): HP's start to MP's start
+            if not (abs(b[1] - r[1]) <= 8 and 5 * bh <= w <= 24 * bh and r[2] - r[0] <= w + 8 and b[2] - b[0] <= w + 8):
+                continue                             # not the HP and MP bars side by side
+            y, mp_end = r[1], mx + w
+            area = (int(mp_end - 0.15 * w), max(0, int(y - 0.16 * w)), min(img.width, int(mp_end + 0.3 * w)), int(y + 0.02 * w))
+            label = snug(img, area)
+            if label == area or label[3] - label[1] < 6:
+                continue                             # no white "EXP" letters where they should be
+            lh = label[3] - label[1]
+            return {'hp': (rx, r[1], mx - w // BAR_STEP, r[3]), 'mp': (mx, b[1], mp_end, b[3]), 'size': w / BAR_STEP,
+                    'label': label, 'line': (max(0, label[1] - 2), min(img.height, label[3] + max(1, lh // 7))),
+                    'level': (max(0, int(r[0] - 2.0 * w)), max(0, int(y - 0.2 * w)), max(1, int(r[0] - 1.1 * w)),
+                              min(img.height, int(y + 0.15 * w)))}
     return None
 
 
@@ -309,8 +333,9 @@ class ExpWatcher:
         got = read_exp(img, self.bar)
         if got is None:
             self.misses += 1
-            if self.misses >= 5:                          # covered for a while, or the window moved: search again
-                self.bar, self.misses = None, 0
+            if self.misses >= 5:                          # covered for a while (the mouse over it), or the window moved:
+                self.misses = 0                           # look for it again, but keep the old place if it isn't found
+                self.bar = find_bar(img) or self.bar     # (low MP, say: the old place is still right)
             return None
         self.misses = 0
         return {'exp': got[0], 'pct': got[1], 'level': read_level(img, self.bar)}
