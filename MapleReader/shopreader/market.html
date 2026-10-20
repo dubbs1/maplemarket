@@ -297,7 +297,12 @@ const tr = t =>
   t == null
     ? '<span class="mu">No trend yet</span>'
     : `<span class="${t >= 0 ? "up" : "dn"}">${t >= 0 ? "+" : ""}${t.toFixed(0)}%</span>`;
-const item = id => ITEMS.find(i => i.id === id);
+// id -> item, rebuilt when items are added (ITEMS grows with every new name a scan brings; a linear find was slow)
+let ITEM_IDX = null;
+const item = id => {
+  if (!ITEM_IDX || ITEM_IDX.n !== ITEMS.length) (ITEM_IDX = new Map(ITEMS.map(i => [i.id, i]))).n = ITEMS.length;
+  return ITEM_IDX.get(id);
+};
 const cats = () => [...new Set(ITEMS.map(i => i.cat))].sort();
 let MLIST = [];
 const SRC = [
@@ -530,6 +535,17 @@ function load() {
   } catch (e) {}
   return seed();
 }
+// Live pages keep 30 days; if the browser's storage is still full, the oldest scans make room
+function saveRoom() {
+  if (save()) return true;
+  S.scans.sort((a, b) => a.t - b.t);
+  while (S.scans.length > 1) {
+    S.scans.splice(0, Math.ceil(S.scans.length / 10));
+    S.rev = (S.rev || 0) + 1;
+    if (save()) return true;
+  }
+  return false;
+}
 function save() {
   // false = the browser refused (storage full or blocked); the data stays on screen until the page closes
   try {
@@ -562,7 +578,9 @@ function scanAll() {
       forSale = {},
       groups = {};
     sc.rows.forEach(r => r.st === "sale" && (forSale[G(r)] = (forSale[G(r)] || 0) + 1));
-    Object.keys(m).forEach(k => {
+    // A whole old-style snapshot (no times) that looked at a shop again: fewer copies for sale = some are gone.
+    // Timed rows come from MapleReader, which writes "gone" lines itself, and only after seeing the shop's whole list.
+    if (!sc.timed) Object.keys(m).forEach(k => {
       const o = m[k];
       if (o.st === "sale" && shops.has(SHOPK(o))) (groups[G(o)] = groups[G(o)] || []).push(k);
     });
@@ -573,8 +591,16 @@ function scanAll() {
         .forEach(k => extra-- > 0 && (m[k].st = "gone"));
     });
     sc.rows.forEach(r => {
-      const k = K(r),
-        at = r.t || sc.t;
+      let k = K(r);
+      const at = r.t || sc.t;
+      // sold rows are numbered apart from those for sale: "c1 sold" seen at the same moment as a "c1" for sale is
+      // another copy (one of two sold), not that one
+      const same = o => Math.abs((o.last || o.first) - at) < 5000;
+      if (r.st === "sold" && (m[k + "|s"] || (m[k] && m[k].st === "sale" && same(m[k])))) k += "|s";
+      else if (r.st === "sale" && m[k] && m[k].st === "sold" && m[k].soldFirst && same(m[k]) && !m[k + "|s"]) {
+        m[k + "|s"] = m[k]; // the sold one came first in this look: it keeps its own place, this copy is for sale
+        delete m[k];
+      }
       if (r.st === "gone") {
         // the reader saw the shop's whole list again and this listing wasn't in it (bought, taken back, re-priced)
         if (m[k] && m[k].st === "sale") m[k].st = "gone";
@@ -651,15 +677,13 @@ function deals() {
     .sort((a, b) => b.profit - a.profit);
 }
 function alertHits() {
+  if (!S.alerts.length) return [];
+  const dis = new Set(S.dis),
+    terms = S.alerts.map(a => ({ k: norm(a.term).split(/\s+/).filter(Boolean), max: a.max })),
+    names = new Map();
+  const nm = id => names.get(id) ?? names.set(id, norm((item(id) || {}).name || "")).get(id);
   return analyze().rows.filter(
-    o =>
-      o.st === "sale" &&
-      !S.dis.includes(K(o)) &&
-      S.alerts.some(a => {
-        const nm = norm(item(o.item).name),
-          k = norm(a.term).split(/\s+/).filter(Boolean);
-        return k.every(w => nm.includes(w)) && (!a.max || o.price <= a.max);
-      })
+    o => o.st === "sale" && !dis.has(K(o)) && terms.some(a => a.k.every(w => nm(o.item).includes(w)) && (!a.max || o.price <= a.max))
   );
 }
 
@@ -724,7 +748,8 @@ function numberCopies(rows) {
   // The reader writes the copy number (c2) itself, so two friends scanning the same shop agree on it.
   rows.forEach(r => {
     if (r.c) return void (r.n = r.c);
-    const b = r.room + "|" + r.ch + "|" + r.item + "|" + r.price + "|" + (r.st === "sold" ? "s" : "");
+    // copies are counted within one look at the shop (rows saved the same second), not over a whole session
+    const b = r.room + "|" + r.ch + "|" + r.item + "|" + r.price + "|" + (r.st === "sold" ? "s" : "") + (r.t ? "|" + Math.floor(r.t / 1000) : "");
     r.n = cn[b] = (cn[b] || 0) + 1;
   });
 }
@@ -742,7 +767,8 @@ function addSnapshot(rows, t, end) {
 // rows that continue a session already imported join it. Old files without times work as before.
 function importScan(text) {
   const { rows, skipped } = parseScanRows(text),
-    timed = rows.filter(r => r.t).sort((a, b) => a.t - b.t),
+    old = LIVE ? Date.now() - 30 * DAY : 0, // live pages keep 30 days: older rows aren't stored at all
+    timed = rows.filter(r => r.t && r.t > old).sort((a, b) => a.t - b.t),
     plain = rows.filter(r => !r.t);
   let added = 0,
     already = 0;
@@ -789,7 +815,7 @@ function importScan(text) {
   if (added) {
     S.scans.sort((a, b) => a.t - b.t);
     S.rev = (S.rev || 0) + 1;
-    full = !save();
+    full = !(LIVE ? saveRoom() : save());
   }
   return { added, skipped, already, dup: !added && already > 0, full };
 }
@@ -1799,6 +1825,7 @@ const RESET = () => {
   AC = null;
   ITEMS.length = 0;
   ITEMS.push(...BASE);
+  ITEM_IDX = null;
   cur = null;
   view = "market";
   q = "";

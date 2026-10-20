@@ -1,4 +1,4 @@
-// Easier import: all_scans.txt re-imported, sessions, shop-level gone, copies, drag and drop
+// Easier import: all_scans.txt re-imported, sessions, gone lines, copies, drag and drop
 const {JSDOM,VirtualConsole}=require('jsdom'),fs=require('fs');
 const errs=[],vc=new VirtualConsole();vc.on('jsdomError',e=>{if(!/scrollTo/.test(e.message))errs.push(e.message)});
 const html=fs.readFileSync(require('path').join(__dirname,'../../MapleReader/shopreader/market.html'),'utf8');
@@ -22,7 +22,9 @@ let a=an('Qa Ring');ok('E5 one copy sold, one still for sale',a.sold===1&&a.sale
 all+='\n'+[L('Qa Ring',100,'alpha',24*H),L('Qa Ring',100,'alpha',24*H,'sold')].join('\n');
 r=A.importScan(all);ok('E6 a later session becomes a new scan',r.added===2&&A.S.scans.length===n0+1);
 a=an('Qa Ring');ok('E7 revisit keeps 1 sold + 1 for sale (shop name case ignored)',a.sold===1&&a.sale===1&&a.gone===0);
-ok('E8 cape missing from the revisited shop is gone',an('Qb Cape').gone===1);
+ok('E8 cape not seen in the revisit stays for sale (the shop may not have been scrolled through)',an('Qb Cape').sale===1&&an('Qb Cape').gone===0);
+all+='\n'+L('Qb Cape',200,'alpha',24*H+1000,'gone');A.importScan(all);
+ok('E8b the reader saw the whole list without the cape (a gone line): it is gone',an('Qb Cape').gone===1&&an('Qb Cape').sale===0);
 ok('E9 hat in a shop not revisited stays for sale',an('Qc Hat').sale===1);
 // older file imported later goes in time order
 r=A.importScan(L('Qd Belt',50,'Gamma',-48*H));const ix=n=>A.S.scans.findIndex(s=>s.rows.some(x=>x.item===id(n)));ok('E10 older rows sorted into place',r.added===1&&ix('Qd Belt')<ix('Qa Ring'));
