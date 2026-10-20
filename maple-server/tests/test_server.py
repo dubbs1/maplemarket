@@ -47,8 +47,13 @@ def main():
     ok(f'good rows kept, bad ones dropped ({r})', code == 200 and r['added'] == 3 and r['bad'] == 4)
     code, r = up(k2, L[:2] + ['Ice Wand | 12500 | WCC | 2 | 10 | c1 | @2026-10-19T15:40:00'])
     ok(f"the same rows from a friend aren't stored twice ({r})", r['added'] == 1 and r['dupes'] == 2)
+    future = time.strftime('@%Y-%m-%dT%H:%M:%S', time.gmtime(time.time() + 3 * 86400))
+    code, r = up(k1, ['Zone Item | 700 | East Shop | 2 | 5 | c1 | @2026-10-19T15:41:00-04:00',
+                      'Zone Item | 700 | UTC Shop | 2 | 5 | c1 | @2026-10-19T19:41:00Z',
+                      f'Future Item | 700 | Shop | 2 | 5 | c1 | {future}'])
+    ok(f'times with a time zone are kept; times in the future are refused ({r})', r['added'] == 2 and r['bad'] == 1)
     code, f = call('/api/rows?from=0')
-    ok('everyone can read the rows', code == 200 and f['text'].count('\n') == 4 and f['status']['scanning'] == 2)
+    ok('everyone can read the rows', code == 200 and f['text'].count('\n') == 6 and f['status']['scanning'] == 2)
     code, f2 = call(f"/api/rows?from={f['next']}")
     ok('reading again gives nothing new', f2['text'] == '' and not f2['reset'])
     png = open(os.path.join(ROOT, 'tests', 'pic.png'), 'rb').read() if os.path.exists(os.path.join(ROOT, 'tests', 'pic.png')) else None
@@ -73,7 +78,17 @@ def main():
     ok('restored, it works again', up(k2, L)[0] == 200)
     out = manage('purge', 'Gunther')
     code, f = call('/api/rows?from=0')
-    ok(f'purge deletes what someone sent ({out.strip()})', 'Deleted 1' in out and f['text'].count('\n') == 3)
+    ok(f'purge deletes what someone sent ({out.strip()})', 'Deleted 1' in out and f['text'].count('\n') == 5)
+    manage('revoke', 'Gunther')
+    out = manage('add', 'Gunther')
+    k3 = out.split('Key for Gunther:')[1].split()[0] if 'Key for Gunther:' in out else ''
+    ok('after a revoke, the same person can get a new key', k3.startswith('mm-') and up(k3, [])[0] == 200)
+    ok('the old key stays revoked', 'stay revoked' in manage('restore', 'Gunther') and up(k2, [])[0] == 401)
+    import socket
+    sk = socket.create_connection(('127.0.0.1', 8799), timeout=5)
+    sk.sendall(f'POST /api/upload HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer {k1}\r\nContent-Length: -1\r\n\r\n'.encode())
+    answer = sk.recv(200); sk.close()
+    ok('a nonsense Content-Length is refused straight away (no waiting)', b' 413 ' in answer or b' 400 ' in answer)
     many = [f'Item {i} | {100 + i} | Shop | 3 | 4 | c1 | @2026-10-19T16:{i // 60 % 60:02d}:{i % 60:02d}' for i in range(5000)]
     code, r = up(k1, many)
     ok(f'5,000 rows in one go ({r.get("added")})', code == 200 and r['added'] == 5000)

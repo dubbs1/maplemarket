@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import sys
 ports = set()
 for f in ('/proc/net/tcp', '/proc/net/tcp6'):
     try:

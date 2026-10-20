@@ -76,7 +76,12 @@ class _Handler(BaseHTTPRequestHandler):
         c = self.server.controller
         if not self._local() or self.headers.get('X-MapleReader') != '1' or c is None:
             return self._send(403, 'Forbidden', 'text/plain')
-        n = int(self.headers.get('Content-Length') or 0)
+        try:
+            n = int(self.headers.get('Content-Length') or 0)
+        except ValueError:
+            n = -1
+        if n < 0:
+            return self._json({'ok': False, 'error': 'Bad request.'}, 400)
         if n > 30_000_000:
             return self._json({'ok': False, 'error': 'Too big.'}, 413)
         body = self.rfile.read(n) if n else b''
@@ -87,7 +92,8 @@ class _Handler(BaseHTTPRequestHandler):
             d = json.loads(body.decode('utf-8') or '{}') if body else {}
             act = {'/api/start': lambda: c.start(d.get('channel', 0)), '/api/stop': c.stop,
                    '/api/set': lambda: c.update(d), '/api/open-scans': c.open_scans,
-                   '/api/install-tesseract': c.install_tesseract}.get(path)
+                   '/api/install-tesseract': c.install_tesseract, '/api/update': c.install_update,
+                   '/api/update-check': lambda: c.check_update(wait=True)}.get(path)
             if not act:
                 return self._send(404, 'Not found', 'text/plain')
             return self._json(act())

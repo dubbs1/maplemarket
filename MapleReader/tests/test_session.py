@@ -77,8 +77,8 @@ def main():
         fails.append('channel should be 10 on every line')
     if any(p[3] != '1' for p in parts):
         fails.append('room should be 1 on every line')
-    if any(not re.fullmatch(r'@\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d', p[-1]) for p in parts):
-        fails.append('every line should end with the time it was seen (@2026-10-19T09:41:05)')
+    if any(not re.fullmatch(r'@\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d\d:\d\d', p[-1]) for p in parts):
+        fails.append('every line should end with the time it was seen (@2026-10-19T09:41:05-04:00)')
     pics_dir = os.path.join(work, 'scans', 'icons')
     got_icons = set(f[:-4] for f in os.listdir(pics_dir) if f.endswith('.png')) if os.path.isdir(pics_dir) else set()
     from shopreader.icons import slug

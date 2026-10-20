@@ -1,6 +1,6 @@
-import os
-import sys, os, time, json, tempfile, asyncio, urllib.request
-R = sys.argv[1]; sys.path.insert(0, R)
+import sys, os, time, tempfile, asyncio, urllib.request
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the repository
+R = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_ROOT, 'MapleReader'); sys.path.insert(0, R)
 work = tempfile.mkdtemp(prefix='mr_live_'); os.makedirs(os.path.join(work, 'scans'))
 import shopreader.config as C; C.APP_DIR = work
 import shopreader.market_server as M
@@ -39,7 +39,9 @@ async def main():
         add([f'Mithril Maul | 9000 | White Crusader Chainmail | 1 | 10 | {stamp()}'])
         await pg.wait_for_timeout(3000)
         ok('L4 a new row appears within 3 s, no importing', await listings() == 4)
-        ok('L5 the Market list shows it', 'Mithril Maul' in await pg.inner_text('#mb'))
+        ok('L5 the Prices list shows it', 'Mithril Maul' in await pg.inner_text('#list'))
+        await pg.click('[data-nav=market]'); await pg.wait_for_timeout(500)
+        ok('L5b and the Listings list', 'Mithril Maul' in await pg.inner_text('#mb'))
         # half-written line is not read until complete
         with open(ALL, 'a', encoding='utf-8') as f: f.write('Blue Axe | 11000 | White Crus')
         await pg.wait_for_timeout(2500)
@@ -49,7 +51,7 @@ async def main():
         ok('L7 then arrives complete', await listings() == 5)
         await pg.reload(); await pg.wait_for_timeout(2500)
         ok('L8 reload: nothing doubled', await listings() == 5)
-        await pg.screenshot(path=sys.argv[2])
+        await pg.screenshot(path=sys.argv[2] if len(sys.argv) > 2 else os.path.join(work, 'live.png'))
         # MapleReader closed: banner says so; reopened: carries on
         srv.stop(); await pg.wait_for_timeout(3000)
         ok('L9 app closed: chip says so', 'closed' in await pg.inner_text('#chip'))
@@ -62,7 +64,7 @@ async def main():
         await pg.wait_for_timeout(3000)
         n = await listings(); ok(f'L11 new all_scans.txt after deleting the old: kept old + added new ({n})', n == 7)
         # Reload all: clears and rereads the file
-        await pg.click('summary:has-text("Older scan files")'); await pg.click('#reload'); await pg.wait_for_timeout(3000)
+        await pg.click('[data-nav=more]'); await pg.click('summary:has-text("Older scan files")'); await pg.click('#reload'); await pg.wait_for_timeout(3000)
         n = await listings(); ok(f'L12 Reload all rebuilds from the file ({n})', n == 1)
         # big file
         big = [f'Bulk {i % 50} | {100 + i} | Shop {i % 40} | {1 + i % 11} | {1 + i % 20} | {stamp(3000 - i // 20)}' for i in range(20000)]
@@ -75,3 +77,5 @@ async def main():
         await b.close()
 asyncio.run(main())
 print('ALL LIVE CHECKS PASSED' if not fails else f'{len(fails)} FAILED')
+
+sys.exit(1 if fails else 0)   # so a runner sees a failure, not just the printed line

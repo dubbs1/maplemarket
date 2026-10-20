@@ -73,6 +73,8 @@ class Saver:
             if now - self.logged.get(k, 0) > FORGET_AFTER:
                 self.logged[k] = now
                 new.append(dict(r, copy=n))
+        if len(self.logged) > 20000:                  # a long session: forget listings older than 10 minutes
+            self.logged = {k: t for k, t in self.logged.items() if now - t <= FORGET_AFTER}
         if not new:
             return
         when = datetime.now()
@@ -165,6 +167,12 @@ class Scanner:
                                 saver.flush()
                     continue
                 b = boxes[0]
+                edges = (b[0], b[2])                 # the list's left and right edges, as found by colour
+                if region and region.get('edges') != edges:
+                    # the list changed width or moved sideways: the game window was resized, the "UI Size" changed,
+                    # or every visible row is now sold. The rows' size and places are different: measure again.
+                    region, prev_t, done_t = None, None, None
+                    tracker.reset()
                 if region:                           # watch the scrollbar too: identical rows look unchanged
                     b = (b[0], b[1], min(img.width, int(b[2] + 0.65 * region['h'])), b[3])
                     tracker.observe(img, region)     # follow the scrollbar handle while you scroll
@@ -182,7 +190,7 @@ class Scanner:
                 set_status('reading')
                 rows, _, found = parse_frame(img, self.items, region)
                 if found:
-                    region = found
+                    region = dict(found, edges=edges)
                 if not rows:
                     continue
                 try:
@@ -195,7 +203,9 @@ class Scanner:
                     shop_now = rows[0]['shop']
                 rows = tracker.place(img, found or region, rows) or rows   # every row of the list seen so far
                 ev.shop(shop_now, len(rows))
-                room = watcher.update(img, [], force=not watcher.box) or state['room'] or 0   # rooms change only via portals
+                # rooms change only through portals: look hard on the first shop, then at the watcher's own pace
+                # (forcing it on every read cost ~0.35 s per shop and per scroll whenever the minimap was closed)
+                room = watcher.update(img, [], force=last_room is None) or state['room'] or 0
                 if room != last_room:
                     last_room = room
                     ev.room(room)

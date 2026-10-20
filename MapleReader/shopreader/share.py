@@ -117,7 +117,12 @@ class Sharer:
                     png = f.read()
             except OSError:
                 continue
-            self._post(f'/api/icon?slug={name}&kind={kind}', png, 'image/png')
+            try:
+                self._post(f'/api/icon?slug={name}&kind={kind}', png, 'image/png')
+            except urllib.error.HTTPError as e:
+                if e.code in (401, 429) or e.code >= 500:
+                    raise                            # key, rate or server trouble: the loop retries later
+                # any other refusal is about this one picture (too big, odd name): skip it, keep going
             self.state['icons'][name] = kind
             self._save()
 
