@@ -176,6 +176,10 @@ button.fr:last-child{border-bottom:0}
 .lk:hover{color:var(--sky);text-decoration:underline}
 .fr.nopic{grid-template-columns:minmax(0,1fr) auto}
 .cnt{font-size:13px;color:var(--mu)}
+#live{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:20;margin:0;max-width:min(560px,calc(100vw - 32px));box-sizing:border-box;
+  background:var(--tx);color:var(--card);border-radius:10px;padding:10px 16px;font-size:14px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+#live:empty{display:none}
+.more-old{display:block;width:100%;border:0;border-top:1px solid var(--bd);border-radius:0;background:var(--sf);color:var(--mu);font-size:13px}
 .back{min-height:34px;padding:4px 12px;font-size:13px;margin-bottom:12px}
 .tiles.t3{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px}
 @media(max-width:560px){.tiles.t3{grid-template-columns:minmax(0,1fr)}}
@@ -966,13 +970,13 @@ function drawBrowse() {
 }
 function lrow(l) {
   const it = item(l.item),
-    h = Math.max(1, Math.round((Date.now() - l.t) / 36e5));
+    h = Math.max(1, Math.round((Date.now() - (l.seen || l.t)) / 36e5));
   return `<div class="card"><div class="row" style="margin:0 0 4px"><span class="nm">${ico(it.name)}` +
     `<button data-open="${l.item}" style="border:0;padding:0;min-height:0;background:none;font-weight:700;text-align:left">` +
     `${esc(it.name)}</button></span><span class="badge ${l.type === "buy" ? "b2" : ""}">${l.type === "buy" ? "BUY" : "SELL"}</span>` +
     `</div><div class="mu">` +
     `${esc(l.store)} · room ${l.room || "?"}${l.ch ? ` · ch ${l.ch}` : ""} · qty ${l.qty} · ${l.scan ? "scanned " : ""}${Date.now() - l.t < JUST ? `<span class="fresh">` +
-    `just listed</span>` : ago(Date.now() - l.t)}${h > 48 ? ' · <span class="dn">' +
+    `just listed</span>` : ago(Date.now() - (l.seen || l.t))}${h > 48 ? ' · <span class="dn">' +
     'may be gone</span>' : ""}</div><div class="row" style="margin:6px 0 0"><span class="num" style="font-size:18px">${fmt(l.price)}</span>` +
     `<span>${l.mine ? `<button data-sold="${l.id}">Mark sold</button> <button data-rm="${l.id}">Remove</button>` : ""}</span></div></div>`;
 }
@@ -989,6 +993,7 @@ function scanListings() {
       room: o.room,
       ch: o.ch,
       t: o.first,
+      seen: o.last || o.first, // last time a scan saw it still for sale
       scan: true
     }));
 }
@@ -1333,7 +1338,9 @@ const SIMPLE = LIVE;
 const SEE_DEALS = SIMPLE ? "See More › Alerts and deals." : "See Deals.";
 const MORE = ["mine", "deals", "sources"]; // reached from the More tab
 let psort = "new",
-  lsort = "new";
+  lsort = "new",
+  lold = false; // Listings: also show listings nobody has seen for 3 days
+const RECENT = 3 * DAY;
 const segBtns = (name, cur, opts) =>
   `<div class="seg" role="group">${opts.map(([v, t]) => `<button data-${name}="${v}" aria-pressed="${v === cur}">${t}</button>`).join("")}</div>`;
 const pic = name => ico(name) || '<span class="ph"></span>';
@@ -1384,30 +1391,37 @@ function drawPrices() {
 // Every listing, with identical copies in one shop shown once ("62,999 ×2")
 function listingRows() {
   const k = norm(mt.q).split(/\s+/).filter(Boolean),
-    g = {};
+    g = {},
+    now = Date.now();
+  listingRows.older = 0;
   S.listings.filter(x => !x.sold).concat(scanListings()).forEach(x => {
     const it = item(x.item);
     if (!it || !k.every(w => norm(it.name + " " + x.store).includes(w))) return;
+    if (x.scan && !lold && now - x.seen > RECENT) return void listingRows.older++;
     const key = [x.item, x.price, x.store, x.room, x.ch, x.type].join("|"),
       o = g[key] || (g[key] = { ...x, n: 0 });
     o.n += x.mine ? x.qty || 1 : 1;
     o.t = Math.max(o.t, x.t);
+    o.seen = Math.max(o.seen || o.t, x.seen || x.t);
   });
-  return Object.values(g).sort((a, b) => (lsort === "low" ? a.price - b.price : b.t - a.t));
+  return Object.values(g).sort((a, b) => (lsort === "low" ? a.price - b.price : b.seen - a.seen));
 }
 function listingRow(l) {
   const it = item(l.item),
-    age = Date.now() - l.t;
-  return `<div class="card fr${age < JUST ? " new" : ""}">${pic(it.name)}<div style="min-width:0">` +
+    fresh = Date.now() - l.t < JUST, // first seen in the last few minutes
+    age = Date.now() - l.seen;
+  return `<div class="card fr${fresh ? " new" : ""}">${pic(it.name)}<div style="min-width:0">` +
     `<button class="t lk" data-open="${l.item}">${esc(it.name)}</button>` +
     `<div class="s">${esc(l.store)} · FM ${l.room || "?"}${l.ch ? " · CH " + l.ch : ""}${l.type === "buy" ? " · buying" : ""}${l.mine ? " · yours" : ""}</div></div>` +
     `<div class="p"><div class="num">${fmt(l.price)}${l.n > 1 ? ` <span class="cnt">×${l.n}</span>` : ""}</div><div class="mu">` +
-    `${age < JUST ? '<span class="fresh">just listed</span>' : ago(age)}${age > 2 * DAY ? ' · <span class="dn">may be gone</span>' : ""}</div></div></div>`;
+    `${fresh ? '<span class="fresh">just listed</span>' : "seen " + ago(age)}${age > 2 * DAY ? ' · <span class="dn">may be gone</span>' : ""}</div></div></div>`;
 }
 function simpleRows() {
-  const L = listingRows();
-  return L.length ? L.slice(0, 500).map(listingRow).join("") :
-    `<div class="empty">${mt.q.trim() ? `No listing matches "${esc(mt.q.trim())}".` : EMPTY_SCAN}</div>`;
+  const L = listingRows(),
+    older = listingRows.older ? `<button class="more-old" data-lold="1">Show ${listingRows.older} older listing${listingRows.older === 1 ? "" : "s"} ` +
+      `(not seen for 3 days or more)</button>` : "";
+  return (L.length ? L.slice(0, 500).map(listingRow).join("") :
+    `<div class="empty">${mt.q.trim() ? `No listing matches "${esc(mt.q.trim())}" in the last 3 days.` : EMPTY_SCAN}</div>`) + older;
 }
 function drawListings() {
   $("#app").innerHTML =
@@ -1443,6 +1457,7 @@ function drawItemSimple() {
       `<div class="t">${esc(o.shop)}</div><div class="s">FM ${o.room || "?"} · CH ${o.ch} · ${seenTxt(o.last)}</div></div>` +
       `<div class="p"><div class="num">${fmt(o.price)}${o.n > 1 ? ` <span class="cnt">×${o.n}</span>` : ""}</div></div></div>`).join("")}</div>` :
       '<div class="card mu">Nobody has it for sale today, as far as your scans show.</div>'}` +
+    alertCard(it, low == null ? s.usual : low) +
     `<details class="card" style="margin-top:12px"><summary>Price history and best times to buy</summary>${spark(s.list) || ""}${scanCard(cur) ||
       '<p class="mu">Not enough scans yet.</p>'}</details>` +
     `<p class="mu">Also check this item on <a href="https://meowdb.com/msclassic/free-market" target="_blank" rel="noopener">MeowDB</a> and ` +
@@ -1451,6 +1466,23 @@ function drawItemSimple() {
     cur = null;
     draw();
   };
+  if ($("#iago"))
+    $("#iago").onclick = () => {
+      const e = addAlert(it.name.slice(0, 40), $("#iam").value);
+      if (e) return void ($("#e7").textContent = e);
+      say(`Alert set: you'll hear a chime when ${it.name} is for sale${$("#iam").value.trim() ? " at that price or less" : ""}.`);
+      draw(false);
+    };
+}
+// "Tell me when it's this price or less", right on the item's page
+function alertCard(it, price) {
+  const i = S.alerts.findIndex(a => a.term.toLowerCase() === it.name.slice(0, 40).trim().toLowerCase());
+  if (i >= 0)
+    return `<div class="card" style="margin-top:12px"><div class="row" style="margin:0"><span><b>Alert on</b><br><span class="mu">You'll hear a chime ` +
+      `when it's for sale${S.alerts[i].max ? " at " + fmt(S.alerts[i].max) + " or less" : ""}.</span></span><button data-ra="${i}">Remove alert</button></div></div>`;
+  return `<div class="card" style="margin-top:12px"><b>Price alert</b><div class="frm"><input id="iam" inputmode="numeric" ` +
+    `value="${price ? Math.round(price) : ""}" aria-label="Alert price"><button id="iago">Tell me when it's this price or less</button></div>` +
+    `<p class="err" id="e7" role="alert"></p></div>`;
 }
 function drawMore() {
   const go = (v, t, d) => `<button class="row" data-go="${v}"><span><b>${t}</b><br><span class="mu">${d}</span></span><span class="mu">›</span></button>`;
@@ -1501,12 +1533,21 @@ function refreshList() {
   if (view === "market" && $("#mb")) drawMB();
   else if (SIMPLE && view === "browse" && $("#pcount")) drawPriceList();
 }
+// Short messages ("Listing posted", "Alert: 2 new matches") show at the bottom of the window for a few seconds
 function say(m) {
-  $("#live").textContent = m;
+  const el = $("#live");
+  el.textContent = m;
+  clearTimeout(say.t);
+  say.t = setTimeout(() => (el.textContent = ""), 6000);
 }
 
 /* ===== Events and start-up ===== */
 document.addEventListener("click", e => {
+  if (e.target.closest("[data-lold]")) {
+    lold = true;
+    drawMB();
+    return;
+  }
   const sg = e.target.closest("[data-ps],[data-ls],[data-go]");
   if (sg) {
     const d = sg.dataset;
