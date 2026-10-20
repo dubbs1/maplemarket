@@ -83,6 +83,7 @@ class Saver:
         self.volume, self.quiet = volume, quiet
         self.logged, self.total, self.pending = {}, 0, []
         self.shops = {}                               # _shop_key -> {'t', 'sale': {"item|each": n}, 'sold': {...}}
+        self.lock = threading.RLock()                 # the scanner saves; a channel typed in the window flushes
         self._recall()
 
     def _recall(self):
@@ -136,14 +137,19 @@ class Saver:
         self.shops[key] = {'t': now, 'sale': dict(sale), 'sold': dict(sold)}
         self.shops = {k: v for k, v in self.shops.items() if now - v['t'] < SHOP_MEMORY}
         try:
-            with open(SHOP_STATE, 'w', encoding='utf-8') as f:
+            with open(SHOP_STATE + '.tmp', 'w', encoding='utf-8') as f:
                 json.dump(self.shops, f)
+            os.replace(SHOP_STATE + '.tmp', SHOP_STATE)   # never half a file, even if the PC goes off mid-write
         except OSError:
             pass
         return gone
 
     def save(self, rows, rm, whole=False):
         """Save new listings. whole=True: `rows` is the shop's whole list (compared with the last one)."""
+        with self.lock:
+            self._save(rows, rm, whole)
+
+    def _save(self, rows, rm, whole):
         now, new, seen_now = time.time(), [], {}
         for r in rows:
             base = (r['item'], r['each'], rm, self.state['ch'], bool(r.get('sold')))   # shop name left out: it can be misread differently
@@ -177,9 +183,10 @@ class Saver:
 
     def flush(self):
         """Save shops seen before the channel was known."""
-        for r_, rm_, whole in self.pending:
-            self.save(r_, rm_, whole)
-        self.pending = []
+        with self.lock:
+            pending, self.pending = self.pending, []
+            for r_, rm_, whole in pending:
+                self._save(r_, rm_, whole)
 
 
 class Scanner:
@@ -231,19 +238,34 @@ class Scanner:
                 ev.status(s)
 
         set_status('looking')
-        with (getattr(mss, 'MSS', None) or mss.mss)() as sct:
-            mon = sct.monitors[min(self.monitor, len(sct.monitors) - 1)]
+        sct, fails, exp_pause = None, 0, 0
+        try:
             while not self._stop.is_set():
                 time.sleep(self.interval)
-                shot = sct.grab(mon)
+                try:
+                    if sct is None:
+                        sct = (getattr(mss, 'MSS', None) or mss.mss)()
+                        mon = sct.monitors[min(self.monitor, len(sct.monitors) - 1)]
+                    shot = sct.grab(mon)
+                    fails = 0
+                except Exception:
+                    # the screen can't be read for a moment (the PC is locked, a Windows "Yes/No" prompt is up,
+                    # a monitor was unplugged): wait and try again; after a few misses, start the screen reader afresh
+                    fails += 1
+                    if fails % 5 == 0 and sct is not None:
+                        getattr(sct, 'close', lambda: None)()
+                        sct = None
+                    time.sleep(2)
+                    continue
                 img = Image.frombytes('RGB', shot.size, shot.bgra, 'raw', 'BGRX')
-                if expw and self.exp is not None:    # the EXP line, every few seconds (its own pace)
+                tr = self.exp                        # (switched off from the window at any moment: use one look)
+                if tr is not None and time.time() >= exp_pause:   # the EXP line, every few seconds (its own pace)
                     try:
                         reading = expw.update(img)
-                        if reading and self.exp.add(reading):
-                            ev.exp(self.exp.summary())
+                        if reading and tr.add(reading):
+                            ev.exp(tr.summary())
                     except Exception:
-                        expw = None                  # never let the EXP tracker stop the shop reading
+                        exp_pause = time.time() + 30  # never let the EXP tracker stop the shop reading
                 boxes = list_boxes(img)              # is a shop list on screen? (colour check, instant)
                 if not boxes:
                     prev_t = done_t = None
@@ -320,3 +342,6 @@ class Scanner:
                     continue
                 saver.save(rows, room, tracker.whole)
                 saver.flush()
+        finally:
+            if sct is not None:
+                getattr(sct, 'close', lambda: None)()

@@ -27,9 +27,12 @@ _SMALL = {'img': None, 'sm': None}
 
 def _small(img, step):
     """The screenshot shrunk by `step`, made once per screenshot (several colour checks look at it)."""
-    if _SMALL['img'] is not img:
-        _SMALL.update(img=img, sm=img.resize((max(1, img.width // step), max(1, img.height // step)), Image.NEAREST))
-    return _SMALL['sm']
+    c = _SMALL                                      # (read once: "test a screenshot" may use this from another thread)
+    if c['img'] is img:
+        return c['sm']
+    sm = img.resize((max(1, img.width // step), max(1, img.height // step)), Image.NEAREST)
+    _SMALL.update(img=img, sm=sm)
+    return sm
 
 
 def color_boxes(img, col, tol=6, cell=24, minc=8, vgap=8):
