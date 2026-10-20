@@ -1,4 +1,4 @@
-import sys, os, types, time, json, tempfile, asyncio, urllib.request, urllib.error
+import sys, os, types, time, json, tempfile, threading, asyncio, urllib.request, urllib.error
 os.environ.setdefault('MAPLEREADER_UPDATE_API', 'off')   # never ask the real GitHub from a test
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the repository
 R = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_ROOT, 'MapleReader')
@@ -15,6 +15,8 @@ class Screen:
     def __enter__(s): return s
     def __exit__(s, *a): pass
     def grab(s, mon):
+        if threading.current_thread().name == 'exp':   # the EXP recorder looks at the same screen, but takes no turns
+            return Shot(pics[0])
         time.sleep(0.12)
         return Shot(pics.pop(0) if len(pics) > 1 else pics[0])
 sys.modules['mss'] = types.SimpleNamespace(MSS=lambda: Screen())
@@ -58,6 +60,9 @@ async def main():
                 await pg.screenshot(path=OUT + '_idle.png')
                 await pg.click('[data-chg=ch]'); await pg.fill('#ich', '99'); await pg.click('#sch'); await pg.wait_for_timeout(300)
                 ok('A3 bad channel refused', ctl.state['channel'] == 0)
+                await pg.click('#expgo'); await pg.wait_for_timeout(1500)
+                ok('A3b EXP has its own Start: recording EXP without watching shops', ctl.exp_runner is not None and
+                   not ctl.state['watching'] and (await pg.inner_text('#expgo')) == 'Stop')
                 await pg.click('#go'); await pg.wait_for_timeout(1500)
                 ok('A4 Start starts the scanner', ctl.state['watching'] and 'Stop' in await pg.inner_text('#go'))
                 t0 = time.time()
@@ -139,6 +144,10 @@ async def main():
                 await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(800)
                 await pg.click('#go'); await pg.wait_for_timeout(1500)
                 ok('A16 Stop stops', not ctl.state['watching'] and 'Start' in await pg.inner_text('#go'))
+                ok('A16b stopping shops leaves EXP recording on', ctl.exp_runner is not None and (await pg.inner_text('#expgo')) == 'Stop')
+                await pg.click('#expgo'); await pg.wait_for_timeout(1500)
+                ok('A16c and EXP stops with its own button', ctl.exp_runner is None and (await pg.inner_text('#expgo')) == 'Start'
+                   and json.load(open(os.path.join(work, 'settings.json')))['exp'] is False)
                 ok('A17 feed kept after stop', await pg.locator('#feed .fr').count() == 29)
                 await pg.reload(); await pg.wait_for_timeout(2000)
                 ok('A18 reload restores the session feed', await pg.locator('#feed .fr').count() == 29)
