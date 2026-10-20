@@ -76,7 +76,12 @@ class _Handler(BaseHTTPRequestHandler):
         c = self.server.controller
         if not self._local() or self.headers.get('X-MapleReader') != '1' or c is None:
             return self._send(403, 'Forbidden', 'text/plain')
-        n = int(self.headers.get('Content-Length') or 0)
+        try:
+            n = int(self.headers.get('Content-Length') or 0)
+        except ValueError:
+            n = -1
+        if n < 0:
+            return self._json({'ok': False, 'error': 'Bad request.'}, 400)
         if n > 30_000_000:
             return self._json({'ok': False, 'error': 'Too big.'}, 413)
         body = self.rfile.read(n) if n else b''

@@ -53,8 +53,10 @@ def keep(img, rows, h):
             img.crop(box).save(os.path.join(ICON_DIR, s + '.png'))
             idx[s], changed = kind, True
         if changed:
-            with open(os.path.join(ICON_DIR, 'index.json'), 'w', encoding='utf-8') as f:
+            path = os.path.join(ICON_DIR, 'index.json')
+            with open(path + '.tmp', 'w', encoding='utf-8') as f:
                 json.dump(idx, f)
+            os.replace(path + '.tmp', path)          # all at once: a crash can't leave half a file
 
 
 def reset_cache():

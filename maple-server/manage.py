@@ -35,8 +35,8 @@ def _write(keys):
     os.replace(tmp, S.KEYS)
 
 
-def _find(keys, name):
-    return [h for h, v in keys.items() if v['name'].lower() == name.lower()]
+def _find(keys, name, active_only=False):
+    return [h for h, v in keys.items() if v['name'].lower() == name.lower() and (v.get('active', True) or not active_only)]
 
 
 def main(argv):
@@ -49,8 +49,8 @@ def main(argv):
         print('Give a name, for example:  manage.py', cmd, 'Gunther')
         return 1
     if cmd == 'add':
-        if _find(keys, name):
-            print(f'{name} already has a key. Revoke it first if you want to give them a new one.')
+        if _find(keys, name, active_only=True):
+            print(f'{name} already has a key that works. Revoke it first if you want to give them a new one.')
             return 1
         key = 'mm-' + secrets.token_urlsafe(18)
         keys[S.hash_key(key)] = {'name': name, 'active': True, 'created': time.strftime('%Y-%m-%d')}
@@ -69,10 +69,11 @@ def main(argv):
         if not hs:
             print(f'No key named {name}.')
             return 1
+        if cmd == 'restore' and len(hs) > 1:
+            print(f'{name} has a newer key already; the old one stays revoked.')
+            return 1
         for h in hs:
             keys[h]['active'] = cmd == 'restore'
-            if cmd == 'revoke':
-                keys[h]['name'] = name                # keep the name so purge still finds their rows
         _write(keys)
         print(f"{name}'s key {'works again' if cmd == 'restore' else 'no longer works'}.")
         return 0

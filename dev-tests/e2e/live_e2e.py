@@ -1,6 +1,7 @@
 import os
 import sys, os, time, json, tempfile, asyncio, urllib.request
-R = sys.argv[1]; sys.path.insert(0, R)
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the repository
+R = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_ROOT, 'MapleReader'); sys.path.insert(0, R)
 work = tempfile.mkdtemp(prefix='mr_live_'); os.makedirs(os.path.join(work, 'scans'))
 import shopreader.config as C; C.APP_DIR = work
 import shopreader.market_server as M
@@ -49,7 +50,7 @@ async def main():
         ok('L7 then arrives complete', await listings() == 5)
         await pg.reload(); await pg.wait_for_timeout(2500)
         ok('L8 reload: nothing doubled', await listings() == 5)
-        await pg.screenshot(path=sys.argv[2])
+        await pg.screenshot(path=sys.argv[2] if len(sys.argv) > 2 else os.path.join(work, 'live.png'))
         # MapleReader closed: banner says so; reopened: carries on
         srv.stop(); await pg.wait_for_timeout(3000)
         ok('L9 app closed: chip says so', 'closed' in await pg.inner_text('#chip'))
