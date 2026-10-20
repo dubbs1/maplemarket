@@ -83,6 +83,7 @@ def run():
         _message('MapleReader could not start: the ports it uses (8765 to 8770) are all busy.\n'
                  'Close other copies of MapleReader, or restart the PC, and try again.')
         return
+    ctl.autostart()
     proc, opened = open_window(url), time.time()
     try:
         while True:

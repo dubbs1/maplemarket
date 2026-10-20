@@ -62,6 +62,7 @@ class Controller:
         self.settings = self._load()
         self.tesseract = find_tesseract()
         self.engine = engine.mode() if self.tesseract else 'none'
+        self._tess_check = 0                         # when we last looked for a newly installed Tesseract
         self.scanner = None
         self.seq = 0
         self.events = deque(maxlen=400)              # saved rows and notes, newest last
@@ -84,6 +85,7 @@ class Controller:
         s.setdefault('share_on', False)
         s.setdefault('share_server', share.DEFAULT_SERVER)
         s.setdefault('share_key', '')
+        s.setdefault('auto_start', True)             # start watching as soon as the app opens
         return s
 
     def _save(self):
@@ -122,7 +124,17 @@ class Controller:
     def note(self, text, level='info'):
         self.push('note', text=text, level=level, t=time.time())
 
+    def _look_for_tesseract(self):
+        """Installed while the app was open? Then it's ready without a restart."""
+        if find_tesseract():
+            self.engine = engine.mode()               # can take a few seconds (a safety test): not on the window's request
+            self.tesseract = True
+            self.note('Tesseract found. Press Start watching.')
+
     def snapshot(self, since=0):
+        if not self.tesseract and time.time() - self._tess_check > 5:
+            self._tess_check = time.time()
+            threading.Thread(target=self._look_for_tesseract, daemon=True).start()
         with self.lock:
             self.last_seen = time.time()
             settings = {k: v for k, v in self.settings.items() if k != 'share_key'}   # the key never leaves the app
@@ -157,6 +169,11 @@ class Controller:
         threading.Thread(target=run, daemon=True).start()
         return {'ok': True}
 
+    def autostart(self):
+        """When the app opens: start watching straight away, unless that's switched off in Settings."""
+        if self.settings.get('auto_start', True) and self.tesseract:
+            self.start()
+
     def stop(self):
         sc, self.scanner = self.scanner, None
         if sc:
@@ -183,7 +200,7 @@ class Controller:
             if self.scanner:
                 self.scanner.set_room(rm)
             self.note(f'Room set to {rm}.')
-        for k, conv in (('volume', float), ('quiet', bool), ('monitor', int)):
+        for k, conv in (('volume', float), ('quiet', bool), ('monitor', int), ('auto_start', bool)):
             if k in d:
                 self.settings[k] = conv(d[k])
         if self.scanner and ('volume' in d or 'quiet' in d):
@@ -231,8 +248,9 @@ class Controller:
         if sys.platform != 'win32':
             return {'ok': False, 'error': 'Only on Windows.'}
         cmd = ('winget install --id UB-Mannheim.TesseractOCR -e --accept-package-agreements --accept-source-agreements'
-               ' & echo. & echo Done. Close this window and restart MapleReader. & pause')
+               ' & echo. & echo Done. Close this window; MapleReader is ready. & pause')
         subprocess.Popen(['cmd', '/c', cmd], creationflags=getattr(subprocess, 'CREATE_NEW_CONSOLE', 0))
+        self.note('Installing Tesseract in a separate window. Click Yes if Windows asks. MapleReader notices when it is done.')
         return {'ok': True}
 
     def status_line(self):
