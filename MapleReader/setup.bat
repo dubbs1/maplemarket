@@ -12,7 +12,7 @@ if exist "C:\Program Files\Tesseract-OCR\tesseract.exe" (
 )
 echo.
 echo Step 2 of 2: Python packages
-py -3.13 -m pip install --upgrade mss pillow pytesseract
+py -3.13 -m pip install -r requirements.txt
 echo.
 echo Done. Next: double-click run_tests.bat to check everything, then start.bat to scan.
 pause
