@@ -3,7 +3,9 @@
 #   windows: main, pull requests, version tags, a manual run, or a push whose message says [windows]
 #            (Windows minutes cost double on a private repository): the reader checks with real Windows
 #            Tesseract, then builds MapleReader.exe and the installer, and tries both for real.
-#   release: a tag like v2026-10-20g (matching shopreader/__init__.py) publishes the installer as a release.
+#   release: when main has a version (shopreader/__init__.py) that isn't released yet, or a tag like
+#            v2026-10-20g is pushed, the installer and its .sha256 are published as release v<version>.
+#            So releasing = bump __version__, merge to main.
 name: Checks
 on:
   push:
@@ -53,6 +55,8 @@ jobs:
       contains(github.event.head_commit.message, '[windows]')
     runs-on: windows-latest
     timeout-minutes: 60
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
     defaults:
       run:
         shell: pwsh
@@ -142,17 +146,33 @@ jobs:
           retention-days: 14
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     needs: [linux, windows]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v5
+      - name: Is this version released already?
+        id: new
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v${{ needs.windows.outputs.version }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" > /dev/null 2>&1; then
+            echo "$TAG is released already: nothing to do"; echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publishing $TAG"; echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.new.outputs.new == 'true'
+        uses: actions/download-artifact@v5
         with:
           path: out
           merge-multiple: true
-      - uses: softprops/action-gh-release@v2
+      - if: steps.new.outputs.new == 'true'
+        uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ needs.windows.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: MapleReader ${{ needs.windows.outputs.version }}
           files: out/*
           generate_release_notes: true
