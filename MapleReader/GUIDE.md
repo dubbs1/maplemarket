@@ -65,14 +65,14 @@ The installer needs nothing else first (no Python, no `setup.bat`, no `build_exe
    - If the big button says **Install Tesseract**, click it (see Part G2).
 4. From now on, open MapleReader from the Start menu or the desktop icon.
 5. **Updates:** when a new version is out, a card at the top of the Scan tab says **A new version is ready**. Click **Update now**. MapleReader closes, updates and opens again by itself within a minute. Your scans and settings stay.
-   - Settings (on the Scan tab) shows `Updates: ...` and has a **Check now** button.
+   - **Options** shows `Updates: ...` and has a **Check now** button.
    - To remove MapleReader: Windows Settings > Apps > MapleReader > Uninstall. Your scans stay in `%LOCALAPPDATA%\Programs\MapleReader\scans` until you delete that folder.
 
 6. **Your EXP:** while MapleReader is watching, the **Your EXP** card on the Scan tab shows your level, EXP per hour, EXP gained, and the time to your next level. It reads the EXP line at the bottom of the game window (`EXP 93,499 [43.17%]`), so keep that line on screen.
    - The first numbers show a few seconds after you press Start. "EXP per hour" shows after a minute.
    - **Reset** starts counting again (for example when you start a new hunting trip).
    - EXP lost from dying is shown apart, not taken off what you gained.
-   - To turn it off: Settings > **Track my EXP**.
+   - To turn it off: Options > **Track my EXP**.
    - If the card keeps saying "Looking for the EXP line", send Claude a screenshot of the whole game window.
 
 The rest of this guide is the manual way (the zip folder), which still works.
@@ -209,9 +209,9 @@ B. Use it:
       - To be told when it gets cheaper: under **Price alert**, type the most you'd pay and click **Tell me when it's this price or less**. You'll hear a chime when a scan finds one.
       - **Listings** shows what was seen in the last 3 days; the button at the bottom shows older ones.
    6. When you're done, click **Stop**, or just close the window (closing it closes MapleReader).
-   - **Settings** (on the Scan tab; click it to open): start watching when MapleReader opens (on unless you switch it off), chime on or off and its volume, the screen the game is on, **Test a screenshot** to check a saved picture, and **Open scans folder**.
+   - **Options** (the last tab): start watching when MapleReader opens (on unless you switch it off), chime on or off and its volume, the screen the game is on, **Test a screenshot** to check a saved picture, and **Open scans folder**.
    - Pictures are cut from the shop window the first time each item is seen, and kept in `scans\icons`.
-   - The first time, the app reads all of `all_scans.txt`, so everything you scanned before is there. **More > Older scan files > Reload all** clears it and reads the file again.
+   - The first time, the app reads all of `all_scans.txt`, so everything you scanned before is there. **Options > Older scan files > Reload all** clears it and reads the file again.
    - The copy of the market on Claude still works, but it doesn't update by itself and has no pictures: there you import `all_scans.txt` as before (Part G).
    - Using `start.bat` instead? Double-click `market.bat` to open the live market in your browser.
 
