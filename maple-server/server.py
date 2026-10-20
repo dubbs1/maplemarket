@@ -35,6 +35,9 @@ PER_MINUTE = 60                   # row uploads per key per minute
 ICONS_PER_MINUTE = 300            # picture uploads per key per minute (a first share sends many)
 SCANNING_WINDOW = 10 * 60         # "scanning now" = sent something in the last 10 minutes
 FEED_CHUNK = 5000                 # lines per /api/rows answer
+KEEP_DAYS = 35                    # rows older than this are deleted (pages keep 30 days)
+FRESH_DAYS = 30                   # a page starting from nothing gets this much
+MAX_ICONS = 20_000                # pictures kept in all (one per item; a leaked key can't fill the disk)
 
 _db_lock = threading.Lock()
 _rate_lock = threading.Lock()
@@ -85,8 +88,10 @@ def who_is(auth_header):
 
 
 # ---------- checking what friends send ----------
-_ISO = re.compile(r'^@\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d)?(Z|[+-]\d\d:\d\d)?$')   # offset: newer readers
-_EXTRA = re.compile(r'^(sold|gone|c\d{1,4}|x?\d{1,4}|#\d{1,4})$', re.I)
+# re.ASCII: digits are 0-9 only ("²" or Arabic-Indic digits are not numbers here)
+_ISO = re.compile(r'^@\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d)?(Z|[+-]\d\d:\d\d)?$', re.ASCII)   # offset: newer readers
+_EXTRA = re.compile(r'^(sold|gone|c\d{1,4}|x?\d{1,4}|#\d{1,4})$', re.I | re.ASCII)
+_NUM = re.compile(r'[0-9]{1,10}')
 
 
 def _seen_ok(stamp, now):
@@ -109,9 +114,9 @@ def clean_line(line, now=None):
     p = [x.strip() for x in line.split('|')]
     if len(p) < 6 or not p[0] or len(p[0]) > 60 or not p[2] or len(p[2]) > 60:
         return None
-    if not re.fullmatch(r'\d{1,10}', p[1].replace(',', '')) or not 1 <= int(p[1].replace(',', '')) <= 2_000_000_000:
+    if not _NUM.fullmatch(p[1].replace(',', '')) or not 1 <= int(p[1].replace(',', '')) <= 2_000_000_000:
         return None
-    if not (p[3].isdigit() and 0 <= int(p[3]) <= 40 and p[4].isdigit() and 1 <= int(p[4]) <= 40):
+    if not (_NUM.fullmatch(p[3]) and 0 <= int(p[3]) <= 40 and _NUM.fullmatch(p[4]) and 1 <= int(p[4]) <= 40):
         return None
     extras = p[5:]
     stamps = [x for x in extras if _ISO.match(x)]
@@ -240,18 +245,28 @@ class Handler(BaseHTTPRequestHandler):
 def store(con, lines, who, now):
     added = dupes = bad = 0
     with _db_lock:
-        for line in lines:
-            c = clean_line(line, now)
-            if not c:
-                bad += 1
-                continue
-            h = hashlib.sha1(c.encode('utf-8')).hexdigest()
-            try:
-                con.execute('INSERT INTO rows (h, line, who, at) VALUES (?, ?, ?, ?)', (h, c, who, now))
-                added += 1
-            except sqlite3.IntegrityError:
-                dupes += 1                            # someone already sent exactly this row
-        con.commit()
+        try:
+            for line in lines:
+                try:
+                    c = clean_line(line, now)
+                except (ValueError, TypeError):
+                    c = None                          # never let one odd line stop the rest
+                if not c:
+                    bad += 1
+                    continue
+                h = hashlib.sha1(c.encode('utf-8')).hexdigest()
+                try:
+                    con.execute('INSERT INTO rows (h, line, who, at) VALUES (?, ?, ?, ?)', (h, c, who, now))
+                    added += 1
+                except sqlite3.IntegrityError:
+                    dupes += 1                        # someone already sent exactly this row
+            if now - _state.get('pruned', 0) > 3600:   # once an hour: forget rows nobody's page keeps any more
+                _state['pruned'] = now
+                con.execute('DELETE FROM rows WHERE at < ?', (now - KEEP_DAYS * 86400,))
+            con.commit()
+        except Exception:
+            con.rollback()                            # nothing half-saved, then the uploader is told it failed
+            raise
     return added, dupes, bad
 
 
@@ -267,12 +282,19 @@ def keep_icon(name, kind, png):
             idx = {}
         if idx.get(name) == 'normal' or (idx.get(name) == 'faded' and kind != 'normal'):
             return False
-        with open(os.path.join(ICONS, name + '.png'), 'wb') as f:
-            f.write(png)
+        if name not in idx and len(idx) >= MAX_ICONS:
+            return False
+        _write_new(os.path.join(ICONS, name + '.png'), png)  # a page asking meanwhile gets the old picture, never half a new one
         idx[name] = 'normal' if kind == 'normal' else 'faded'
-        with open(idx_path, 'w', encoding='utf-8') as f:
-            json.dump(idx, f)
+        _write_new(idx_path, json.dumps(idx).encode('utf-8'))
         return True
+
+
+def _write_new(path, data):
+    tmp = path + '.tmp'
+    with open(tmp, 'wb') as f:
+        f.write(data)
+    os.replace(tmp, path)
 
 
 def feed(con, start):
@@ -281,6 +303,9 @@ def feed(con, start):
         reset = start > top                           # the database was cleared: start over
         if reset:
             start = 0
+        if start == 0:                                # a page starting from nothing: only the days it keeps
+            first = con.execute('SELECT MIN(id) FROM rows WHERE at >= ?', (time.time() - FRESH_DAYS * 86400,)).fetchone()[0]
+            start = (first or top + 1) - 1
         got = con.execute('SELECT id, line FROM rows WHERE id > ? ORDER BY id LIMIT ?', (start, FEED_CHUNK)).fetchall()
     nxt = got[-1][0] if got else start
     now = time.time()
