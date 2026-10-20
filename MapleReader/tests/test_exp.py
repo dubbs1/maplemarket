@@ -1,7 +1,7 @@
 """Checks the EXP tracker: reading the status bar, and turning readings into EXP per hour.
 
 1. The six test pictures with a status bar (three at the usual interface size, three at others: 0.9, 0.95, 1.14)
-   read EXP 93,499, 43.17% and level 37.
+   read EXP 93,499, 43.17% and level 37; the owner's bar at level 38 reads 36,420, 15.14%, 38.
 2. The same bar shrunk or grown (0.75x to 1.9x, two ways of resizing) is read right or skipped, never wrong.
 3. A picture without a status bar finds none.
 4. The tracker: starts when two readings agree, adds up gains, drops a misread, counts a death's loss and a level-up,
@@ -43,6 +43,8 @@ def pictures():
         bar = E.find_bar(img)
         got = read(img)
         check(got == TRUE, f'{name} (size {bar["size"]:.2f}): {got}')
+    got = read(load('status38.png'))
+    check(got == (36420, 15.14, 38), f'status38.png (your bar at level 38, with 5s and an 8): {got}')
     check(E.find_bar(load('allsold.png')) is None, 'allsold.png: no status bar (a shop picture without one)')
 
 
@@ -100,6 +102,13 @@ def tracker():
     t4.add({'exp': 50, 'pct': 0.05, 'level': 38}, now=10)          # levelled up (too small a % to know the new level)
     t4.add({'exp': 3000, 'pct': 2.0, 'level': 38}, now=20)
     check(not t4.add({'exp': 93000, 'pct': 2.1, 'level': 38}, now=30), 'a misread just after a level-up is dropped')
+    t5 = E.ExpTracker()                                     # your own readings (October 20): 36,420 of 240,500 at level 38
+    for i, (x, p) in enumerate(((36420, 15.14), (36420, 15.14), (36450, 15.16), (36475, 15.17))):
+        t5.add({'exp': x, 'pct': p, 'level': 38}, now=i * 30)
+    t5.add({'exp': 36500, 'pct': 15.18, 'level': 33}, now=150)   # a level misread later on
+    s5 = t5.summary(now=150)
+    check(s5['gained'] == 80 and abs(s5['need'] - 240500) < 240500 * 0.002 and s5['level'] == 38,
+          f'your readings: gained {s5["gained"]}, level needs {s5["need"]} (the game says 240,500), level {s5["level"]}')
     t.reset()
     check(t.summary() is None, 'Reset clears it')
 
