@@ -137,14 +137,18 @@ def _api(pairs):
 
 @atexit.register
 def _close():
-    """Shut Tesseract down cleanly when the reader stops."""
-    with _lock:
+    """Shut Tesseract down cleanly when the reader stops (but never hold up closing for it)."""
+    if not _lock.acquire(timeout=5):
+        return                                       # a read is still running: let the process end anyway
+    try:
         L = _state['lib']
         for h in _state['apis'].values():
             if h is not None:
                 L.TessBaseAPIEnd(h)
                 L.TessBaseAPIDelete(h)
         _state['apis'].clear()
+    finally:
+        _lock.release()
 
 
 def mode():
