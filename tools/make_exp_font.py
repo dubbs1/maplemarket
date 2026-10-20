@@ -20,6 +20,8 @@ BAR = [('hp', '1303/1303'), ('mp', '1072/1072'), ('exp', '93,499'), ('pct', '43.
 SOURCES = [
     ('live_shop.png', [('mp', '1068/1072')] + BAR[:1] + BAR[2:]),
     ('desk_live.png', BAR), ('s711.png', BAR),
+    # the owner's status bar at level 38 (October 20, 2026): brings the 5 and the level tiles' 8
+    ('status38.png', [('hp', '1325/1325'), ('mp', '1060/1089'), ('exp', '36,420'), ('pct', '15.14%'), ('level', '38')]),
 ]
 # A digit no picture shows yet, drawn by hand from the others' strokes (the top of 7, the left of 6, the bottom of
 # 3). Used only until a real one is cut from a picture.
