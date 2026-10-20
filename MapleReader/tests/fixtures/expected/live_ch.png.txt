@@ -1,0 +1,2 @@
+channel window shows: 10
+room: 1

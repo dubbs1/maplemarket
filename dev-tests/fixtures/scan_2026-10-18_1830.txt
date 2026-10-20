@@ -1,0 +1,49 @@
+Mystery Palette Exchange | 110000 | Shop | 1 | 10
+Mystery Palette Exchange | 110000 | Shop | 1 | 10
+Bunny Ears | 62999 | Shop | 1 | 10
+Bunny Ears | 62999 | Shop | 1 | 10
+Black Sunglasses | 63999 | Shop | 1 | 10
+Black Sunglasses | 63999 | Shop | 1 | 10
+Mystery Palette Exchange | 110000 | Shop | 0 | 10
+Mystery Palette Exchange | 110000 | Shop | 0 | 10
+Bunny Ears | 62999 | Shop | 0 | 10
+Bunny Ears | 62999 | Shop | 0 | 10
+Black Sunglasses | 63999 | Shop | 0 | 10
+Black Sunglasses | 63999 | Shop | 0 | 10
+ere EE | 100 | Shop | 1 | 10
+Garnet | 699 | Shop | 1 | 10
+Topaz | 600 | Shop | 1 | 10
+Aquamarine | 599 | Shop | 1 | 10
+Sapphire | 650 | Shop | 1 | 10
+Earring INT Scroll: Interm | 119999 | Shop | 1 | 10
+Heartbreaker Lips | 99999 | Shop | 1 | 10
+Smithing Kit | 13999 | Shop | 1 | 10
+Kitty Chat Ring | 29999 | Shop | 0 | 10
+Angel Halo | 169999 | Shop | 0 | 10
+Gephart | 39999 | Shop | 1 | 10
+Forked Spear | 29999 | Shop | 1 | 10
+Forked Spear | 14999 | Shop | 1 | 10
+Tourist T | 19999 | Shop | 1 | 10
+Tourist T | 19999 | Shop | 1 | 10
+Tourist T | 19999 | Shop | 0 | 10
+Black Sneak Pants | 3499 | Shop | 0 | 10
+Hat Accuracy Scroll: Lesser | 13999 | Shop | 1 | 10
+Hat Accuracy Scroll: Great | 8888 | Shop | 1 | 10
+Hat Accuracy Scroll: Lesser | 13999 | Shop | 0 | 10
+Hat Accuracy Scroll: Great | 8888 | Shop | 0 | 10
+lron Hog's Metal Hoot | 79 | Shop | 1 | 10
+lron Hog's Metal Hoot | 79 | Shop | 1 | 10
+Korean Fan | 150000 | Shop | 1 | 10
+Black Knucklevest | 35000 | Shop | 1 | 10
+Gold Arbion | 32000 | Shop | 1 | 10
+Bronze Chain Boots | 9999 | Shop | 1 | 10
+Ribboned Pig Headband | 20000 | Shop | 0 | 10
+Blue Sauna Robe | 35000 | Shop | 0 | 10
+Pet Equip Jump Scroll: Int | 36000 | Shop | 0 | 10
+lron Ingot | 2999 | Shop | 0 | 10
+Bronze Ingot | 1000 | Shop | 0 | 10
+Ribboned Pig Headband | 20000 | Shop | 1 | 10
+Blue Sauna Robe | 35000 | Shop | 1 | 10
+Pet Equip Jump Scroll: Int | 36000 | Shop | 1 | 10
+lron Ingot | 2999 | Shop | 1 | 10
+Bronze Ingot | 1000 | Shop | 1 | 10

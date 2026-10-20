@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+import sys
+ports = set()
+for f in ('/proc/net/tcp', '/proc/net/tcp6'):
+    try:
+        for line in open(f).readlines()[1:]:
+            p = line.split()
+            if p[3] == '0A': ports.add(int(p[1].split(':')[1], 16))
+    except OSError: pass
+for p in sorted(ports): print(f'LISTEN 0 128 127.0.0.1:{p} 0.0.0.0:*')

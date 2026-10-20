@@ -1,0 +1,7 @@
+room: None
+Vaulter 2000 | 59999 | EQUIP SCROLL | 0 | 0
+Vaulter 2000 | 59999 | EQUIP SCROLL | 0 | 0 | sold
+Red Viper | 16999 | EQUIP SCROLL | 0 | 0
+Red Viper | 16999 | EQUIP SCROLL | 0 | 0
+Blue Jewelry Boots | 12222 | EQUIP SCROLL | 0 | 0
+Brown Jangoon Armor | 12222 | EQUIP SCROLL | 0 | 0

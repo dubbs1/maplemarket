@@ -1,0 +1,22 @@
+const {JSDOM,VirtualConsole}=require('jsdom'),fs=require('fs');
+const errs=[],vc=new VirtualConsole();vc.on('jsdomError',e=>errs.push(e.message));
+const d=new JSDOM(fs.readFileSync(require('path').join(__dirname,'../../MapleReader/shopreader/market.html'),'utf8'),{runScripts:'dangerously',url:'https://x.test/',virtualConsole:vc,pretendToBeVisual:true});
+const w=d.window,$=s=>w.document.querySelector(s),A=w.App;let f=0;const ok=(n,c)=>{console.log(c?'PASS':'FAIL',n);if(!c)f++};
+A.importScan(fs.readFileSync(require('path').join(__dirname,'../fixtures/scan_2026-10-18_2027.txt'),'utf8'));
+A.importScan('Squishy Shoes | 19999 | X | 1 | 11 | sold\nSquishy Shoes | 15000 | Y | 2 | 3');
+w.document.querySelector('[data-nav=browse]').click();$('#q').value='squishy';$('#q').dispatchEvent(new w.Event('input'));
+[...w.document.querySelectorAll('#list [data-open]')].find(b=>/^Squishy Shoes/.test(b.textContent.trim())).click();
+const t=$('#app').textContent;
+ok('I1 stats line',/\d+ sold · \d+ for sale \(\d+ fresh\) · \d+ gone · confidence \d+%/.test(t));
+ok('I2 summary sentence',/seen happening between scans/.test(t)&&/a day/.test(t));
+ok('I3 four time-of-day tiles',w.document.querySelectorAll('.tod-t').length===4&&/Night/.test(t)&&/Evening/.test(t));
+ok('I4 best buy highlighted',w.document.querySelectorAll('.tod-t.best-buy').length===1);
+const rows=()=>[...w.document.querySelectorAll('.tbl tbody tr')];
+ok('I5 listing table rows',rows().length>=6&&/FM 1, ch 11/.test($('.tbl').textContent));
+ok('I6 status chips',!!$('.chip.c-sale')&&!!$('.chip.c-sold'));
+ok('I7 fresh rows marked',/seen \d+ min ago/.test($('.tbl').textContent));
+$('[data-isort=price]').click();
+const pr=rows().map(r=>r.children[2].textContent);const val=x=>x.endsWith('k')?parseFloat(x)*1e3:x.endsWith('m')?parseFloat(x)*1e6:+x.replace(/,/g,'');
+ok('I8 sort by price',pr.map(val).every((x,i,a)=>i==0||a[i-1]<=x)&&$('[data-isort=price]').getAttribute('aria-pressed')==='true');
+ok('I9 numbers shortened like 19,999 -> 20k',pr.some(x=>/k$/.test(x)));
+ok('no runtime errors',errs.filter(e=>!/scrollTo/.test(e)).length===0);console.log(errs.filter(e=>!/scrollTo/.test(e)));process.exit(f)
