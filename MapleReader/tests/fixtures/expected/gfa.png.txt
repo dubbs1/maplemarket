@@ -1,0 +1,7 @@
+room: None
+Gloves Attack Scroll: Inter | 690000 | gfa 60 | 0 | 0
+Gloves Magic Attack Scrol | 290000 | gfa 60 | 0 | 0
+Drake Skull | 100 | gfa 60 | 0 | 0
+Drake Skull | 100 | gfa 60 | 0 | 0
+Drake Skull | 100 | gfa 60 | 0 | 0
+Drake Skull | 100 | gfa 60 | 0 | 0

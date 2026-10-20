@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+echo "nginx $*" >> /tmp/fake-calls; [[ "$1" == "-t" ]] && { [[ "${FAKE_NGINX_OK:-1}" == 1 ]] || { echo "nginx: [emerg] test failure"; exit 1; }; }; exit 0

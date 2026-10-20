@@ -1,0 +1,7 @@
+room: None
+White Crusader Chainmail | 36000 | White Crusader Chainmail | 0 | 0
+White Crusader Chainmail | 35000 | White Crusader Chainmail | 0 | 0
+Mithril Maul | 9000 | White Crusader Chainmail | 0 | 0
+Blue Axe | 11000 | White Crusader Chainmail | 0 | 0
+Ice Wand | 12500 | White Crusader Chainmail | 0 | 0
+Dankke | 15000 | White Crusader Chainmail | 0 | 0

@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+cat /tmp/fake-maple.log 2>/dev/null

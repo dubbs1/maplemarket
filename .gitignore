@@ -1,0 +1,19 @@
+# your own data (scans, pictures, settings) stays on your PC
+MapleReader/scans/
+MapleReader/settings.json
+MapleReader/items.txt
+MapleReader/chime*.wav
+# built app (made by build_exe.bat)
+MapleReader/MapleReader.exe
+MapleReader/_internal/
+MapleReader/build_tmp/
+*.spec
+# group server data and upload package
+maple-server/data/
+maple-server/maple-upload.tar.gz
+# tools
+__pycache__/
+*.pyc
+node_modules/
+.DS_Store
+Thumbs.db

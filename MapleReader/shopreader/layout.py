@@ -1,0 +1,139 @@
+"""Finding the shop list on screen by its colours, and measuring its rows."""
+from PIL import Image
+from .config import PRICE, ROW_BG, ROW_FADED
+from .ocr import ocr_lines, pitch
+
+
+def layout_from(pr, marks=None, old_h=None):
+    """Shop layout from its price lines: list column(s), first/last row, row height.
+    The row height is measured on every "... mesos" line (a misread price like "1 mesos" still marks a row)."""
+    if not pr:
+        return None
+    h = pitch(marks or pr, default=None) or pitch(pr, default=None) or old_h or 56
+    xs = sorted(l['x0'] for l in pr)
+    groups = []
+    for x in xs:                                     # lines starting a little left (a stray digit from the icon)
+        if groups and x - groups[-1][-1] <= 0.7 * h:  # belong to the same column
+            groups[-1].append(x)
+        else:
+            groups.append([x])
+    cols = [max(set(g), key=lambda v: (g.count(v), v)) for g in groups]   # the usual start of a price line
+    return dict(cols=cols, top=min(l['y0'] for l in pr), bottom=max(l['y1'] for l in pr), h=h,
+                width=max(l['x1'] - l['x0'] for l in pr))
+
+
+def color_boxes(img, col, tol=6, cell=24, minc=8, vgap=8):
+    """Find areas of the screen filled with one UI colour. Very fast (no text reading).
+    Returns boxes (x0, y0, x1, y1), biggest first."""
+    step = 4
+    sm = img.resize((max(1, img.width // step), max(1, img.height // step)), Image.NEAREST)
+    px, c = sm.load(), cell // step
+    gw, gh = sm.width // c, sm.height // c
+    dense = set()
+    for gy in range(gh):
+        for gx in range(gw):
+            n = 0
+            for y in range(gy * c, gy * c + c):
+                for x in range(gx * c, gx * c + c):
+                    p = px[x, y]
+                    if abs(p[0] - col[0]) <= tol and abs(p[1] - col[1]) <= tol and abs(p[2] - col[2]) <= tol:
+                        n += 1
+            if n >= c * c * 0.35:
+                dense.add((gx, gy))
+    comps, seen = [], set()
+    steps = [(1, 0), (-1, 0)] + [(0, d) for d in range(-vgap, vgap + 1) if d]   # sold rows can leave vertical gaps
+    for start in dense:
+        if start in seen:
+            continue
+        comp, stack = [], [start]
+        seen.add(start)
+        while stack:
+            q = stack.pop(); comp.append(q)
+            for d in steps:
+                r = (q[0] + d[0], q[1] + d[1])
+                if r in dense and r not in seen:
+                    seen.add(r); stack.append(r)
+        if len(comp) >= minc:
+            xs = [q[0] for q in comp]; ys = [q[1] for q in comp]
+            comps.append((len(comp), (min(xs) * cell, min(ys) * cell, (max(xs) + 1) * cell, (max(ys) + 1) * cell)))
+    return [b for _, b in sorted(comps, reverse=True)]
+
+
+def list_boxes(img):
+    """Shop list areas: blocks of normal row colour, stretched over sold (faded) rows in the same column."""
+    out = []
+    faded = color_boxes(img, ROW_FADED, minc=4)
+    for b in color_boxes(img, ROW_BG, minc=3)[:2]:
+        x0, y0, x1, y1 = b
+        for f in faded:
+            if f[0] < x1 and f[2] > x0 and f[1] < y1 + 400 and f[3] > y0 - 400 and (f[2] - f[0]) < 2 * (x1 - x0) + 100:
+                y0, y1 = min(y0, f[1]), max(y1, f[3])
+        out.append((x0, y0, x1, y1))
+    return out
+
+
+def find_layout(img):
+    """Find shop lists by their row colour and read them. Returns (layout, lines)."""
+    L = []
+    for b in list_boxes(img):
+        L += read_box(img, (max(0, b[0] - 10), max(0, b[1] - 10), min(img.width, b[2] + 30), min(img.height, b[3] + 10)))
+    lay = fit_layout(L, None)
+    return lay, L
+
+
+def _orange(c):
+    """True if the crop has the orange 'selected row' colour, so the extra red pass is worth it."""
+    small = c.resize((max(1, c.width // 4), max(1, c.height // 4)))
+    px = (getattr(small, 'get_flattened_data', None) or small.getdata)()   # newer Pillow renamed getdata
+    return sum(1 for p in px if p[0] > 200 and 110 < p[1] < 200 and p[2] < 90) > 15
+
+
+def read_list(img, lay, up=1.2, down=0.7):
+    """Read only the list column(s): item names and prices. Much faster than reading the whole window."""
+    h, L = lay['h'], []
+    for x in lay['cols']:
+        box = (max(0, x - 6), max(0, int(lay['top'] - up * h)), min(img.width, int(x + max(5.2 * h, lay['width'] + 0.6 * h))),
+               min(img.height, int(max(lay['bottom'] + down * h, lay['top'] + 6.1 * h))))   # the list always shows 6 rows
+        for l in read_box(img, box):
+            if not any(l['text'] == k['text'] and abs(l['y0'] - k['y0']) < 8 and abs(l['x0'] - k['x0']) < 30 for k in L):
+                L.append(l)
+    return L
+
+
+def read_box(img, box):
+    """Read the text in one area; a second red-channel pass only if there's an orange (selected) row."""
+    c = img.crop(box)
+    got = ocr_lines(c, ox=box[0], oy=box[1])
+    if _orange(c):
+        for l in ocr_lines(c, red=True, ox=box[0], oy=box[1]):
+            if not any(abs(l['y0'] - k['y0']) < 8 and abs(l['x0'] - k['x0']) < 25 for k in got):
+                got.append(l)
+    return got
+
+
+def fit_layout(L, cand):
+    """Layout from what was read: price lines give the columns, and every line containing "mesos"
+    (even a misread one like "1 mesos") marks a row, so the true first and last rows are known."""
+    pr = [l for l in L if PRICE.match(l['text'])]
+    xs = {l['x0'] for l in pr}
+    marks0 = [l for l in L if 'meso' in l['text'].lower() and any(abs(l['x0'] - x) < 40 for x in xs)]
+    lay = layout_from(pr, marks0, cand and cand.get('h'))
+    if not lay:
+        return None
+    # the gap from a name line down to its price line is ~0.42 of a row; if every visible row
+    # has a faded (sold) row between it, the smallest price-to-price gap is two rows, not one
+    dys = sorted(p['y0'] - n['y0'] for p in pr for n in L
+                 if n is not p and not PRICE.match(n['text']) and abs(n['x0'] - p['x0']) < 30 and 8 < p['y0'] - n['y0'] < 0.7 * lay['h'])
+    measured = any(sum(abs(p['x0'] - c) < 0.7 * lay['h'] for p in pr) >= 2 for c in lay['cols'])
+    if dys:
+        est = dys[len(dys) // 2] / 0.42
+        if not measured:
+            lay['h'] = int(round(est))               # one normal row only (the rest sold): use the name-to-price gap
+        else:
+            k = round(lay['h'] / est)
+            if k >= 2:
+                lay['h'] = int(round(lay['h'] / k))
+    marks = [l for l in L if 'meso' in l['text'].lower() and any(abs(l['x0'] - c) < 0.45 * lay['h'] for c in lay['cols'])]
+    lay['top'] = min(l['y0'] for l in marks)
+    lay['bottom'] = max(l['y1'] for l in marks)
+    return lay

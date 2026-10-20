@@ -1,0 +1,7 @@
+room: 1
+Mokbi Throwing Stars | 170000 | 711 | 1 | 0 | sold
+Cape LUK Scroll: Interme | 255555 | 711 | 1 | 0 | sold
+Wand Magic Attack Scroll | 99999 | 711 | 1 | 0 | sold
+Pet Equip Speed Scroll: G | 18888 | 711 | 1 | 0 | sold
+Processed Cloth | 299 | 711 | 1 | 0 | sold
+Adamantium Ore | 100 | 711 | 1 | 0

@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+echo "certbot $*" >> /tmp/fake-calls; exit ${FAKE_CERTBOT:-0}
