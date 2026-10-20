@@ -12,8 +12,10 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: checks-${{ github.ref }}
-  cancel-in-progress: true
+  # a newer push to a pull request replaces its older run; pushes each finish (a quick follow-up push must not
+  # throw away a Windows build that is half done)
+  group: checks-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'pr' || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   linux:
