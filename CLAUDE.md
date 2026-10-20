@@ -41,7 +41,7 @@ Group server (maple.vendormarket.app, its own droplet, behind nginx + certbot) -
 |---|---|
 | `config.py` | every tuning number; `APP_DIR` |
 | `engine.py` | Tesseract in-process via ctypes (`libtesseract-5.dll`), about 4× faster; self-tests in a throwaway process, falls back to tesseract.exe; `OMP_THREAD_LIMIT=1` |
-| `layout.py`, `rows.py`, `title.py`, `names.py`, `ocr.py` | finding the list, reading rows (normal and faded/sold), shop name, name fixes |
+| `layout.py`, `rows.py`, `title.py`, `names.py`, `ocr.py` | finding the list, reading rows (normal and faded/sold), shop name, name fixes. A list whose visible rows are **all** sold has no blue row to find it by: `list_boxes` then takes a tall faded block, the layout gets `faded: True`, text is read split black/white at (background grey − 20), and each row is confirmed with `read_row` (fixture `allsold.png`) |
 | `scroll.py` | scrollbar handle position, then slot numbers, so long lists of identical items count right (solves the row count N by consistency) |
 | `location.py` | room from the minimap; channel from the Change Channel window |
 | `scanner.py` | the watching loop (shared by app and CLI), `Saver` (10-minute de-dupe by item+price+room+ch+sold+copy) |
