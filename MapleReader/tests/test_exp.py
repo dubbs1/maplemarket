@@ -94,6 +94,12 @@ def tracker():
     t3.add(r(150000), now=3)
     check(t3.add({'exp': 140000, 'pct': round(140000 * 100 / need, 2), 'level': 38}, now=10) and
           t3.summary()['levels'] == 0 and t3.summary()['lost'] == 10000, 'a death with the level misread is not a level-up')
+    t4 = E.ExpTracker()                                     # just after a level-up the level's EXP is learnt again
+    t4.add(r(200000), now=0)
+    t4.add(r(200000), now=3)
+    t4.add({'exp': 50, 'pct': 0.05, 'level': 38}, now=10)          # levelled up (too small a % to know the new level)
+    t4.add({'exp': 3000, 'pct': 2.0, 'level': 38}, now=20)
+    check(not t4.add({'exp': 93000, 'pct': 2.1, 'level': 38}, now=30), 'a misread just after a level-up is dropped')
     t.reset()
     check(t.summary() is None, 'Reset clears it')
 

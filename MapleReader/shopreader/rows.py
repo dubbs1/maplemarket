@@ -65,7 +65,7 @@ def listing(name_text, price_text, items):
     nm = fix_name(name_text.strip(' |').rstrip('.… '), items)
     if not real_name(nm):                            # junk like "ere EE"; keeps short names like "Cat's Eye"
         return None
-    return nm, round(cost / n)
+    return nm, max(1, (cost + n // 2) // n)          # mesos each, rounded half up; never 0 (1000 for 500)
 
 
 def _listing_in(lines, items):

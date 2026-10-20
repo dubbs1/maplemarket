@@ -87,6 +87,11 @@ def run():
         _message('MapleReader could not start: the ports it uses (8765 to 8770) are all busy.\n'
                  'Close other copies of MapleReader, or restart the PC, and try again.')
         return
+    if srv.shared:                                   # a market window without the scanner (market.bat) holds the port
+        _message('MapleReader is already open as a market window (market.bat).\n'
+                 'Close that black window, then start MapleReader again.')
+        ctl.shutdown()
+        return
     ctl.autostart()
     proc, opened = open_window(url), time.time()
     try:

@@ -12,6 +12,7 @@ import ctypes
 import glob
 import os
 import re
+import shutil
 import sys
 import threading
 import pytesseract
@@ -43,6 +44,8 @@ def _candidates():
     folders = []
     if cmd and os.path.isfile(cmd):
         folders.append(os.path.dirname(os.path.abspath(cmd)))
+    elif cmd and shutil.which(cmd):                  # found on PATH (installed somewhere other than the usual places)
+        folders.append(os.path.dirname(os.path.abspath(shutil.which(cmd))))
     from .config import TESS_PATHS
     folders += [os.path.dirname(p) for p in TESS_PATHS]
     for d in dict.fromkeys(folders):

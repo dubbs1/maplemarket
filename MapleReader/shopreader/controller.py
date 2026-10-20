@@ -67,6 +67,7 @@ class Controller:
     def __init__(self):
         self.lock = threading.Lock()
         self._start_lock = threading.Lock()
+        self._settings_lock = threading.Lock()
         self.settings = self._load()
         self.tesseract = find_tesseract()
         self.engine = engine.mode() if self.tesseract else 'none'
@@ -107,8 +108,10 @@ class Controller:
 
     def _save(self):
         try:
-            with open(SETTINGS, 'w', encoding='utf-8') as f:
-                json.dump(self.settings, f, indent=1)
+            with self._settings_lock:                # two changes at once must not write over each other
+                with open(SETTINGS + '.tmp', 'w', encoding='utf-8') as f:
+                    json.dump(self.settings, f, indent=1)
+                os.replace(SETTINGS + '.tmp', SETTINGS)   # never half a file (the share key lives here)
         except OSError:
             pass
 
@@ -165,14 +168,15 @@ class Controller:
 
     def install_update(self):
         """Download the new version, check its fingerprint, and hand over to its setup (which restarts us)."""
-        info = self.update_info
-        if info.get('state') != 'available':
-            return {'ok': False, 'error': 'No update to install.'}
         if not self.frozen:
             return {'ok': False, 'error': 'This copy runs from the zip folder: download the new version from the release page.'}
+        with self.lock:                              # a double click must not start two downloads
+            info = self.update_info
+            if info.get('state') != 'available':
+                return {'ok': False, 'error': 'No update to install.'}
+            self.update_info = dict(info, state='downloading')
 
         def go():
-            self.update_info = dict(info, state='downloading')
             try:
                 path = updater.download(info, os.path.join(APP_DIR, 'updates'))
                 self.update_info = dict(info, state='installing')

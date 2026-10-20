@@ -20,7 +20,7 @@ def _room_in(img, box, thorough=True):
         if inv:
             g = ImageOps.invert(g)
         m = MARKET.search(engine.text(ImageOps.expand(g, border=10, fill=255 if inv else 0), config='--psm 6'))
-        if m and 1 <= int(m.group(1)) <= 30:
+        if m and 1 <= int(m.group(1)) <= 40:          # (the page and server take rooms up to 40)
             return int(m.group(1))
     return None
 

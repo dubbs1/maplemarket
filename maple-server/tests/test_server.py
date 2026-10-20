@@ -95,6 +95,26 @@ def main():
     ok(f'5,000 rows in one go ({r.get("added")})', code == 200 and r['added'] == 5000)
     code, f = call('/api/rows?from=0')
     ok('the feed comes in pieces', f['more'] and f['text'].count('\n') == 5000)
+    odd = ['Odd | 100 | Shop | ² | 4 | c1 | @2026-10-19T16:00:00', 'Odd | ١٢ | Shop | 3 | 4 | c1 | @2026-10-19T16:00:00',
+           'Fine | 100 | Shop | 3 | 4 | c1 | @2026-10-19T16:00:01']
+    code, r = up(k1, odd)
+    ok(f'odd digits ("²", Arabic-Indic) are bad lines, not a crash ({r})', code == 200 and r['added'] == 1 and r['bad'] == 2)
+    con = httpd.con
+    with S._db_lock:
+        con.execute('UPDATE rows SET at = ? WHERE id <= 3', (time.time() - 40 * 86400,))
+        con.commit()
+    code, f = call('/api/rows?from=0')
+    ok('a page starting from nothing skips rows older than 30 days', code == 200 and 'Bunny Ears | 62999' not in f['text'])
+    S._state['pruned'] = 0
+    S.store(con, [], 'Cass', time.time())
+    with S._db_lock:
+        left = con.execute('SELECT COUNT(*) FROM rows WHERE id <= 3').fetchone()[0]
+    ok(f'rows older than 35 days are deleted ({left} left)', left == 0)
+    old_max, S.MAX_ICONS = S.MAX_ICONS, 1
+    png = b'\x89PNG\r\n\x1a\n' + b'0' * 20
+    S.keep_icon('cap-test-a', 'normal', png)          # (may already be over the limit of 1)
+    ok('pictures stop at the limit', not S.keep_icon('cap-test-b', 'normal', png))
+    S.MAX_ICONS = old_max
     hits = [up(k1, [])[0] for _ in range(70)]
     ok('too many uploads in a minute are slowed down', 429 in hits)
     print('SERVER CHECK PASSED' if not fails else f'{len(fails)} SERVER CHECK(S) FAILED')

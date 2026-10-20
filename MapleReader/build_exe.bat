@@ -3,7 +3,7 @@ cd /d "%~dp0"
 echo Building MapleReader.exe. This takes 2 to 5 minutes. Keep this window open.
 echo.
 echo Step 1 of 2: tools
-py -3.13 -m pip install --upgrade pyinstaller mss pillow pytesseract
+py -3.13 -m pip install -r requirements-build.txt
 if errorlevel 1 goto failed
 echo.
 echo Step 2 of 2: building and putting MapleReader.exe in this folder
