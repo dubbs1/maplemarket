@@ -93,7 +93,7 @@ class _Handler(BaseHTTPRequestHandler):
             act = {'/api/start': lambda: c.start(d.get('channel', 0)), '/api/stop': c.stop,
                    '/api/set': lambda: c.update(d), '/api/open-scans': c.open_scans,
                    '/api/install-tesseract': c.install_tesseract, '/api/update': c.install_update,
-                   '/api/update-check': lambda: c.check_update(wait=True)}.get(path)
+                   '/api/update-check': lambda: c.check_update(wait=True), '/api/exp-reset': c.exp_reset}.get(path)
             if not act:
                 return self._send(404, 'Not found', 'text/plain')
             return self._json(act())

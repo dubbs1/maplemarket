@@ -1922,9 +1922,15 @@ function drawScan() {
     `<div class="tile"><div class="k">Saved</div><div class="v gold" id="vtot">0</div><div class="mu" id="vrun">this session</div></div>` +
     `<div class="tile"><div class="k">Shop open</div><p class="shopnow" id="vshop">—</p><div class="mu" id="vrows"></div></div>` +
     `</div></div>` +
+    // the EXP tracker: reads the EXP line at the bottom of the game window while watching
+    `<div class="card" id="expc"${se.exp === false ? " hidden" : ""}><div class="row"><p class="sec" style="margin:0">Your EXP</p>` +
+    `<button id="expreset" class="chg">Reset</button></div><div class="tiles" id="expt"></div><p class="mu" id="expn" style="margin:8px 0 0">` +
+    `</p></div>` +
     `<details class="card" id="sets"><summary>Settings</summary>` +
     `<div class="opt"><span>Start watching when MapleReader opens</span><label class="sw"><input type="checkbox" id="oa"` +
     `${se.auto_start === false ? "" : " checked"}><span></span></label></div>` +
+    `<div class="opt"><span>Track my EXP (from the EXP line at the bottom of the game)</span><label class="sw"><input type="checkbox" ` +
+    `id="ox"${se.exp === false ? "" : " checked"}><span></span></label></div>` +
     `<div class="opt"><span>Chime when saved</span><label class="sw"><input type="checkbox" id="oq"${se.quiet ? "" : " checked"}><span>` +
     `</span></label></div>` +
     `<div class="opt"><span>Volume</span><input type="range" id="ov" min="0.02" max="0.4" step="0.01" value="${se.volume || 0.08}" aria-label="Chime volume"></div>` +
@@ -1986,6 +1992,14 @@ function drawScan() {
   }));
   $("#oq").onchange = e => api("/api/set", { quiet: !e.target.checked });
   $("#oa").onchange = e => api("/api/set", { auto_start: e.target.checked });
+  $("#ox").onchange = e => {
+    $("#expc").hidden = !e.target.checked;
+    api("/api/set", { exp: e.target.checked });
+  };
+  $("#expreset").onclick = async () => {
+    await api("/api/exp-reset");
+    say("EXP tracking starts again from now");
+  };
   $("#ov").onchange = e => api("/api/set", { volume: +e.target.value });
   $("#om").onchange = e => api("/api/set", { monitor: +e.target.value });
   $("#oscans").onclick = () => api("/api/open-scans");
@@ -2049,6 +2063,25 @@ function drawFeed() {
         .join("")
     : `<div class="empty">Nothing saved yet. Press Start, then open shops in the Free Market. Each listing appears here with its picture.</div>`;
 }
+// The EXP card: level, EXP per hour, gained, time to the next level (numbers from ExpTracker.summary in exp.py)
+function drawExp(x, on) {
+  const t = $("#expt");
+  if (!t) return;
+  const tile = (k, v, sub, cls) => `<div class="tile"><div class="k">${k}</div><div class="v${cls ? " " + cls : ""}">${v}</div>` +
+    `<div class="mu">${sub}</div></div>`;
+  const html = !x ? "" :
+    tile("Level", x.level || "—", `${x.pct.toFixed(2)}% · ${fmt(x.exp)} EXP`) +
+    tile("EXP per hour", x.per_hour == null ? "…" : fmt(x.per_hour),
+      x.pct_per_hour == null ? "shown after a minute" : `${x.pct_per_hour}% of the level per hour`, "gold") +
+    tile("Gained", fmt(x.gained), `in ${x.minutes} min${x.levels ? ` · ${x.levels} level${x.levels === 1 ? "" : "s"} up` : ""}`) +
+    tile("Next level", x.eta_text || "—", x.left == null ? "" : `${fmt(x.left)} EXP to go`);
+  if (t.dataset.html !== html) t.innerHTML = t.dataset.html = html;
+  t.hidden = !x;
+  $("#expn").textContent = x
+    ? (x.lost ? `Lost ${fmt(x.lost)} EXP (from dying). ` : "") + "Reset starts counting again from now."
+    : on ? "Looking for the EXP line at the bottom of the game window. Keep it on screen (not covered)."
+      : "Starts when you press Start watching.";
+}
 // A newer MapleReader: a card at the top of Scan (only when there's something to do) and a line in Settings
 function drawUpdate(u, lost) {
   const card = $("#upd");
@@ -2104,6 +2137,7 @@ function updScan(feedChanged, lost) {
   $("#vtot").textContent = st.total || 0;
   $("#vrun").textContent = on && st.started ? `this session · ${Math.max(0, Math.floor(Date.now() / 6e4 - st.started / 60))} min` : "this session";
   $("#vshop").textContent = on && st.shop ? st.shop : "—";
+  drawExp(st.exp, on);
   $("#vrows").textContent = on && st.shop ? `${st.shop_rows} listing${st.shop_rows === 1 ? "" : "s"} read · scroll with the wheel for more` : "";
   const sh = st.share || {},
     shText = !sh.enabled

@@ -9,6 +9,7 @@ import time
 from datetime import datetime
 from PIL import Image, ImageOps, ImageChops
 from .config import CHANGED_LIST, CHANGED_SHOP, FORGET_AFTER, INTERVAL, PIXEL_CHANGE, THUMB, TITLE_TRIES, VOLUME
+from .exp import ExpWatcher
 from .layout import list_boxes
 from .location import RoomWatcher, channel_window, read_channel
 from .rows import fmt, parse_frame
@@ -36,6 +37,9 @@ class Events:
 
     def shop(self, name, rows_seen):
         """A shop is open: its name and how many of its rows have been seen so far."""
+
+    def exp(self, summary):
+        """The EXP tracker took a new reading (summary: see ExpTracker.summary)."""
 
     def saved(self, rows, room, ch, total):
         warn = '' if room else '  (room not read: is the minimap open? or type "room 9")'
@@ -96,8 +100,10 @@ class Saver:
 
 class Scanner:
     """Watches the screen until stop() is called. Safe to run in a background thread."""
-    def __init__(self, items=(), channel=0, interval=INTERVAL, monitor=1, volume=VOLUME, quiet=False, events=None):
+    def __init__(self, items=(), channel=0, interval=INTERVAL, monitor=1, volume=VOLUME, quiet=False, events=None,
+                 exp=None):
         self.items, self.interval, self.monitor = list(items), interval, monitor
+        self.exp = exp                               # an ExpTracker to feed status-bar readings to (None: don't read)
         self.events = events or Events()
         self.state = {'ch': channel if 1 <= channel <= 40 else 0, 'room': 0}
         os.makedirs('scans', exist_ok=True)
@@ -132,6 +138,7 @@ class Scanner:
         title_tries, last_room = 0, None
         watcher = RoomWatcher()
         tracker, shop_now = ScrollTracker(), None
+        expw = ExpWatcher()
 
         def set_status(s):
             nonlocal status
@@ -146,6 +153,13 @@ class Scanner:
                 time.sleep(self.interval)
                 shot = sct.grab(mon)
                 img = Image.frombytes('RGB', shot.size, shot.bgra, 'raw', 'BGRX')
+                if expw and self.exp is not None:    # the EXP line, every few seconds (its own pace)
+                    try:
+                        reading = expw.update(img)
+                        if reading and self.exp.add(reading):
+                            ev.exp(self.exp.summary())
+                    except Exception:
+                        expw = None                  # never let the EXP tracker stop the shop reading
                 boxes = list_boxes(img)              # is a shop list on screen? (colour check, instant)
                 if not boxes:
                     prev_t = done_t = None
