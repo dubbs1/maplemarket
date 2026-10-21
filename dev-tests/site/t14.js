@@ -12,4 +12,6 @@ ok('G3 a listing no longer in the shop is gone',st('Gone Test Ore',300)==='gone'
 ok('G4 a gone line never makes a listing of its own',mine().length===4);
 A.importScan(L('Gone Test Ore',300,1));
 ok('G5 seen for sale again: for sale again',st('Gone Test Ore',300)==='sale');
+A.importScan(L('Gone Test Lutia',200,6));   // a friend's older sighting arrives after this PC's gone line
+ok('G6 an older "for sale" row arriving later does not put a gone listing back on sale',st('Gone Test Lutia',200)==='gone');
 console.log(f?f+' FAILED':'ALL PASS');process.exitCode=f?1:0;

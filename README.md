@@ -1,37 +1,45 @@
 # Maple Classic Market
 
-Free Market prices for MapleStory Classic, collected from your own screen while you browse shops.
+Know what things cost in the Free Market, without walking every room.
 
-- **MapleReader** (`MapleReader/`): a Windows app that watches the shop windows you open, reads every listing (item, price, shop, sold or not, room, channel, item picture) and keeps them. It only takes screenshots and reads them. It never clicks, types, reads game memory or touches the network traffic.
-- **Market page**: the market view with Scan, Home, Prices, Listings, EXP and Options tabs, shown inside the app (and on the group market, phones included).
-- **Group market** (`maple-cloud/`): the shared website (`maple.vendormarket.app`) on Vercel + Supabase free plans. Friends' apps send their scans to it, and everyone sees everyone's listings, phones included. (`maple-server/` is the same thing for a droplet of its own.)
+**MapleReader** is a small Windows app. While you browse shops as usual, it reads each shop window on your screen and remembers every listing: the item, its price, the shop, the room and channel, and whether it sold. Then it shows you prices, what's trending, where to buy, and your EXP per hour.
 
-## Start here
+It only looks at your screen. It never clicks, types, or touches the game.
 
-| I want to… | Read |
+## Install
+
+1. Open **Releases** (on the right) and download `MapleReader-Setup-<version>.exe`.
+2. Double-click it. Click **Yes** if Windows asks.
+3. The first time, press the big button to install **Tesseract**, the free program that reads text. Click **Yes** if Windows asks, then wait for "Done".
+
+That's it. The app opens by itself and starts watching.
+
+## Use it
+
+- Open the **Change Channel** window once, so the app knows your channel.
+- Keep the **minimap** open, so it knows your room.
+- Open shops as you normally would. A soft chime means the listings were saved.
+
+| Tab | What it shows |
 |---|---|
-| Install and use MapleReader on Windows | the installer from **Releases**, or [`MapleReader/GUIDE.md`](MapleReader/GUIDE.md) |
-| Put the group market online (Vercel + Supabase, free) | [`maple-cloud/SETUP.md`](maple-cloud/SETUP.md) |
-| …or on a DigitalOcean droplet of its own | [`maple-server/SETUP.md`](maple-server/SETUP.md) |
-| Work on the code (or have Claude Code work on it) | [`CLAUDE.md`](CLAUDE.md) |
+| **Home** | Search any item, today's numbers, just listed, your price alerts |
+| **Prices** | Every item you've seen: cheapest now, usual price, price history |
+| **Listings** | Every listing, with the shop, room and channel to find it |
+| **EXP** | EXP per hour, time to level, mesos per hour, a log of your hunts |
+| **Options** | Sound, dark theme, sharing with friends |
 
-## Folders
+The step-by-step guide, with pictures of what you should see, is in [the Guide](MapleReader/GUIDE.md).
 
-```
-MapleReader/          the Windows app (Python 3.13)
-  app.py              starts the app window (MapleReader.exe after build_exe.bat)
-  maple_shop_reader.py  the black-window version (start.bat)
-  shopreader/         the parts: reading shops, scrolling, room/channel, pictures, app server, sharing
-  tests/              checks with real screenshots (run_tests.bat)
-maple-cloud/          the group market on Vercel + Supabase (schema.sql, api/market.py, SETUP.md)
-maple-server/         the group market for a droplet (plain Python + SQLite) and its setup scripts
-dev-tests/            extra checks for development (market page, browser end-to-end, install script)
-tools/                small helpers (keeping the two market.html copies the same)
-```
+## Share with friends
 
-## Checks
+Turn on **Options › Share with friends** and your scans go to a shared market page that everyone in your group can open, on a phone too. Each friend gets their own key. Setting up the shared page is free and takes about 20 minutes: [Setup](maple-cloud/SETUP.md).
 
-- **Windows:** double-click `MapleReader\run_tests.bat`.
-- **Market page:** `npm install`, then `npm test`.
-- **Group server:** `python3 maple-server/tests/test_server.py`.
-- **More (browser end-to-end, install script):** see the Checks table in [`CLAUDE.md`](CLAUDE.md).
+## Good to know
+
+- Everything stays on your PC unless you turn sharing on.
+- No game files are read or changed. Whether screen readers are allowed is for Nexon to say; use your own judgement.
+- Prices come only from what you and your friends have seen. Nothing is copied from other sites.
+
+---
+
+Developers: the app is in `MapleReader/`, the shared market in `maple-cloud/`, and the notes on how it all fits together in [CLAUDE.md](CLAUDE.md).

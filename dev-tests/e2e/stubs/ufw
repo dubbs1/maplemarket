@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-echo "ufw $*" >> /tmp/fake-calls
-[[ "$1" == status ]] && echo "Status: ${FAKE_UFW:-inactive}"
-exit 0

@@ -1,6 +1,6 @@
 """Maple Classic Market on Vercel + Supabase: the group's shared market (maple.vendormarket.app).
 
-The same addresses as maple-server/server.py, so MapleReader's uploader (share.py) and the market page work
+The addresses MapleReader's uploader (share.py) and the market page expect, so they work
 unchanged: GET /api/ping, /api/rows?from=N, /api/icons, /icons/<slug>.png; POST /api/upload, /api/icon (with
 a personal key). vercel.json sends /api/* and /icons/* here. Listings, keys and the picture index live in
 Supabase (schema.sql), reached through its maple_* functions with the secret key; the pictures are in Supabase
@@ -75,12 +75,12 @@ def who_is(auth_header):
     key = (auth_header or '').strip()
     if key.startswith('Bearer '):
         key = key[7:].strip()
-    if not key or len(key) > 200:
+    if not re.fullmatch(r'mm-[0-9a-f]{32}', key):   # (every key is shaped like this: anything else is refused for free)
         return None
     return rpc('maple_who', p_hash=hash_key(key))
 
 
-# ---------- checking what friends send (the same rules as maple-server/server.py) ----------
+# ---------- checking what friends send ----------
 # re.ASCII: digits are 0-9 only ("²" or Arabic-Indic digits are not numbers here)
 _ISO = re.compile(r'^@\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d)?(Z|[+-]\d\d:\d\d)?$', re.ASCII)   # offset: newer readers
 _EXTRA = re.compile(r'^(sold|gone|c\d{1,4}|x?\d{1,4}|#\d{1,4})$', re.I | re.ASCII)
@@ -88,7 +88,8 @@ _NUM = re.compile(r'[0-9]{1,10}')
 
 
 def _seen_ok(stamp, now):
-    """A row's '@time' is real and not in the future. Rows from older readers have no time zone; their
+    """A row's '@time' is real, not in the future and not older than the 35 days kept (a friend's first share
+    sends their whole history: nobody needs the old part). Rows from older readers have no time zone; their
     local time is at most 14 hours off UTC, so a day of leeway covers every zone."""
     s = stamp[1:].replace('Z', '+00:00')
     try:
@@ -97,7 +98,7 @@ def _seen_ok(stamp, now):
         return False
     if t.tzinfo is None:
         t = t.replace(tzinfo=timezone.utc)
-    return t.timestamp() <= now + 86400
+    return now - 35 * 86400 <= t.timestamp() <= now + 86400
 
 
 def clean_line(line, now=None):
@@ -178,10 +179,12 @@ class handler(BaseHTTPRequestHandler):               # (Vercel looks for a class
                 return self._send(200, {'app': 'MapleMarket'})
             if r == 'rows':
                 try:
-                    start = max(0, int(q.get('from', ['0'])[0]))
+                    start = min(max(0, int(q.get('from', ['0'])[0])), 2 ** 62)   # (a bigint, so Postgres never says no)
                 except ValueError:
                     start = 0
-                return self._send(200, rpc('maple_feed', p_start=start, p_now=time.time(), p_lim=FEED_CHUNK))
+                # pages ask every 20 s; a few seconds at Vercel's edge lets friends looking at once share one answer
+                return self._send(200, rpc('maple_feed', p_start=start, p_now=time.time(), p_lim=FEED_CHUNK),
+                                  cache='public, s-maxage=5, stale-while-revalidate=30')
             if r == 'icons':
                 return self._send(200, rpc('maple_icon_list') or [], cache='public, max-age=60')
             if r == 'iconfile':

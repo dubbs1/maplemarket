@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-# Every check in one go (Linux/macOS). Usage:  bash dev-tests/run_all.sh [--quick] [--install]
+# Every check in one go (Linux/macOS). Usage:  bash dev-tests/run_all.sh [--quick]
 #   --quick    skip the slow picture checks and the browser tests
-#   --install  also run the install-script checks (ONLY in a throwaway container, as root)
 # Needs: python3 with pillow, pytesseract, mss; tesseract; node + npm install; playwright for the browser tests.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT" || exit 1
 export MAPLEREADER_UPDATE_API="${MAPLEREADER_UPDATE_API:-off}"   # checks never ask the real GitHub for updates
-QUICK=0; INSTALL=0
-for a in "$@"; do case "$a" in --quick) QUICK=1;; --install) INSTALL=1;; *) echo "unknown option $a"; exit 2;; esac; done
+QUICK=0
+for a in "$@"; do case "$a" in --quick) QUICK=1;; *) echo "unknown option $a"; exit 2;; esac; done
 results=(); bad=0
 run() {   # run <name> <command...>: one line per check, the output only when it fails
   local name="$1"; shift
@@ -15,7 +14,6 @@ run() {   # run <name> <command...>: one line per check, the output only when it
 }
 run "page copies match"  python3 tools/sync_market.py --check
 run "market page"        npm test --silent
-run "group server"       python3 maple-server/tests/test_server.py
 run "group server (cloud)" python3 maple-cloud/tests/test_cloud.py
 run "reader: session"    bash -c 'cd MapleReader && python3 tests/test_session.py'
 run "reader: scrolling"  bash -c 'cd MapleReader && python3 tests/test_scroll.py'
@@ -33,7 +31,6 @@ if [[ $QUICK == 0 ]]; then
     results+=("SKIP  browser tests (pip install playwright)")
   fi
 fi
-[[ $INSTALL == 1 ]] && run "install script" bash -c 'bash dev-tests/e2e/test_install.sh | tee /dev/stderr | grep -q "ALL INSTALL CHECKS PASSED"'
 printf '\n'; printf '%s\n' "${results[@]}"
 [[ $bad == 0 ]] && echo "EVERYTHING PASSED" || echo "SOMETHING FAILED (details above)"
 exit $bad

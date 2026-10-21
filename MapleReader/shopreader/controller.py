@@ -14,7 +14,7 @@ import time
 from collections import deque
 
 from . import __version__, engine
-from .config import APP_DIR, UPDATE_EVERY, VOLUME
+from .config import APP_DIR, PLACE_KEEP, UPDATE_EVERY, VOLUME
 from .exp import ExpDays, ExpLog, ExpTracker
 from .icons import slug
 from .location import RoomWatcher, read_channel
@@ -41,11 +41,14 @@ class _Feed(Events):
 
     def channel(self, ch, auto):
         self.c.set(channel=ch)
+        self.c.remember_place()
         self.c.note(f'Channel {ch}, read from the Change Channel window.')
 
     def room(self, room):
         self.c.set(room=room)
-        if not room:
+        if room:
+            self.c.remember_place()
+        else:
             self.c.note('Room not read. Is the minimap open? You can type the room instead.', 'warn')
 
     def shop(self, name, rows_seen):
@@ -81,6 +84,9 @@ class Controller:
         self.events = deque(maxlen=400)              # saved rows and notes, newest last
         self.state = dict(watching=False, status='stopped', channel=0, room=0, shop=None, shop_rows=0,
                           total=0, started=None)
+        place = self.settings.get('last_place') or {}   # closed and reopened a little later: still the same place
+        if time.time() - place.get('t', 0) < PLACE_KEEP:
+            self.state.update(channel=place.get('channel', 0), room=place.get('room', 0))
         self.last_seen = time.time()                 # when the window last asked for news
         self.sharer = None
         self._share_restart()
@@ -118,6 +124,14 @@ class Controller:
                 os.replace(SETTINGS + '.tmp', SETTINGS)   # never half a file (the share key lives here)
         except OSError:
             pass
+
+    def remember_place(self):
+        """The channel and room, typed or read, for the next time the app opens (within PLACE_KEEP)."""
+        with self.lock:
+            ch, rm = self.state['channel'], self.state['room']
+        if 1 <= ch <= 40 or 1 <= rm <= 40:
+            self.settings['last_place'] = dict(channel=ch if 1 <= ch <= 40 else 0, room=rm if 1 <= rm <= 40 else 0, t=time.time())
+            self._save()
 
     # --- sharing with friends ---
     def _share_restart(self):
@@ -217,9 +231,8 @@ class Controller:
                 return {'ok': True}
             items = load_items(os.path.join(APP_DIR, 'items.txt'))
             sc = Scanner(items, int(channel or self.state['channel'] or 0), monitor=int(self.settings['monitor']),
-                         volume=float(self.settings['volume']), quiet=bool(self.settings['quiet']), events=_Feed(self))
-            if self.state['room']:
-                sc.set_room(self.state['room'])          # (a room typed or read before is kept: rooms change through portals)
+                         volume=float(self.settings['volume']), quiet=bool(self.settings['quiet']), events=_Feed(self),
+                         room=int(self.state['room'] or 0))   # (typed or read before: kept, the scanner says so if it has to use it)
             self.scanner = sc
         self.set(watching=True, status='looking', channel=sc.state['ch'], room=sc.state['room'], shop=None, shop_rows=0, total=0,
                  started=time.time())
@@ -229,7 +242,7 @@ class Controller:
             try:
                 sc.run()
             except Exception as e:                   # never stop silently
-                self.note(f'Scanning stopped: {type(e).__name__}: {e}. Send this line to Claude.', 'error')
+                self.note(f'Scanning stopped: {type(e).__name__}: {e}. Please report this line.', 'error')
             finally:
                 if self.scanner is sc:
                     self.scanner = None
@@ -249,7 +262,7 @@ class Controller:
             try:
                 r.run()
             except Exception as e:
-                self.note(f'EXP recording stopped: {type(e).__name__}: {e}. Send this line to Claude.', 'error')
+                self.note(f'EXP recording stopped: {type(e).__name__}: {e}. Please report this line.', 'error')
             finally:
                 if self.exp_runner is r:
                     self.exp_runner = None
@@ -312,6 +325,8 @@ class Controller:
             if self.scanner:
                 self.scanner.set_room(rm)
             self.note(f'Room set to {rm}.')
+        if 'channel' in d or 'room' in d:
+            self.remember_place()
         for k, conv in (('volume', float), ('quiet', bool), ('monitor', int), ('auto_start', bool), ('exp', bool), ('exp_log', bool)):
             if k in d:
                 self.settings[k] = conv(d[k])
@@ -394,4 +409,5 @@ class Controller:
             self.sharer.stop()
         if self.scanner:
             self.scanner.stop()
+        self.remember_place()
         self._save()

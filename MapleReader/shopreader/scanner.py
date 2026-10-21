@@ -33,7 +33,7 @@ class Events:
         print(text)
 
     def status(self, what):
-        """'looking' (no shop on screen), 'reading', 'waiting' (shop seen, channel unknown)."""
+        """'looking' (no shop on screen), 'reading', 'waiting' (shop seen, channel or room unknown)."""
 
     def channel(self, ch, auto):
         if auto:
@@ -183,8 +183,13 @@ class Saver:
             if not self.quiet:
                 beep(self.volume)
 
+    def hold(self, rows, rm, whole):
+        """Keep a shop seen before the channel or the room was known (see Scanner.release)."""
+        with self.lock:                               # (flush swaps the list: never append to one it just dropped)
+            self.pending.append((rows, rm, whole))
+
     def flush(self, room=0):
-        """Save shops seen before the channel (or the room) was known; `room` for those seen without a room."""
+        """Save the shops held; `room` for those seen without a room."""
         with self.lock:
             pending, self.pending = self.pending, []
             for r_, rm_, whole in pending:
@@ -272,10 +277,11 @@ class ExpRunner:
 
 class Scanner:
     """Watches the screen until stop() is called. Safe to run in a background thread."""
-    def __init__(self, items=(), channel=0, interval=INTERVAL, monitor=1, volume=VOLUME, quiet=False, events=None):
+    def __init__(self, items=(), channel=0, interval=INTERVAL, monitor=1, volume=VOLUME, quiet=False, events=None, room=0):
         self.items, self.interval, self.monitor = list(items), interval, monitor
         self.events = events or Events()
-        self.state = {'ch': channel if 1 <= channel <= 40 else 0, 'room': 0}
+        self.state = {'ch': channel if 1 <= channel <= 40 else 0, 'room': room if 1 <= room <= 40 else 0}
+        self.room_wait, self.gave_up = 0, False       # shops waiting for the room: since when; and whether a wait ran out
         os.makedirs('scans', exist_ok=True)
         self.out = os.path.join('scans', datetime.now().strftime('scan_%Y-%m-%d_%H%M.txt'))
         self.saver = Saver(self.out, self.state, self.events, volume, quiet)
@@ -288,12 +294,31 @@ class Scanner:
     def set_channel(self, ch):
         if 1 <= ch <= 40:
             self.state['ch'] = ch
-            self.saver.flush(self.state['room'])
+            self.release()
 
     def set_room(self, room):
-        self.state['room'] = room
-        if room and self.state['ch']:
-            self.saver.flush(room)                     # shops that waited for the room get it
+        with self.saver.lock:
+            self.state['room'] = room
+            if room:
+                self.gave_up = False
+        self.release()                                 # shops that waited for the room get it
+
+    def release(self, final=False):
+        """Save the shops held for the channel or the room: once both are known, or once the room's wait (ROOM_WAIT
+        from when the channel became known) has run out (then shops save as room "?" without waiting, until a room
+        is known again), or at Stop (final). Shops with no channel can't be saved at all: a line needs one."""
+        saver, state = self.saver, self.state
+        with saver.lock:
+            if not saver.pending or not state['ch']:
+                return
+            if not state['room'] and not self.gave_up and not final:
+                if not self.room_wait:
+                    self.room_wait = time.time()
+                if time.time() - self.room_wait < ROOM_WAIT:
+                    return
+                self.gave_up = True
+            self.room_wait = 0
+            saver.flush(state['room'])
 
     def set_sound(self, volume=None, quiet=None):
         if volume is not None:
@@ -305,7 +330,7 @@ class Scanner:
     def run(self):
         import mss
         ev, state, saver = self.events, self.state, self.saver
-        nagged, region, status, room_wait, gave_up = 0, None, None, 0, False
+        nagged, region, status = 0, None, None
         prev_t = done_t = done_ch = None
         title_tries, last_room = 0, None
         watcher = RoomWatcher()
@@ -322,9 +347,7 @@ class Scanner:
         try:
             while not self._stop.is_set():
                 time.sleep(self.interval)
-                if saver.pending and state['ch'] and not gave_up and time.time() - room_wait >= ROOM_WAIT:
-                    gave_up = True                       # the shop was closed while it waited for the room: save it now
-                    saver.flush(state['room'])
+                self.release()                       # (a shop closed while it waited for the room is saved once the wait is up)
                 try:
                     if sct is None:
                         sct = (getattr(mss, 'MSS', None) or mss.mss)()
@@ -359,7 +382,7 @@ class Scanner:
                                 if ch != state['ch']:
                                     state['ch'] = ch
                                     ev.channel(ch, True)
-                                saver.flush()
+                                self.release()
                     continue
                 b = boxes[0]
                 edges = (b[0], b[2])                 # the list's left and right edges, as found by colour
@@ -400,37 +423,38 @@ class Scanner:
                 ev.shop(shop_now, len(rows))
                 # rooms change only through portals: look hard on the first shop, then at the watcher's own pace
                 # (forcing it on every read cost ~0.35 s per shop and per scroll whenever the minimap was closed)
-                room = watcher.update(img, [], force=last_room is None) or state['room'] or 0
+                room = watcher.update(img, [], force=last_room is None)
+                if room:
+                    with saver.lock:
+                        state['room'], self.gave_up = room, False
+                elif last_room is None and state['room']:   # the first shop, and the minimap gave nothing
+                    ev.message(f'Room not read from the minimap: using room {state["room"]}, typed or read before. '
+                               'If you have moved, open the minimap or type the room on the Scan tab.')
+                room = room or state['room'] or 0
                 if room != last_room:
                     last_room = room
                     ev.room(room)
-                if not state['ch']:
-                    set_status('waiting')
-                    saver.pending.append((rows, room, tracker.whole))
-                    if time.time() - nagged > 10:
-                        ev.message('Shop seen, but no channel yet. Open the Change Channel window, or type the number.')
-                        nagged = time.time()
-                    continue
-                if room:
-                    gave_up = False
-                elif not gave_up:                    # the room unknown: wait a little for it (read or typed)
-                    if not saver.pending:
-                        room_wait = time.time()
-                    gave_up = time.time() - room_wait >= ROOM_WAIT   # (then shops save as room "?" without waiting)
-                    if not gave_up:
-                        saver.pending.append((rows, room, tracker.whole))
-                        if time.time() - nagged > 10:
-                            ev.message('Shop seen, but no room yet. Open the minimap, or type the room on the Scan tab.')
-                            nagged = time.time()
-                        continue
                 if rows[0]['shop'] == 'Shop' and title_tries < TITLE_TRIES:
                     title_tries += 1
-                    done_t = None                    # name not read: look once more before saving
+                    done_t = None                    # name not read: look once more before saving (or holding) it
+                    continue
+                if not state['ch'] or (not room and not self.gave_up):
+                    set_status('waiting')            # the channel or the room unknown: hold the shop for it (see release)
+                    saver.hold(rows, room, tracker.whole)
+                    if time.time() - nagged > 10:
+                        ev.message('Shop seen, but no channel yet. Open the Change Channel window, or type the number.'
+                                   if not state['ch'] else
+                                   'Shop seen, but no room yet. Open the minimap, or type the room on the Scan tab.')
+                        nagged = time.time()
+                    self.release()
                     continue
                 saver.save(rows, room, tracker.whole)
-                saver.flush(room)
         finally:
-            if state['ch']:
-                saver.flush(state['room'])           # shops still waiting for the room are saved, not lost
+            self.release(final=True)                 # shops still waiting for the room are saved, not lost
+            with saver.lock:
+                unsaved = {r[0][0]['shop'] for r in saver.pending}   # (those with no channel: nothing can save them)
+            if unsaved:
+                ev.message(f'{len(unsaved)} shop{"s" if len(unsaved) > 1 else ""} seen without a channel '
+                           f'{"were" if len(unsaved) > 1 else "was"} not saved. Open the Change Channel window once, or type the channel.')
             if sct is not None:
                 getattr(sct, 'close', lambda: None)()

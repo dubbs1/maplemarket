@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-echo "caddy $*" >> /tmp/fake-calls; exit ${FAKE_CADDY_OK:-0}

@@ -10,6 +10,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime
 
 from . import __version__
 from .icons import ICON_DIR
@@ -17,14 +18,32 @@ from .icons import ICON_DIR
 STATE = os.path.join('scans', 'share_state.json')
 ALL = os.path.join('scans', 'all_scans.txt')
 BATCH = 2000
+KEEP_DAYS = 30                 # lines older than this aren't sent (the servers keep 35 days, pages 30)
+MAX_ICON = 100_000             # the servers' cap on a picture (bytes)
 DEFAULT_SERVER = 'https://maple.vendormarket.app'
+PNG = b'\x89PNG\r\n\x1a\n'
 
 
 def _clean_server(url):
+    """A typed address, made safe: https (the key travels in every upload), except on this PC (the checks)."""
     url = (url or '').strip().rstrip('/')
     if url and not url.startswith(('http://', 'https://')):
         url = 'https://' + url
+    if url.startswith('http://') and not url.startswith(('http://127.0.0.1', 'http://localhost')):
+        url = 'https://' + url[len('http://'):]
     return url
+
+
+def _too_old(line, cutoff):
+    """Is this scan line's @time before `cutoff`? (No readable time: let the server decide.)"""
+    stamp = next((x.strip() for x in line.split('|')[5:] if x.strip().startswith('@')), None)
+    if not stamp:
+        return False
+    try:
+        t = datetime.fromisoformat(stamp[1:].replace('Z', '+00:00'))
+    except ValueError:
+        return False
+    return (t.timestamp() if t.tzinfo else time.mktime(t.timetuple())) < cutoff
 
 
 class Sharer:
@@ -78,7 +97,9 @@ class Sharer:
             return json.loads(r.read().decode('utf-8'))
 
     def _send_lines(self):
-        """Send what's new in all_scans.txt. Returns True if there may be more right away."""
+        """Send what's new in all_scans.txt, a batch at a time: the place in the file moves on after each batch, so
+        a batch the server refuses (too many at once, down for a moment) never has the earlier ones sent again.
+        Lines older than KEEP_DAYS are skipped (a first share of a long history). Returns True if there may be more."""
         try:
             size = os.path.getsize(ALL)
         except OSError:
@@ -91,14 +112,25 @@ class Sharer:
         cut = data.rfind(b'\n')
         if cut < 0:
             return False
-        chunk = data[:cut + 1]
-        lines = [ln for ln in chunk.decode('utf-8', 'replace').splitlines() if ln.strip()]
-        for i in range(0, len(lines), BATCH):
-            r = self._post('/api/upload', json.dumps({'lines': lines[i:i + BATCH]}).encode('utf-8'), 'application/json')
-            self.state['sent'] += r.get('added', 0)
-            self.status['who'] = r.get('who')
-        self.state['offset'] += len(chunk)
-        self._save()
+        cutoff, batch, nbytes = time.time() - KEEP_DAYS * 86400, [], 0
+
+        def send():
+            nonlocal batch, nbytes
+            if batch:
+                r = self._post('/api/upload', json.dumps({'lines': batch}).encode('utf-8'), 'application/json')
+                self.state['sent'] += r.get('added', 0)
+                self.status['who'] = r.get('who')
+            self.state['offset'] += nbytes
+            batch, nbytes = [], 0
+            self._save()
+        for raw in data[:cut + 1].split(b'\n')[:-1]:
+            nbytes += len(raw) + 1
+            ln = raw.decode('utf-8', 'replace').strip()
+            if ln and not _too_old(ln, cutoff):
+                batch.append(ln)
+            if len(batch) >= BATCH:
+                send()
+        send()
         return self.state['offset'] < size
 
     def _send_icons(self):
@@ -159,7 +191,12 @@ def fetch_rows(server, start):
 
 
 def fetch_icon(server, name):
+    """A friend's item picture from the group's market. Only a real PNG of a sensible size is handed back
+    (the address is typed by hand: a wrong one must not fill the disk)."""
     req = urllib.request.Request(_clean_server(server) + f'/icons/{name}.png',
                                  headers={'User-Agent': f'MapleReader/{__version__}'})
     with urllib.request.urlopen(req, timeout=10) as r:
-        return r.read()
+        data = r.read(MAX_ICON + 1)
+    if len(data) > MAX_ICON or not data.startswith(PNG):
+        raise ValueError('not a picture')
+    return data

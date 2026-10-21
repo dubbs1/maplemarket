@@ -11,6 +11,7 @@ import re
 import subprocess
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 
 from . import __version__
@@ -57,6 +58,12 @@ def check(api=None, current=__version__):
     if not version_key(version) or not setup or (setup + '.sha256') not in files:
         return {'state': 'none', 'version': current}       # nothing usable in the release: stay as we are
     if not newer(version, current):
+        return {'state': 'none', 'version': current}
+    # the files must come from the release page itself (or the tests' pretend GitHub): the fingerprint file only
+    # proves the download arrived whole, so nothing else may say where to download from
+    u = urllib.parse.urlparse(url)
+    allowed = (f'https://github.com/{UPDATE_REPO}/releases/download/',) + ((f'{u.scheme}://{u.netloc}/',) if url != API.format(UPDATE_REPO) else ())
+    if not all(str(files[n]).startswith(allowed) for n in (setup, setup + '.sha256')):
         return {'state': 'none', 'version': current}
     return {'state': 'available', 'version': version, 'setup_url': files[setup], 'sha_url': files[setup + '.sha256'],
             'name': setup, 'page': rel.get('html_url', ''), 'notes': str(rel.get('body') or '')[:2000]}

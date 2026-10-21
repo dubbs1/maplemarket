@@ -54,6 +54,8 @@ You need about 30 minutes. Do the parts in order. Keep a Notepad window open to 
    - You should see the market page, empty for now ("Nothing yet. Listings appear here as friends scan.").
 7. Check the connection: add `/api/rows?from=0` to the end of that address and press Enter.
    - You should see a short line of text starting with `{"text": ""`.
+8. Check that the address carries its question: change the end to `/api/rows?from=99999` and press Enter.
+   - You should see `"reset": true` somewhere in the line. (If it says `"reset": false`, keep the exact line for a bug report: the `from=` part didn't arrive, and the market would re-read everything on every look.)
    - If it says **not set up yet**: a setting from step 4 is missing. In Vercel, open the project, **Settings** › **Environment Variables**, fix it, then **Deployments**, the **⋯** next to the newest one, **Redeploy**.
    - If it says **said no**: schema.sql didn't run. Do Part 1 step 4 again.
 
@@ -61,7 +63,7 @@ You need about 30 minutes. Do the parts in order. Keep a Notepad window open to 
 
 1. In Vercel, open the project, then **Settings** › **Domains**. Type `maple.vendormarket.app` and click **Add**.
    - You should see it marked **Invalid Configuration**, with a **CNAME** record to add: name `maple`, and a value like `cname.vercel-dns.com` (copy exactly what it shows).
-2. Go to where vendormarket.app's DNS is managed. If that's DigitalOcean: **Networking** › **Domains** › **vendormarket.app**. (DNS keeps working while the droplets are off.)
+2. Go to where vendormarket.app's DNS records are managed (your domain's registrar or DNS provider) and open **vendormarket.app**.
 3. Add the record: type **CNAME**, hostname `maple`, "is an alias of" the value from Vercel. Leave the rest as it is, and click **Create Record**.
    - **Don't change or delete any other record.** Rev Market uses them.
 4. Back in Vercel's **Domains** page, wait until `maple.vendormarket.app` says **Valid Configuration** (from a few minutes up to an hour). The secure certificate (https) is made for you.

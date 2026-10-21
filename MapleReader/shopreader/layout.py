@@ -22,16 +22,17 @@ def layout_from(pr, marks=None, old_h=None):
                 width=max(l['x1'] - l['x0'] for l in pr))
 
 
-_SMALL = {'img': None, 'sm': None}
+_SMALL = [None]                                    # (image, its small copy): one pair, swapped whole, since the shop
+                                                   # thread, the EXP thread and "test a screenshot" all come here
 
 
 def _small(img, step):
     """The screenshot shrunk by `step`, made once per screenshot (several colour checks look at it)."""
-    c = _SMALL                                      # (read once: "test a screenshot" may use this from another thread)
-    if c['img'] is img:
-        return c['sm']
+    pair = _SMALL[0]
+    if pair and pair[0] is img:
+        return pair[1]
     sm = img.resize((max(1, img.width // step), max(1, img.height // step)), Image.NEAREST)
-    _SMALL.update(img=img, sm=sm)
+    _SMALL[0] = (img, sm)
     return sm
 
 

@@ -1,6 +1,7 @@
 """Reading the listings: normal rows, faded (sold) rows, the quick re-read after scrolling, and the saved line format."""
 import hashlib
 import os
+import re
 from PIL import Image, ImageOps
 from .config import CFG, FADED_ROWS_WIDE, LIST_ROWS_WIDE, PRICE, REF_ROW, ROW_FADED, ROW_OK
 from .layout import blue_lists, find_layout, fit_layout, list_boxes, read_list
@@ -59,6 +60,8 @@ def _row_text(crop, lo, hi, faded):
 def listing(name_text, price_text, items):
     """Turn a name line and a "N for X mesos" line into (item, price each), or None if it's junk."""
     n, cost = PRICE.match(price_text).groups()
+    if any(',' in x and not re.fullmatch(r'\d{1,3}(,\d{3})+', x) for x in (n, cost)):
+        return None                                  # "12,99": a digit was lost; better no price than 1,299
     n, cost = max(1, to_number(n)), to_number(cost)
     if cost <= 0:
         return None
