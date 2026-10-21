@@ -177,7 +177,7 @@ def self_check(result_path):
         from .exp_font import GLYPHS
         lines += [f"version {state['version']}", f"text reader: {state['engine']}", f'page: {len(page)} characters',
                   f"EXP digit shapes: {''.join(sorted(GLYPHS.get('small', {})))}"]
-        good = (bool(state['version']) and 'Maple Classic Market' in page and state['tesseract'] and
+        good = (bool(state['version']) and WINDOW_TITLE in page and state['tesseract'] and
                 state['engine'] in ('fast', 'slow') and 'exp' in state and len(GLYPHS.get('small', {})) >= 10)
         srv.stop()
         ctl.shutdown()
