@@ -243,6 +243,8 @@ def map_and_party():
     from shopreader import location as L
     hunt = load('hunt_party.png')                            # your screenshot: a party of 4 in a party quest
     check(L.read_map(hunt) == '1st Accompaniment <1st Stage>', f'hunt_party.png: the map is {L.read_map(hunt)!r}')
+    check(L.read_map(load('kerning_inv.png')) == 'Kerning City', f"kerning_inv.png: {L.read_map(load('kerning_inv.png'))!r} (once read 'Kerming')")
+    check(L.read_map(load('live_ch.png')) is None, 'live_ch.png (a window over the minimap): no name rather than a wrong one')
     check(L.party_size(hunt) == 4, f'hunt_party.png: a party of {L.party_size(hunt)} (MYK3, RuneKnight, Natsumi, Cashern)')
     for name in ('live_shop.png', 'desk_live.png', 's711.png', 'ch2.png', 'shopS.png'):
         img = load(name)
@@ -261,6 +263,34 @@ def map_and_party():
     t.set_map('Free Market <1>', now=400)
     check(len(runs) == 1 and runs[0]['map'] == '1st Accompaniment <1st Stage>' and runs[0]['party'] == 4,
           f'the EXP log line keeps the map and the party ({runs and runs[0]})')
+
+
+def mesos():
+    print('Mesos (the Item window\'s meso box):')
+    from shopreader import mesos as M
+    inv = load('kerning_inv.png')                            # your screenshot: 1,421,566 mesos, level 39
+    got = [M.read_mesos(inv.resize((round(inv.width * f), round(inv.height * f)), flt))
+           for f in (0.8, 1.0, 1.3, 1.6) for flt in (Image.BILINEAR, Image.LANCZOS)]
+    check(got == [1421566] * 8, f'kerning_inv.png at 0.8x to 1.6x: {set(got)}')
+    check(read(inv) == (16709, 6.27, 39), f'and its EXP line, with the level tiles\' 9: {read(inv)}')
+    others = [n for n in ('live_shop.png', 'desk_live.png', 'ch2.png', 'shopS.png', 'hunt_party.png', 'live_ch.png') if M.find_box(load(n))]
+    check(not others, f'no meso box where the Item window isn\'t open (a shop sign\'s gold frame is not a coin) {others}')
+    t = E.ExpTracker(on_run=lambda e: runs.append(e))
+    runs = []
+    need = 240500
+    r = lambda x: {'exp': x, 'pct': round(x * 100 / need, 2), 'level': 39}
+    t.set_mesos(1_000_000, now=0)
+    t.add(r(50000), now=0)
+    t.add(r(50000), now=3)
+    for i in range(1, 11):                                  # 10 minutes: 600 mesos a minute, one shop visit (-5,000)
+        t.add(r(50000 + i * 500), now=3 + i * 60)
+        t.set_mesos(1_000_000 + i * 600 - (5000 if i >= 6 else 0), now=3 + i * 60)
+    t.set_mesos(99_000_000, now=3 + 630)                    # a misread
+    s = t.summary(now=3 + 630)
+    check(s['mesos'] == 1_001_000 and s['mesos_gained'] == 5400 and s['mesos_per_hour'] == 36000,      # (the minute of the
+          f'gained {s["mesos_gained"]} (spending not taken off, a misread jump ignored), {s["mesos_per_hour"]}/h')   # spend shows -4,400)
+    t.end_run(now=3 + 630)
+    check(runs and runs[0]['mesos'] == 5400 and runs[0]['mesos_per_hour'] == 36000, f'the EXP log line has mesos/h: {runs and runs[0]}')
 
 
 def loop():
@@ -318,6 +348,7 @@ if __name__ == '__main__':
     hours_and_days()
     breaks_and_log()
     map_and_party()
+    mesos()
     loop()
     print()
     print('EXP tracker: all checks passed.' if not fails else f'EXP tracker: {len(fails)} FAILED')
