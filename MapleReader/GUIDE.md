@@ -76,6 +76,7 @@ The installer needs nothing else first (no Python, no `setup.bat`, no `build_exe
    - While it's stopped, the numbers stay as they were. When you start again, the stopped time isn't counted.
    - With no EXP for a minute (in town, selling, a break), the clock pauses by itself, so EXP per hour stays honest. It carries on at your next EXP gain.
    - If the card keeps saying "Looking for the EXP line", send Claude a screenshot of the whole game window.
+7. **Room:** MapleReader reads the room from the minimap (keep it open and not covered). If the Room tile on the Scan tab shows "—", click **Change** next to Room, type the number and press **Save**. A shop seen while the room is unknown waits up to 20 seconds for it, so it's saved in the right room. The room you typed is kept when you press Stop and Start, or reopen MapleReader, until the minimap shows a different one.
 
 The rest of this guide is the manual way (the zip folder), which still works.
 

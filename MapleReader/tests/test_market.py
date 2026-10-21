@@ -80,6 +80,11 @@ def main():
     ok('a button press from the app window works and is remembered', code == 200 and r['ok'] and saved['monitor'] == 2)
     ok('a wrong channel is refused', press('api/set', {'channel': 99}, {'X-MapleReader': '1'})[1]['ok'] is False)
     ok('starting by itself is on unless switched off', ctl.settings['auto_start'] is True)
+    press('api/set', {'channel': 5, 'room': 2}, {'X-MapleReader': '1'})
+    ctl.start()
+    kept = (ctl.scanner.state['ch'], ctl.scanner.state['room'], ctl.state['room']) if ctl.scanner else None
+    ctl.stop()
+    ok(f'a typed channel and room are kept when watching starts (Stop/Start, reopening): {kept}', kept == (5, 2, 2))
     press('api/set', {'auto_start': False}, {'X-MapleReader': '1'})
     ok('...and switching it off is remembered', json.load(open(CT.SETTINGS))['auto_start'] is False)
     app.stop()

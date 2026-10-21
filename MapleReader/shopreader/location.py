@@ -173,7 +173,7 @@ class RoomWatcher:
     """Remembers where the minimap is and re-reads that small spot every few seconds."""
     def __init__(self, keep_picture=True):
         self.room, self.box, self.last_read, self.last_search = None, None, 0, 0
-        self.misses, self.last_slow = 0, 0
+        self.misses, self.last_slow, self.last_title = 0, 0, 0
         self.saved = not keep_picture              # True = don't write scans/room_check.png
 
     def update(self, img, lines=None, force=False):
@@ -203,6 +203,12 @@ class RoomWatcher:
                 if r:
                     self.room, self.box, self.last_read = r, box, now
                     break
+            else:
+                if force or now - self.last_title > ROOM_SEARCH * 2:   # the other way: the minimap's whole title,
+                    self.last_title = now                              # read like the EXP log's map name
+                    m = re.search(r'Free Market <(\d{1,2})>', read_map(img) or '')
+                    if m and 1 <= int(m.group(1)) <= 40:
+                        self.room = int(m.group(1))
         if not self.box and not self.saved and os.path.isdir('scans'):
             self.saved = True                          # keep one picture of the top-left corner, for fixing
             img.crop((0, 0, img.width // 3, img.height // 4)).save(os.path.join('scans', 'room_check.png'))

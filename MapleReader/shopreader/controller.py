@@ -216,10 +216,12 @@ class Controller:
             if self.scanner:
                 return {'ok': True}
             items = load_items(os.path.join(APP_DIR, 'items.txt'))
-            sc = Scanner(items, int(channel or 0), monitor=int(self.settings['monitor']),
+            sc = Scanner(items, int(channel or self.state['channel'] or 0), monitor=int(self.settings['monitor']),
                          volume=float(self.settings['volume']), quiet=bool(self.settings['quiet']), events=_Feed(self))
+            if self.state['room']:
+                sc.set_room(self.state['room'])          # (a room typed or read before is kept: rooms change through portals)
             self.scanner = sc
-        self.set(watching=True, status='looking', channel=sc.state['ch'], room=0, shop=None, shop_rows=0, total=0,
+        self.set(watching=True, status='looking', channel=sc.state['ch'], room=sc.state['room'], shop=None, shop_rows=0, total=0,
                  started=time.time())
         self.note('Watching your screen.' + ('' if sc.state['ch'] else ' Open the Change Channel window once so I can read your channel.'))
 
