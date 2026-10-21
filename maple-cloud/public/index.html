@@ -1940,7 +1940,9 @@ function drawExpPage(force) {
     html = `<section class="card xband" aria-label="Your EXP trend"><div><div class="k mu">Your trend</div>` +
       `<div class="big">${x && x.per_hour != null ? fmt(x.per_hour) : "…"}<small> EXP/h</small></div>${vs}` +
       (x ? `<div class="mu">Last 5 min ${x.last5 != null ? fmt(x.last5) + "/h" : "…"} · ${x.pct_per_hour != null ? x.pct_per_hour + "%" : "…"} per hour` +
-        `${x.idle ? ' · <span class="xidle">paused (no EXP)</span>' : ""}</div>` : "") + `</div>` +
+        `${x.idle ? ' · <span class="xidle">paused (no EXP)</span>' : ""}</div>` +
+        (x.run && (x.run.map || x.run.party > 1) ? `<div class="mu">${esc(x.run.map || "")}${x.run.map && x.run.party > 1 ? " · " : ""}` +
+          `${x.run.party > 1 ? "party of " + x.run.party : ""}</div>` : "") : "") + `</div>` +
       (sl.length > 1 ? `<div class="xspark" aria-hidden="true">${sl.map(n => `<i style="height:${Math.max(4, (n / Math.max(1, ...sl)) * 100).toFixed(0)}%"></i>`)
         .join("")}</div>` : "") +
       `<div class="tiles t3">${fig("Today", fmt(today), "EXP gained")}` +
@@ -1973,15 +1975,15 @@ function expLogHtml(st, x) {
     dt = t => new Date(t * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
     hm = m => (m < 60 ? m + " min" : `${Math.floor(m / 60)} h ${m % 60} min`),
     row = (e, now) => `<tr${now ? ' class="now"' : ""}><td>${now ? "Now" : dt(e.date)}</td><td>${esc(e.name || e.map || "—")}</td>` +
-      `<td class="num">${e.level || "—"}</td><td class="num">${hm(e.minutes)}</td>` +
+      `<td class="num">${e.level || "—"}</td><td>${e.party > 1 ? e.party + " in party" : "—"}</td><td class="num">${hm(e.minutes)}</td>` +
       `<td class="num">${e.per_hour == null ? "…" : fmt(e.per_hour)}</td><td class="num">${e.mesos_per_hour == null ? "—" : fmt(e.mesos_per_hour)}</td><td>` +
       (now ? "" : xren === e.id
         ? `<input id="xrn" maxlength="40" value="${esc(e.name || e.map || "")}" aria-label="A name for this line"><button data-xl="save" data-id="${e.id}">Save</button>`
         : `<button data-xl="rename" data-id="${e.id}">Rename</button><button data-xl="delete" data-id="${e.id}">Delete</button>`) + `</td></tr>`;
   return `<section class="card xlog" aria-label="EXP log"><div class="row"><b>EXP log</b><label class="xlon"><input type="checkbox" data-xl="on"` +
     `${logOn ? " checked" : ""}> Log my runs</label></div><p class="mu">A new line starts at each level-up, on a new map, or after 30 minutes ` +
-    `without EXP. Mesos and the map's name come once MapleReader can read them.</p>` +
-    (r || L.length ? `<div class="tw"><table><thead><tr><th>Date</th><th>Map</th><th>Lv</th><th>Time</th><th>EXP/h</th><th>Mesos/h</th><th></th></tr></thead>` +
+    `without EXP. The map and party are read from the minimap and the party window; mesos come later.</p>` +
+    (r || L.length ? `<div class="tw"><table><thead><tr><th>Date</th><th>Map</th><th>Lv</th><th>Party</th><th>Time</th><th>EXP/h</th><th>Mesos/h</th><th></th></tr></thead>` +
       `<tbody>${r ? row(r, true) : ""}${L.map(e => row(e)).join("")}</tbody></table></div>` : '<p class="mu">Nothing logged yet.</p>') + `</section>`;
 }
 // The new buttons (Home, trends, Listings' filters, the history's 7/30 days, the EXP tab): true when handled

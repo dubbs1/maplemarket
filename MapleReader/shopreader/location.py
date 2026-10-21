@@ -2,7 +2,7 @@
 import os
 import re
 import time
-from PIL import Image, ImageOps
+from PIL import Image, ImageChops, ImageOps
 from .config import BUTTON_GREY, ROOM_MISSES, ROOM_REREAD, ROOM_SEARCH, ROOM_SLOW_SEARCH
 from .layout import color_boxes
 from .ocr import ocr_lines
@@ -26,8 +26,17 @@ def _room_in(img, box, thorough=True):
 
 
 def world_button_boxes(img):
+    """Boxes where "Free Market <N>" sits below the minimap's WORLD button (a few framings: the reading is picky)."""
+    out = []
+    for bx0, by0, bx1, hb in world_buttons(img):
+        for l, t, r, b in ((8.5, 2.5, 1, 5.6), (7, 3.2, 0.6, 5.0), (7.5, 3.0, 0.5, 5.4), (9, 2.2, 1, 5.8)):
+            out.append((max(0, int(bx0 - l * hb)), by0 + int(t * hb), min(img.width, int(bx1 + r * hb)), by0 + int(b * hb)))
+    return out
+
+
+def world_buttons(img):
     """Find the minimap's orange WORLD button (it has a blue button just left of it) in the top half
-    of the screen, and return the box where "Free Market <N>" sits below it. Colour only, fast."""
+    of the screen: (x0, y0, x1, height) in screen pixels. Colour only, fast."""
     step = 2
     W, H = img.width // step, img.height // 2 // step
     sm = img.crop((0, 0, img.width, img.height // 2)).resize((W, H), Image.NEAREST)
@@ -61,12 +70,80 @@ def world_button_boxes(img):
             continue                                 # not shaped like the WORLD button
         if not any(blue(px[x, yy]) for yy in range(y0, y1 + 1) for x in range(max(0, x0 - 4 * hb), x0)):
             continue                                 # the blue -/+ buttons sit just left of WORLD
-        bx0, by0, bx1 = x0 * step, y0 * step, x1 * step
-        hb *= step
-        for l, t, r, b in ((8.5, 2.5, 1, 5.6), (7, 3.2, 0.6, 5.0), (7.5, 3.0, 0.5, 5.4), (9, 2.2, 1, 5.8)):
-            out.append((max(0, int(bx0 - l * hb)), by0 + int(t * hb), min(img.width, int(bx1 + r * hb)), by0 + int(b * hb)))
-            # the reading is picky about framing, so offer a few frames around the "Free Market <N>" line
+        out.append((x0 * step, y0 * step, x1 * step, hb * step))
     return out
+
+
+# ---------- the map's name (the minimap's title) and the party (its window's HP bars), for the EXP log ----------
+def _map_fix(line):
+    words = re.sub(r'(^|[\s<(])[iIl|]st\b', r'\g<1>1st', line).split()
+    while words and not re.match(r'([A-Z0-9][A-Za-z0-9\'-]+|<\d)', words[0]):   # bits of the map's picture read as text
+        words.pop(0)
+    line = ' '.join(words)
+    line = re.sub(r'(^|[\s<(])[iIl|]st\b', r'\g<1>1st', line.strip(' .,:;|!_-'))   # "ist Stage" -> "1st Stage"
+    line = re.sub(r'\s+', ' ', line).replace('“', '<').replace('”', '>')
+    fm = re.search(r'Free Market <\d{1,2}>', line)
+    if fm:
+        return fm.group(0)                           # (the market's own name, without stray bits in front)
+    return line if len(re.findall(r'[A-Za-z]', line)) >= 4 else None
+
+
+def read_map(img):
+    """The map's name from the minimap's title ("Hidden Street" / "1st Accompaniment <1st Stage>": the second line
+    is the map), or None. White letters on light blue: only the near-white ones are kept, read a few ways, and the
+    reading most of them agree on wins."""
+    for bx0, by0, bx1, hb in world_buttons(img):
+        box = (max(0, int(bx0 - 18 * hb)), by0 + int(2 * hb), min(img.width, int(bx1 + 0.8 * hb)), by0 + int(5.9 * hb))
+        red = img.crop(box).split()[0]
+        votes = {}
+        for th, sc in ((200, 4), (200, 3), (208, 4), (195, 3)):
+            g = red.point(lambda v, th=th: 0 if v > th else 255).resize((red.width * sc, red.height * sc), Image.LANCZOS)
+            lines = [_map_fix(x) for x in engine.text(ImageOps.expand(g, border=12, fill=255), config='--psm 6').splitlines()]
+            lines = [x for x in lines if x]
+            if lines:
+                votes[lines[-1]] = votes.get(lines[-1], 0) + 1
+        if votes:
+            return max(votes, key=lambda k: (votes[k], len(k)))
+    return None
+
+
+def party_size(img):
+    """How many are in your party: the party window's HP bars (bottom right), stacked one under the other,
+    starting at the same left edge. None when there's no party window (solo, or it's closed). Colour only."""
+    W, H = img.width, img.height
+    x0, y0 = int(W * 0.55), int(H * 0.55)
+    reg = img.crop((x0, y0, W, H))
+    r, g, b = reg.split()[:3]
+    mask = ImageChops.multiply(ImageChops.multiply(r.point(lambda v: 255 if v > 170 else 0), g.point(lambda v: 255 if v < 60 else 0)),
+                               b.point(lambda v: 255 if v < 60 else 0))
+    bands, live = [], []                             # stretches of red, joined row to row: one per bar
+    for y in range(mask.height):
+        row = mask.crop((0, y, mask.width, y + 1)).tobytes()
+        nxt = []
+        for m in re.finditer(rb'\xff{8,}', row):
+            for band in live:
+                if abs(band[2] - m.start()) <= 6:
+                    band[1], band[3] = y, max(band[3], m.end() - m.start())
+                    nxt.append(band)
+                    break
+            else:
+                band = [y, y, m.start(), m.end() - m.start()]
+                bands.append(band)
+                nxt.append(band)
+        live = nxt
+    bars = [(a, x, z - a, w) for a, z, x, w in bands if 3 <= z - a + 1 <= 16]
+    best = None
+    for _, x, h, _ in bars:                          # bars sharing a left edge and height, evenly spaced: the party window
+        same = [(a, w) for a, xx, hh, w in bars if abs(xx - x) <= 6 and abs(hh - h) <= 4]
+        col = sorted({a for a, _ in same})
+        gaps = [q - p for p, q in zip(col, col[1:])]
+        if max(w for _, w in same) < W * 0.026:     # (red skill icons stack up too, but none is a long bar)
+            continue
+        if len(col) >= 2 and 14 <= min(gaps) <= 60 and all(abs(gp / min(gaps) - round(gp / min(gaps))) < 0.15 for gp in gaps):
+            n = round((col[-1] - col[0]) / min(gaps)) + 1   # (a member at 0 HP has no red: still counted)
+            best = max(best or 0, n)
+    return best if best and best <= 6 else None
+
 
 
 def minimap_boxes(img, lines=None):
