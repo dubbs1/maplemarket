@@ -39,6 +39,8 @@ async def main():
         add([f'Mithril Maul | 9000 | White Crusader Chainmail | 1 | 10 | {stamp()}'])
         await pg.wait_for_timeout(3000)
         ok('L4 a new row appears within 3 s, no importing', await listings() == 4)
+        ok('L5a Home shows it as just listed', 'Mithril Maul' in await pg.inner_text('#home'))
+        await pg.click('[data-nav=browse]'); await pg.wait_for_timeout(500)
         ok('L5 the Prices list shows it', 'Mithril Maul' in await pg.inner_text('#list'))
         await pg.click('[data-nav=market]'); await pg.wait_for_timeout(500)
         ok('L5b and the Listings list', 'Mithril Maul' in await pg.inner_text('#mb'))

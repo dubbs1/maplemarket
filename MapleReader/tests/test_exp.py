@@ -147,6 +147,39 @@ def tracker():
     check(t.summary() is None, 'Reset clears it')
 
 
+def hours_and_days():
+    print('The EXP page: 10-minute slots, the last hour against the one before, the best hour, each day\'s total:')
+    import tempfile
+    gains = []
+    t = E.ExpTracker(on_gain=lambda n, at: gains.append(n))
+    need = 240500
+    r = lambda x: {'exp': x, 'pct': round(x * 100 / need, 2), 'level': 38}
+    t.add(r(50000), now=0)
+    t.add(r(50000), now=3)
+    s = t.summary(now=30)
+    check(s['slots'] == [0] and s['hour'] is None and s['best_hour'] is None, f'just started: {s["slots"]}, no hours yet')
+    x = 50000
+    for i in range(1, 151):                                 # 2.5 hours: 200 EXP a minute, then 300
+        x += 200 if i <= 60 else 300
+        t.add(r(x), now=3 + i * 60)
+    s = t.summary(now=3 + 150 * 60)
+    check(s['slots'] == [2000] * 3 + [3000] * 9, f'the last 2 hours in 10-minute slots: {s["slots"]}')
+    check((s['hour'], s['prev_hour'], s['best_hour']) == (18000, 15000, 18000),
+          f'last hour {s["hour"]}, the hour before {s["prev_hour"]}, best hour {s["best_hour"]}')
+    check(sum(gains) == s['gained'] == 39000, f'every gain goes to the day\'s total: {sum(gains)}')
+    path = os.path.join(tempfile.mkdtemp(prefix='maplereader_expdays_'), 'scans', 'exp_days.json')
+    d = E.ExpDays(path)
+    day = 86400
+    noon = day // 2                                         # (midday, so any time zone keeps the same dates)
+    d.add(1000, now=10 * day + noon)
+    d.add(500, now=12 * day + noon)
+    d.add(-5, now=12 * day + noon + 10)
+    d.flush()
+    last = E.ExpDays(path).last(3, now=12 * day + noon + 50)
+    check([x['gained'] for x in last] == [1000, 0, 500], f'the last 3 days, kept in scans/exp_days.json: {last}')
+    check(E.ExpDays(path).days and sum(E.ExpDays(path).days.values()) == 1500, 'the totals survive a restart (losses never count)')
+
+
 def loop():
     print('EXP is recorded on its own (no shop watching needed):')
     pics = [load('live_shop.png')] * 4
@@ -199,6 +232,7 @@ if __name__ == '__main__':
     sizes()
     low_bars()
     tracker()
+    hours_and_days()
     loop()
     print()
     print('EXP tracker: all checks passed.' if not fails else f'EXP tracker: {len(fails)} FAILED')
