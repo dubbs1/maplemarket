@@ -173,14 +173,20 @@ Do the steps in order. Do one thing at a time and check that you see what is des
 
 **Part G2: The MapleReader app (scanner and market in one window)**
 
-The app is one window with four tabs:
+The app is one window with these tabs (on a phone they sit along the bottom):
 
 | Tab | What it's for |
 |---|---|
 | **Scan** | The **Start watching** button, your channel and room, and every listing as it's saved, with its picture |
-| **Prices** | One row per item you've scanned: the cheapest price on sale now, how many are for sale, and when it was last seen. Click an item to see **where to buy it**, cheapest first |
-| **Listings** | Every shop listing, newest or cheapest first. Two identical copies in one shop show once, as "×2" |
-| **More** | Alerts and deals, your own shop's listings, where prices come from, and importing older scan files |
+| **Home** | A big search, today's numbers, what was just listed, and your price alerts ("Price hit" when one is for sale at your price) |
+| **Prices** | One card per item you've scanned: the cheapest price on sale now. Click one to see its details beside the cards |
+| **Listings** | Every shop listing. Pick a kind of item on the left (guessed from the name: Scrolls, Stars and arrows, Potions and food, Ores and crystals, Other), **For sale**, **Sold** or **All**, and **Newest**, **Best deal** (furthest under its usual price) or **Cheapest**. Click a listing to see its item beside the list. Two identical copies in one shop show once, as "×2" |
+| **EXP** | Your EXP on its own page (drawn dark): EXP per hour against the hour before, today, your best hour, time to the next level, and charts of this session (every 10 minutes) and the last 7 days. Start, Stop and Reset are here too |
+| **Options** | Settings, the dark theme, alerts and deals, your own shop's listings, where prices come from, and importing older scan files |
+
+**Trending today** sits on top of Home, Prices and Listings: the items whose cheapest price now is furthest from their usual price (▼ green = cheaper than usual), and whether prices are lower or higher than usual overall. Click one to see its prices.
+
+An item's details show: **Cheapest now** (and in which shop), the **7-day median**, how many **Sold** this week, a price alert, a **Price history** chart (the line is the median price, the bars how many listings were seen; 7 or 30 days), and **Where to buy**: every shop it was seen in this week, for sale ones first.
 
 Listings you scan show up in Prices and Listings by themselves, with no importing.
 

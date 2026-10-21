@@ -8,6 +8,9 @@ by tools/make_exp_font.py from test pictures): Tesseract slips on this small pix
 ExpTracker turns readings into totals, and drops readings that don't fit (a misread digit): within a level,
 EXP / percentage is the EXP the level needs, which stays the same.
 """
+import bisect
+import json
+import os
 import re
 import threading
 import time
@@ -354,9 +357,11 @@ class ExpTracker:
     """EXP gained this session, per hour, and time to the next level, from readings that fit together.
     Safe to use from two threads (the scanner adds, the window asks for the summary)."""
     RECENT = 10 * 60                                     # "per hour" from the last 10 minutes
+    SLOT, SLOTS = 10 * 60, 12                            # the EXP page's chart: 10-minute slots, the last 2 hours
 
-    def __init__(self):
+    def __init__(self, on_gain=None):
         self.lock = threading.Lock()
+        self.on_gain = on_gain                           # called with each gain (n, time): the daily totals
         self.reset()
 
     def reset(self):
@@ -366,6 +371,7 @@ class ExpTracker:
             self.gained = self.lost = self.levels = 0
             self.need = None                            # EXP the current level needs (exp / pct)
             self.history = []                           # (t, total gained) for the per-hour rate
+            self.trail = []                             # (t, total gained) about once a minute, the whole session
 
     @staticmethod
     def _need_of(exp, pct):
@@ -387,7 +393,7 @@ class ExpTracker:
             if f and f[2] <= exp and self._fits(need, self._need_of(f[2], f[3])):
                 self.start = self.last = f
                 self.need = self._need_of(f[2], f[3]) or need
-                self.history = [(f[0], 0)]
+                self.history, self.trail = [(f[0], 0)], [(f[0], 0)]
                 self.first = None
                 if (exp, pct) == (f[2], f[3]):
                     return True
@@ -395,6 +401,7 @@ class ExpTracker:
                 self.first = (now, level, exp, pct)
                 return False
         _, lv0, exp0, pct0 = self.last
+        g0 = self.gained
         if exp == exp0 and pct == pct0:
             if level and not lv0:
                 self.last = (now, level, exp, pct)       # the level, read for the first time
@@ -424,7 +431,33 @@ class ExpTracker:
         self.last = (now, lv0 or level, exp, pct)       # once known, the level changes only by levelling up
         self.history.append((now, self.gained))
         self.history = [h for h in self.history if now - h[0] <= self.RECENT] or [(now, self.gained)]
+        if len(self.trail) >= 2 and now - self.trail[-2][0] < 60:
+            self.trail[-1] = (now, self.gained)          # (one point a minute is plenty for the charts)
+        else:
+            self.trail.append((now, self.gained))
+        if self.on_gain and self.gained > g0:
+            self.on_gain(self.gained - g0, now)
         return True
+
+    def _at(self, t):
+        """Total gained at time t (from the trail)."""
+        i = bisect.bisect_right([p[0] for p in self.trail], t)
+        return self.trail[i - 1][1] if i else 0
+
+    def _hours(self, now):
+        """The last 2 hours in 10-minute slots (oldest first), the last hour, the hour before, the best hour."""
+        t0 = self.start[0]
+        n = min(self.SLOTS, max(1, -int(-(now - t0) // self.SLOT)))
+        edges = [max(t0, now - (n - k) * self.SLOT) for k in range(n)] + [now]
+        slots = [self._at(b) - self._at(a) for a, b in zip(edges, edges[1:])]
+        whole = now - t0
+        hour = self.gained - self._at(now - 3600) if whole >= 3600 else None
+        prev = self._at(now - 3600) - self._at(now - 7200) if whole >= 7200 else None
+        best = None
+        if whole >= 3600:
+            ends = [p[0] for p in self.trail if p[0] >= t0 + 3600] + [now]
+            best = max(self._at(t) - self._at(t - 3600) for t in ends)
+        return slots, hour, prev, best
 
     def summary(self, now=None):
         """What the window shows, or None before the first readings."""
@@ -441,9 +474,60 @@ class ExpTracker:
             need = round(self.need) if self.need else None
             left = need - exp if need else None
             eta = left / per_hour * 3600 if left and per_hour and per_hour > 0 else None
-            return {'level': level, 'exp': exp, 'pct': pct, 'need': need, 'left': left,
+            slots, hour, prev, best = self._hours(now)
+            return {'slots': slots, 'hour': hour, 'prev_hour': prev, 'best_hour': best,'level': level, 'exp': exp, 'pct': pct, 'need': need, 'left': left,
                     'gained': self.gained, 'lost': self.lost, 'levels': self.levels,
                     'per_hour': round(per_hour) if per_hour is not None else None,
                     'pct_per_hour': round(per_hour / self.need * 100, 2) if per_hour is not None and self.need else None,
                     'eta': round(eta) if eta is not None else None, 'eta_text': _fmt_eta(eta),
                     'minutes': round(whole / 60), 'seen': self.last[0]}
+
+
+class ExpDays:
+    """EXP gained each day, kept for 30 days in scans/exp_days.json (the EXP page's "Last 7 days" and "Today")."""
+    KEEP = 30
+
+    def __init__(self, path):
+        self.path, self.lock, self.saved = path, threading.Lock(), 0
+        try:
+            with open(path, encoding='utf-8') as f:
+                d = json.load(f)
+            self.days = {k: int(v) for k, v in d.items() if re.fullmatch(r'\d{4}-\d\d-\d\d', k)}
+        except Exception:
+            self.days = {}
+
+    def add(self, n, now=None):
+        now = time.time() if now is None else now
+        if n <= 0:
+            return
+        day = time.strftime('%Y-%m-%d', time.localtime(now))
+        with self.lock:
+            self.days[day] = self.days.get(day, 0) + int(n)
+            if now - self.saved >= 60:                # written at most once a minute (and when the app closes)
+                self._save(now)
+
+    def last(self, n=7, now=None):
+        """The last n days, oldest first, today last: [{'day': '2026-10-21', 'gained': 1234}, ...]."""
+        now = time.time() if now is None else now
+        with self.lock:
+            out = []
+            for k in range(n - 1, -1, -1):
+                day = time.strftime('%Y-%m-%d', time.localtime(now - k * 86400))
+                out.append({'day': day, 'gained': self.days.get(day, 0)})
+            return out
+
+    def flush(self):
+        with self.lock:
+            self._save(time.time())
+
+    def _save(self, now):
+        self.saved = now
+        self.days = dict(sorted(self.days.items())[-self.KEEP:])
+        try:
+            os.makedirs(os.path.dirname(self.path) or '.', exist_ok=True)
+            tmp = self.path + '.tmp'
+            with open(tmp, 'w', encoding='utf-8') as f:
+                json.dump(self.days, f)
+            os.replace(tmp, self.path)
+        except OSError:
+            pass                                      # (a full or read-only disk: the totals stay in memory)
