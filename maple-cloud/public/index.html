@@ -232,16 +232,11 @@ button.fr:last-child{border-bottom:0}
 .pc .k,.oc .k{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mu);font-weight:600}
 .pc .num{font-size:22px}
 #ipanel{flex:1 1 300px;min-width:0;margin:0}
-@media(max-width:560px){.cards,#mb.lcards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.pc,#mb.lcards>.card{padding:10px}.pc .num{font-size:18px}
+@media(max-width:560px){.cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.pc{padding:10px}.pc .num{font-size:18px}
   .bigl{font-size:20px}.bigq input{font-size:16px;min-height:50px}}
 #ipanel .ins-h{margin-top:14px}
 #ipanel .feed .fr{padding:8px 12px}
 /* Listings as cards (Compact is the ruled list above) */
-#mb.lcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;background:none;border:0;overflow:visible}
-#mb.lcards>.card{border:1px solid var(--bd);border-radius:12px;margin:0;display:flex;flex-direction:column;gap:6px;padding:14px}
-#mb.lcards>.card:last-child{border-bottom:1px solid var(--bd)}
-#mb.lcards .nm{justify-content:space-between}#mb.lcards .num{font-size:20px!important}
-#mb.lcards .more-old{grid-column:1/-1;border:1px solid var(--bd);border-radius:10px}
 /* Options: every setting is a card with its switch */
 .oh2{margin:4px 0 10px}
 .ocards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin-bottom:20px}
@@ -306,6 +301,10 @@ html.app main{max-width:1320px}
 .hist svg{display:block;width:100%;height:auto;overflow:visible}
 .hist .hb{fill:color-mix(in srgb,var(--sky) 22%,transparent)}
 .hist .hl{fill:none;stroke:var(--sky);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}.hist .hd{fill:var(--sky)}
+.hist .hx{fill:none;stroke:var(--mu);stroke-width:1.5;stroke-dasharray:4 3;stroke-linejoin:round}.legend i.x{height:0;border-top:2px dashed var(--mu);background:none}
+.hist .row{flex-wrap:wrap;gap:6px}.hist .seg{margin-left:auto}.hist .seg+.seg{margin-left:0}
+.xline{display:block;width:100%;height:150px;margin:10px 0 6px;overflow:visible}.xline polyline{fill:none;stroke:var(--ac);stroke-width:2.5;stroke-linejoin:round}
+.xline .xa{fill:color-mix(in srgb,var(--ac) 18%,transparent)}.xline circle{fill:var(--ac)}.xopts{display:flex;gap:8px;flex-wrap:wrap}
 .ax{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--mu)}
 .wr{display:grid;grid-template-columns:64px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--bd)}
 .wr:last-child{border-bottom:0}.wr .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1598,7 +1597,10 @@ const SEE_DEALS = SIMPLE ? "See Options › Alerts and deals." : "See Deals.";
 const MORE = ["mine", "deals", "sources"]; // reached from the Options tab
 let psort = "new",
   lsort = "new",
-  lview = "compact", // Listings: "compact" rows or "cards"
+  hkind = "bars", // the item's price history: "bars" (median + listings seen) or "line" (cheapest, median, dearest)
+  hlog = false, // ...on a log scale (big jumps and small ones both readable)
+  xkind = "bars", // the EXP tab's chart: bars or a line
+  xlog = false, // ...on a log scale
   pick = null, // Prices: the item whose details show beside the cards
   lold = false, // Listings: also show listings nobody has seen for 3 days
   lst = "sale", // Listings: "sale" (for sale), "sold" or "all"
@@ -1720,12 +1722,6 @@ function listingRow(l) {
     tag = l.sold ? '<span class="tag sold">Sold</span>' : l.type === "buy" ? '<span class="tag buy">Buying</span>' :
       '<span class="tag sale">For sale</span>',
     when = l.sold ? "sold " + ago(age) : fresh ? '<span class="fresh">just listed</span>' : "seen " + ago(age);
-  if (lview === "cards")
-    return `<div class="card${fresh ? " new" : ""}${l.sold ? " sold" : ""}"><div class="nm">${pic(it.name)}<span class="mu">${when}</span></div>` +
-      `<div class="tl"><button class="t lk" data-open="${l.item}">${esc(it.name)}</button>${tag}</div>` +
-      `<div class="num">${fmt(l.price)}${l.n > 1 ? ` <span class="cnt">×${l.n}</span>` : ""}</div>` +
-      `<div class="mu">${esc(l.store)}<br>FM ${l.room || "?"}${l.ch ? " · CH " + l.ch : ""}${l.type === "buy" ? " · buying" : ""}${l.mine ? " · yours" : ""}` +
-      `${age > 2 * DAY && !l.sold ? ' · <span class="dn">may be gone</span>' : ""}</div></div>`;
   return `<div class="card fr${fresh ? " new" : ""}${l.sold ? " sold" : ""}">${pic(it.name)}<div style="min-width:0">` +
     `<div class="tl"><button class="t lk" data-open="${l.item}">${esc(it.name)}</button>${tag}</div>` +
     `<div class="s">${esc(l.store)} · FM ${l.room || "?"}${l.ch ? " · CH " + l.ch : ""}${l.type === "buy" ? " · buying" : ""}${l.mine ? " · yours" : ""}</div></div>` +
@@ -1746,7 +1742,7 @@ function drawListings() {
     `${segBtns("lst", lst, [["sale", "For sale"], ["sold", "Sold"], ["all", "All"]])}</div>` +
     `<div class="bar"><span class="mu" id="lcount"></span><span class="hr">` +
     `${segBtns("ls", lsort, [["new", "Newest"], ["deal", "Best deal"], ["low", "Cheapest"]])}` +
-    `${segBtns("lv", lview, [["compact", "Compact"], ["cards", "Cards"]])}</span></div><div id="mb"${lview === "cards" ? ' class="lcards"' : ""}></div></div>` +
+    `</span></div><div id="mb"></div></div>` +
     `<section class="card" id="lpanel" aria-label="Item details"></section></div>`;
   $("#ms").value = mt.q;
   $("#ms").oninput = e => {
@@ -1833,28 +1829,39 @@ function histHtml(id) {
     pts = analyze(id).rows.map(o => ({ p: o.price, t: o.first }))
       .concat((S.sg[id] || []).map(x => ({ p: x.p, t: x.t })))
       .filter(x => x.t >= t0 && x.t < t1),
-    seg = segBtns("hd", String(hdays), [["7", "7 days"], ["30", "30 days"]]);
+    seg = segBtns("hd", String(hdays), [["7", "7 days"], ["30", "30 days"]]) + segBtns("hk", hkind, [["bars", "Bars"], ["line", "Lines"]]) +
+      segBtns("hs", hlog ? "log" : "lin", [["lin", "Normal"], ["log", "Log scale"]]);
   if (pts.length < 2)
     return `<div class="card hist"><div class="row"><b>Price history</b>${seg}</div><p class="mu">Not enough scans yet. It fills in as you scan.</p></div>`;
   const B = Array.from({ length: nb }, () => []);
   pts.forEach(x => B[Math.min(nb - 1, Math.floor((x.t - t0) / (step * DAY)))].push(x.p));
-  const M = B.map(b => median(b)),
+  const line = hkind === "line",
+    M = B.map(b => median(b)),
+    Lo = B.map(b => (b.length ? Math.min(...b) : null)), // the cheapest and dearest each day: the lines
+    Hi = B.map(b => (b.length ? Math.max(...b) : null)),
     cnt = B.map(b => b.length),
     mc = Math.max(...cnt),
     V = M.filter(v => v != null),
-    lo = Math.min(...V),
-    hi = Math.max(...V),
+    lo = line ? Math.min(...Lo.filter(v => v != null)) : Math.min(...V),
+    hi = line ? Math.max(...Hi.filter(v => v != null)) : Math.max(...V),
     w = 300 / nb,
-    y = v => (64 - (hi > lo ? (v - lo) / (hi - lo) : 0.5) * 56).toFixed(1),
-    bars = cnt.map((c, i) => (c ? `<rect class="hb" x="${(i * w + 2).toFixed(1)}" y="${(100 - (c / mc) * 30).toFixed(1)}" ` +
+    f = hlog ? Math.log10 : v => v, // log scale: a 10× jump and a 10% one both stay readable
+    top = line ? 8 : 8,
+    span = line ? 84 : 56, // (with no bars underneath, the lines use the whole height)
+    y = v => (top + span - (f(hi) > f(lo) ? (f(v) - f(lo)) / (f(hi) - f(lo)) : 0.5) * span).toFixed(1),
+    path = A => A.map((v, i) => (v == null ? null : [(i * w + w / 2).toFixed(1), y(v)])).filter(Boolean),
+    bars = line ? "" : cnt.map((c, i) => (c ? `<rect class="hb" x="${(i * w + 2).toFixed(1)}" y="${(100 - (c / mc) * 30).toFixed(1)}" ` +
       `width="${(w - 4).toFixed(1)}" height="${((c / mc) * 30).toFixed(1)}" rx="2"/>` : "")).join(""),
-    P = M.map((v, i) => (v == null ? null : [(i * w + w / 2).toFixed(1), y(v)])).filter(Boolean),
+    P = path(M),
+    extra = line ? [Lo, Hi].map(A => `<polyline class="hx" points="${path(A).map(p => p.join(",")).join(" ")}"/>`).join("") : "",
     last = V[V.length - 1],
     lp = P[P.length - 1];
   return `<div class="card hist"><div class="row"><b>Price history</b>${seg}</div>` +
-    `<div class="legend"><span><i></i>Median price</span><span><i class="b"></i>Listings seen</span></div>` +
+    `<div class="legend"><span><i></i>Median price</span>${line ? '<span><i class="x"></i>Cheapest and dearest</span>' : '<span><i class="b"></i>Listings seen</span>'}` +
+    `${hlog ? '<span class="mu">log scale</span>' : ""}</div>` +
     `<svg viewBox="0 0 300 100" role="img" aria-label="Median price over the last ${hdays} days: from ${fmt(lo)} to ${fmt(hi)}, now ${fmt(last)}">` +
-    `${bars}<polyline class="hl" points="${P.map(p => p.join(",")).join(" ")}"/><circle class="hd" cx="${lp[0]}" cy="${lp[1]}" r="3.5"/></svg>` +
+    `${bars}${extra}<polyline class="hl" points="${P.map(p => p.join(",")).join(" ")}"/>` +
+    `${line ? P.map(p => `<circle class="hd" cx="${p[0]}" cy="${p[1]}" r="2.5"/>`).join("") : ""}<circle class="hd" cx="${lp[0]}" cy="${lp[1]}" r="3.5"/></svg>` +
     `<div class="ax"><span>${hdays} days ago</span><span>${fmt(lo)} – ${fmt(hi)}</span><span>latest ${fmt(last)}</span></div></div>`;
 }
 // Trending: items whose cheapest price now is well off their usual price (and the market's mood, over every item)
@@ -1959,8 +1966,20 @@ function drawExpPage(force) {
     fig = (k, v, sub) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="mu">${sub}</div></div>`,
     mins = m => (m < 60 ? m + " min" : `${Math.floor(m / 60)} h ${m % 60} min`),
     bars = (v, lab) => {
-      const mx = Math.max(1, ...v);
-      return `<div class="xchart" role="img" aria-label="${lab}">${v.map(n => `<i style="height:${Math.max(2, (n / mx) * 100).toFixed(0)}%"></i>`).join("")}</div>`;
+      // log scale: a slow hour is still visible next to a fast one; it runs from a little under the smallest
+      // gain to the biggest (from zero, every day would sit near the top)
+      const g = xlog ? n => Math.log10(1 + n) : n => n,
+        lo = xlog ? Math.min(...v.filter(n => n > 0).map(g), g(Math.max(1, ...v))) * 0.9 : 0,
+        mx = Math.max(lo + 1e-9, ...v.map(g)),
+        f = n => (n > 0 || !xlog ? Math.max(0, (g(n) - lo) / (mx - lo)) : 0);
+      if (xkind === "line") {
+        const w = 300 / Math.max(1, v.length),
+          P = v.map((n, i) => [(i * w + w / 2).toFixed(1), (96 - f(n) * 90).toFixed(1)]);
+        return `<svg class="xline" viewBox="0 0 300 100" preserveAspectRatio="none" role="img" aria-label="${lab}">` +
+          `<polygon class="xa" points="${P[0][0]},100 ${P.map(p => p.join(",")).join(" ")} ${P[P.length - 1][0]},100"/>` +
+          `<polyline points="${P.map(p => p.join(",")).join(" ")}"/>${P.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="2.5"/>`).join("")}</svg>`;
+      }
+      return `<div class="xchart" role="img" aria-label="${lab}">${v.map(n => `<i style="height:${Math.max(2, f(n) * 100).toFixed(0)}%"></i>`).join("")}</div>`;
     },
     status = !on ? "EXP recording is stopped. Press Start to record it (no need to watch shops)." : !x
       ? st.exp_found ? "Reading your EXP…" : "Looking for the EXP line at the bottom of the game window. Keep it on screen (not covered)."
@@ -2004,7 +2023,9 @@ function drawExpPage(force) {
         : `<div class="card"><b>No EXP reading yet</b><p class="mu" style="margin:4px 0 0">${status}</p></div>`) +
       `<div class="xctl"><button data-x="go">${on ? "Stop recording" : "Start recording"}</button><button data-x="reset">Reset</button>` +
       `${x ? `<span class="mu">${status}</span>` : ""}</div></div>` +
-      `<div>${segBtns("xr", xr, [["session", "This session"], ["week", "Last 7 days"]])}<div class="card" style="margin-top:8px">${chart}</div></div></div>` +
+      `<div><div class="xopts">${segBtns("xr", xr, [["session", "This session"], ["week", "Last 7 days"]])}` +
+      `${segBtns("xk", xkind, [["bars", "Bars"], ["line", "Line"]])}${segBtns("xs", xlog ? "log" : "lin", [["lin", "Normal"], ["log", "Log scale"]])}</div>` +
+      `<div class="card" style="margin-top:8px">${chart}</div></div></div>` +
       expLogHtml(st, x);
   if (force || el.dataset.html !== html) {
     el.innerHTML = html;
@@ -2034,7 +2055,7 @@ function expLogHtml(st, x) {
 }
 // The new buttons (Home, trends, Listings' filters, the history's 7/30 days, the EXP tab): true when handled
 function cClick(e) {
-  const b = e.target.closest("[data-mv],[data-tosearch],[data-tonav],[data-lst],[data-lc],[data-hd],[data-x],[data-xr],[data-xl]");
+  const b = e.target.closest("[data-mv],[data-tosearch],[data-tonav],[data-lst],[data-lc],[data-hd],[data-hk],[data-hs],[data-x],[data-xr],[data-xk],[data-xs],[data-xl]");
   if (!b) return false;
   const d = b.dataset;
   if (d.xl) {
@@ -2072,15 +2093,21 @@ function cClick(e) {
   } else if (d.lc !== undefined) {
     lcat = d.lc;
     drawMB();
-  } else if (d.hd) {
-    hdays = +d.hd;
+  } else if (d.hd || d.hk || d.hs) {
+    if (d.hd) hdays = +d.hd;
+    if (d.hk) hkind = d.hk;
+    if (d.hs) hlog = d.hs === "log";
+    saveCharts();
     if (cur) draw(false);
     else {
       drawPanel(true);
       drawLPanel(true);
     }
-  } else if (d.xr) {
-    xr = d.xr;
+  } else if (d.xr || d.xk || d.xs) {
+    if (d.xr) xr = d.xr;
+    if (d.xk) xkind = d.xk;
+    if (d.xs) xlog = d.xs === "log";
+    saveCharts();
     drawExpPage(true);
   } else if (d.x === "go") {
     api("/api/set", { exp: !(APP.st && APP.st.exp_on) }).then(r => r.ok || say(r.error || "Could not change EXP recording."));
@@ -2225,18 +2252,12 @@ document.addEventListener("click", e => {
     return;
   }
   if (SIMPLE && cClick(e)) return;
-  const sg = e.target.closest("[data-ps],[data-ls],[data-lv],[data-go]");
+  const sg = e.target.closest("[data-ps],[data-ls],[data-go]");
   if (sg) {
     const d = sg.dataset;
     if (d.go) {
       view = d.go;
       draw();
-    } else if (d.lv) {
-      lview = d.lv;
-      try {
-        localStorage.setItem(KEY + ":lview", lview);
-      } catch (e) {}
-      draw(false);
     } else {
       if (d.ps) psort = d.ps;
       else lsort = d.ls;
@@ -2395,10 +2416,18 @@ $("#theme").onclick = () => {
 };
 try {
   const t = localStorage.getItem(KEY + ":theme"),
-    v = localStorage.getItem(KEY + ":lview");
+    c = JSON.parse(localStorage.getItem(KEY + ":charts") || "{}"); // how the charts are drawn (remembered)
   if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
-  if (v === "cards" || v === "compact") lview = v;
+  if (c.hk === "line") hkind = "line";
+  if (c.xk === "line") xkind = "line";
+  hlog = !!c.hs;
+  xlog = !!c.xs;
 } catch (e) {}
+function saveCharts() {
+  try {
+    localStorage.setItem(KEY + ":charts", JSON.stringify({ hk: hkind, hs: hlog, xk: xkind, xs: xlog }));
+  } catch (e) {}
+}
 S = load();
 ITEMS.push(...S.custom);
 tidyNames();

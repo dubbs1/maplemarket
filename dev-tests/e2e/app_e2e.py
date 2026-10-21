@@ -124,15 +124,21 @@ async def main():
                 ok(f'A13 listings: copies merged, each with its picture ({rows} rows, {mi} pictures)', rows == 17 and mi == 17)
                 ok('A13b two copies show as x2', await pg.locator('#mb .cnt:has-text("×2")').count() == 3)
                 ok('A14 market shows just listed', await pg.locator('#mb .fresh').count() >= 1)
-                await pg.click('[data-lv=cards]'); await pg.wait_for_timeout(300)
-                ok('A14b Cards view: the same listings as cards', await pg.locator('#mb.lcards > .card').count() == 17)
-                await pg.click('[data-lv=compact]'); await pg.wait_for_timeout(300)
+                ok('A14b listings are compact rows only (no Cards switch)', await pg.locator('[data-lv]').count() == 0)
                 await pg.screenshot(path=OUT + '_market.png')
                 await pg.click('#mb [data-open]'); await pg.wait_for_timeout(500)
                 ok('A15 a listing shows its item beside the list, with the big picture', await pg.locator('#lpanel img.ic.lg').count() == 1 and
                    await pg.get_attribute('[data-nav=market]', 'aria-current') == 'page')
                 lp = await pg.inner_text('#lpanel')
                 ok('A15b ...and where to buy it, with its price history', 'Where to buy' in lp and 'Cheapest NX <3' in lp and 'Price history' in lp)
+                await pg.click('#lpanel [data-hk=line]'); await pg.wait_for_timeout(300)
+                ok('A15c price history as lines: cheapest, median and dearest', await pg.locator('#lpanel svg .hx').count() == 2 and
+                   await pg.locator('#lpanel svg .hl').count() == 1 and await pg.locator('#lpanel svg .hb').count() == 0)
+                await pg.click('#lpanel [data-hs=log]'); await pg.wait_for_timeout(300)
+                ok('A15d ...and on a log scale, remembered', 'log scale' in await pg.inner_text('#lpanel') and
+                   await pg.evaluate("() => JSON.parse(localStorage.getItem('mcm1:charts')).hs") is True)
+                await pg.click('#lpanel [data-hk=bars]'); await pg.click('#lpanel [data-hs=lin]'); await pg.wait_for_timeout(300)
+                ok('A15e back to bars', await pg.locator('#lpanel svg .hb').count() >= 1)
                 await pg.screenshot(path=OUT + '_listings.png')
                 await pg.click('[data-nav=home]'); await pg.wait_for_timeout(500)
                 ok('A15g Home: a search, today\'s numbers and what was just listed', await pg.locator('#home [data-tosearch]').count() == 1 and
@@ -156,6 +162,12 @@ async def main():
                    and ('level-ups' in xp.lower() or 'No EXP reading yet' in xp))
                 await pg.click('[data-xr=week]'); await pg.wait_for_timeout(300)
                 ok('A15j ...and its last 7 days', 'EXP per day' in await pg.inner_text('#app') and await pg.locator('.xchart i').count() == 7)
+                await pg.click('[data-xk=line]'); await pg.wait_for_timeout(300)
+                ok('A15k ...as a line too, with a log scale on offer', await pg.locator('svg.xline polyline').count() == 1 and
+                   await pg.locator('svg.xline circle').count() == 7 and await pg.locator('[data-xs=log]').count() == 1)
+                await pg.click('[data-xs=log]'); await pg.wait_for_timeout(300)
+                ok('A15l log scale remembered', await pg.evaluate("() => JSON.parse(localStorage.getItem('mcm1:charts')).xs") is True)
+                await pg.click('[data-xk=bars]'); await pg.click('[data-xs=lin]'); await pg.wait_for_timeout(300)
                 for i, m in enumerate(('The Land of Wild Boar II', 'Ant Tunnel I')):
                     ctl.exp_log.add({'date': time.time() - 3600 * (i + 1), 'minutes': 45, 'gained': 40000, 'per_hour': 53333, 'level': 37, 'map': m, 'party': 4 - i * 3})
                 await pg.wait_for_timeout(1500)
