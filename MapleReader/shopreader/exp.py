@@ -26,7 +26,7 @@ HP_BAR = 168                   # width (px) of the HP bar at the usual interface
 BAR_STEP = 169                 # from the HP fill's left edge to the MP fill's at the usual size (exact edges)
 
 _white = lambda p: min(p) > 130 and max(p) - min(p) < 45           # the EXP number and the percentage digits
-_green = lambda p: p[1] > 110 and p[1] - p[0] > 30 and p[1] - p[2] > 60   # the [ ] around the numbers
+_green = lambda p: p[1] > 110 and p[1] - p[0] > 15 and p[1] - p[2] > 45   # the [ ] around the numbers (washed out by compression too)
 # (not the EXP bar's yellow-green fill below it, which has as much red as green)
 _digit = lambda p: p[2] > 120 and p[1] > 150     # the level's white digits (the orange tile has almost no blue)
 _tile = lambda p: p[0] > 200 and 90 < p[1] < 190 and p[2] < 90     # the orange tiles the level's digits sit on
@@ -393,6 +393,12 @@ class ExpTracker:
             self.gain_t += gap
             if self.run:
                 self.run['t0'] += gap
+                if self.run['mt0'] is not None:
+                    self.run['mt0'] += gap
+                    self.run['mt1'] += gap
+            if self.mt0 is not None:
+                self.mt0 += gap
+                self.mt1 += gap
 
     def _close_run(self, end, gained):
         """The current run ends (a level-up, a long break, Reset, a new map, closing the app): log it."""
@@ -402,10 +408,11 @@ class ExpTracker:
         mins, got = (end - r['t0']) / 60, gained - r['g0']
         if mins >= 1 and got > 0 and self.on_run:
             self.on_run({'date': r['wall'], 'minutes': round(mins), 'gained': got, 'per_hour': round(got / mins * 60),
-                         'level': r['level'], 'map': r['map'], 'party': r['party']})
+                         'level': r['level'], 'map': r['map'], 'party': r['party'], 'mesos': r['mg'] if r['mt0'] is not None else None,
+                         'mesos_per_hour': self._mph(r['mg'], r['mt0'], r['mt1'])})
 
     def _open_run(self, t, wall, gained, level):
-        self.run = {'t0': t, 'wall': wall, 'g0': gained, 'level': level, 'map': self.map, 'party': None}
+        self.run = {'t0': t, 'wall': wall, 'g0': gained, 'level': level, 'map': self.map, 'party': None, 'mg': 0, 'mt0': None, 'mt1': None}
 
     def end_run(self, now=None):
         """Log the current run now (Reset, closing the app)."""
@@ -428,6 +435,34 @@ class ExpTracker:
             else:
                 self.map = name
 
+    MESO_JUMP = 5_000_000                                # a bigger rise between two looks is a misread, not a pickup
+
+    def set_mesos(self, amount, now=None):
+        """The Item window showed `amount` mesos. Every rise since the last look counts as mesos gained (spending
+        doesn't take any off); mesos per hour is that over the time between the first and the last look."""
+        now = time.time() if now is None else now
+        with self.lock:
+            if not self.start or self.paused is not None:
+                self.mesos = amount                      # (just where it stands: nothing gained while not recording)
+                return
+            t = self._now(now)
+            if self.mesos is not None and amount - self.mesos > self.MESO_JUMP:
+                return                                   # a misread (no pickup is that big): nothing changes
+            if self.mesos is not None and 0 < amount - self.mesos:
+                self.meso_gain += amount - self.mesos
+                if self.run:
+                    self.run['mg'] += amount - self.mesos
+            self.mesos = amount                          # (spending lowers it)
+            self.mt0 = self.mt0 if self.mt0 is not None else t
+            self.mt1 = t
+            if self.run:
+                self.run['mt0'] = self.run['mt0'] if self.run['mt0'] is not None else t
+                self.run['mt1'] = t
+
+    @staticmethod
+    def _mph(gain, t0, t1):
+        return round(gain / (t1 - t0) * 3600) if t0 is not None and t1 - t0 >= 300 else None
+
     def set_party(self, n):
         """The party window showed n members: the EXP log keeps the most seen in a run (None = solo or not shown)."""
         with self.lock:
@@ -446,6 +481,8 @@ class ExpTracker:
         self.end_run()
         with self.lock:
             self.run = None                             # the EXP log's current entry
+            self.mesos = None                           # the Item window's meso amount, last read
+            self.meso_gain, self.mt0, self.mt1 = 0, None, None   # mesos gained, and when they were first and last read
             self.gain_t = None                          # the last time EXP went up (the tracker's clock)
             self.start = self.last = None               # first and latest accepted reading: (t, level, exp, pct)
             self.first = None                           # a first reading, until a second one agrees with it
@@ -575,9 +612,10 @@ class ExpTracker:
             slots, hour, prev, best = self._hours(now)
             r = self.run
             run = r and {'minutes': round((now - r['t0']) / 60), 'gained': self.gained - r['g0'], 'map': r['map'], 'level': level,
-                         'party': r['party'],
+                         'party': r['party'], 'mesos_per_hour': self._mph(r['mg'], r['mt0'], r['mt1']),
                          'per_hour': round((self.gained - r['g0']) / (now - r['t0']) * 3600) if now - r['t0'] >= 60 else None}
-            return {'slots': slots, 'hour': hour, 'prev_hour': prev, 'best_hour': best, 'run': run,
+            return {'slots': slots, 'hour': hour, 'prev_hour': prev, 'best_hour': best, 'run': run, 'mesos': self.mesos,
+                    'mesos_gained': self.meso_gain if self.mt0 is not None else None, 'mesos_per_hour': self._mph(self.meso_gain, self.mt0, self.mt1),
                     'last5': (self.gained - self._at(now - 300)) * 12 if whole >= 300 else None,
                     'idle': self.paused is None and real - self.gain_t > EXP_IDLE, 'stopped': self.paused is not None,
                     'level': level, 'exp': exp, 'pct': pct, 'need': need, 'left': left,

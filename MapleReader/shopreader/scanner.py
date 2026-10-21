@@ -207,7 +207,11 @@ class ExpRunner:
         if n:
             self.tracker.set_party(n)
         try:
-            name = location.read_map(img)              # (needs Tesseract; EXP itself doesn't)
+            from .mesos import read_mesos
+            m = read_mesos(img)                        # (only while the Item window is open)
+            if m is not None:
+                self.tracker.set_mesos(m)
+            name = location.read_map(img)              # (both need Tesseract; EXP itself doesn't)
         except Exception:
             name = None
         if not name:
