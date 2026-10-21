@@ -7,7 +7,7 @@ This project was built in a long claude.ai conversation (October 2026) and moved
 - The owner is a beginner on Windows. Give **step-by-step instructions**, one action per step, each with "You should see …" and "If … then …". Plain words; avoid jargon or explain it once.
 - Their PC: the app folder is `C:\Users\bbuda\OneDrive\Desktop\MapleReader`. Python 3.13 runs as `py -3.13`. Tesseract 5.5.3 is in `C:\Program Files\Tesseract-OCR`.
 - **Updates:** they extract a zip over the folder ("Replace the files"). When handing over changes, give only the changed files. Send the **full** folder whenever new files were added: a partial zip once left their folder missing `shopreader/config.py`. Now that the code is in git, they may pull instead; ask which they prefer.
-- They also run **Rev Market** (vendormarket.app), a separate Ragnarok Online market site on its own DigitalOcean droplet. It must never be touched by Maple work. The owner wants Maple to stand alone, so the group market gets **its own droplet** (decided October 20, 2026); only the DNS record `maple` under vendormarket.app is shared. **DigitalOcean is paused (October 20, 2026):** the owner uses MapleReader locally only for now. Don't push the group market unless they bring it back. Rev Market lives in `/home/market/revenant-market`, `/root/revenant-market` and `/etc/revenant-market.env`. Its design language (clean, everything visible, no hover-only controls, cards never touching, item pictures on rows, "just listed" in green) is the standard for this UI too.
+- They also run **Rev Market** (vendormarket.app), a separate Ragnarok Online market site on its own DigitalOcean droplet. It must never be touched by Maple work. The owner wants Maple to stand alone; only the DNS record `maple` under vendormarket.app is shared. **The group market runs on Vercel + Supabase free plans** (`maple-cloud/`, decided October 21, 2026, replacing the paused own-droplet plan): the owner sets it up with `maple-cloud/SETUP.md` (this session can't reach Vercel, Supabase or DigitalOcean). Friends use personal keys (Discord login was offered as a later option). The droplet server (`maple-server/`) still works but isn't the plan. Rev Market lives in `/home/market/revenant-market`, `/root/revenant-market` and `/etc/revenant-market.env`. Its design language (clean, everything visible, no hover-only controls, cards never touching, item pictures on rows, "just listed" in green) is the standard for this UI too.
 
 ## Hard rules
 
@@ -25,7 +25,8 @@ Game window --screenshots--> MapleReader (scanner thread)
    -> scans/icons/<slug>.png                         (item picture cut from the shop row)
    -> app server http://127.0.0.1:8765 -> app window (Edge --app mode) showing market.html
    -> (sharing on) uploads new lines + pictures to the group server with a personal key
-Group server (maple.vendormarket.app, its own droplet, behind nginx + certbot) -> SQLite -> /api/rows feed -> everyone's market page
+Group market (maple.vendormarket.app on Vercel: maple-cloud/api/market.py + public/index.html) -> Supabase (Postgres + Storage) -> /api/rows feed -> everyone's market page
+   (or the droplet version: maple-server/, nginx + certbot -> SQLite; same addresses)
 ```
 
 ### Scan line format (all_scans.txt, and what the server stores)
@@ -69,12 +70,19 @@ In live modes the page keeps 30 days in the browser's localStorage (about 40,000
 
 **App behaviour:** the app starts watching when it opens (`auto_start` setting, default on, `Controller.autostart()` from `desktop.run`). Without Tesseract the big button runs the winget installer, and the controller looks again every 5 s, so no restart is needed.
 
-### Group server (`maple-server/`)
+### Group market on Vercel + Supabase (`maple-cloud/`, the plan)
+
+- **Same addresses as `maple-server`** (`/api/ping`, `/api/rows?from=`, `/api/icons`, `/icons/<slug>.png`, POST `/api/upload`, `/api/icon`), so `share.py` and the page work unchanged. `api/market.py` is one Vercel Python function (class `handler`); `vercel.json` rewrites `/api/:route` and `/icons/:file` to it with `?route=` (it also reads the plain path). `public/index.html` is the page with `window.MAPLE={mode:"shared"}` already in (made by `tools/sync_market.py`, checked by `--check`).
+- **Supabase:** `schema.sql` (run in the SQL Editor; re-running is safe) makes `maple_rows`/`maple_keys`/`maple_seen`/`maple_icons` (row level security on, no rules), the public `icons` Storage bucket, and the `maple_*` functions the website calls over `/rest/v1/rpc/` with the secret key (`SUPABASE_URL`, `SUPABASE_SECRET_KEY` or `SUPABASE_SERVICE_KEY` in Vercel; `sb_` keys go in `apikey` only). Everything is revoked from public/anon/authenticated; the owner's commands (`maple_add_key`, `maple_revoke`, `maple_restore`, `maple_purge`, views `maple_people`, `maple_stats`) aren't open to the website either. Keys are `mm-` + 32 hex, stored as sha256. `clean_line` is the same as the droplet server's (the test compares them). Pictures: `maple_icon_ok` decides, the file goes to Storage (`x-upsert`), then `maple_icon_set`; `/icons/x.png` is a 302 to the public Storage URL. Rate limits are per running copy only.
+- **Checks:** `maple-cloud/tests/test_cloud.py` runs a throwaway Postgres (`initdb`; as root via `runuser -u postgres`), a stand-in for Supabase's rpc/Storage (as `service_role` with BYPASSRLS, like Supabase), and the function, with MapleReader's own `share.fetch_rows`/`fetch_icon`. CI installs `postgresql`.
+- **Not yet:** EXP on the phone (needs a per-person login); Discord login.
+
+### Group server on a droplet (`maple-server/`)
 
 - **Code:** stdlib Python + SQLite. `server.py` listens on 127.0.0.1:8790; `manage.py` handles keys (add/list/revoke/restore/purge/stats). Numbers are ASCII digits only (`re.ASCII`); a bad line is counted, never a crash; rows older than 35 days are deleted hourly and a page starting from `from=0` gets the last 30 days; at most 20,000 pictures, written via temp file + `os.replace`.
 - **Install:** `install.sh` creates its own user/folder/env/service. On a fresh droplet (nothing on ports 80/443 **and** no nginx/Caddy installed) it installs nginx + certbot itself (nginx installed but stopped = refuse: it may hold other sites). Re-running with another `MAPLE_DOMAIN` updates Maple's own nginx entry. On a shared server it detects the front door (nginx, Caddy or a Cloudflare tunnel), refuses if another site already uses the address, backs up, validates, rolls back if refused. `--check` changes nothing; `--remove` takes the site down and keeps the data. `MAPLE_DOMAIN` / `MAPLE_EMAIL` set the address and certificate email.
 - **Deploy:** `deploy-maple.ps1` (from Windows: tar → scp → ssh → install.sh). It asks for the droplet's login once and remembers it in `deploy-target.json` (not in git). `-Check`, `-Remove`, `-Domain`, `-Email`, `-Server`.
-- **Status:** paused (see top). Not installed as of October 20, 2026. The owner follows `maple-server/SETUP.md` (make droplet → DNS → `-Check` → install → keys). This session couldn't reach DigitalOcean or SSH, so the owner runs it.
+- **Status:** not the plan any more (see Vercel + Supabase above). Not installed as of October 21, 2026. The owner follows `maple-server/SETUP.md` (make droplet → DNS → `-Check` → install → keys). This session couldn't reach DigitalOcean or SSH, so the owner runs it.
 
 ## Building and releasing
 
