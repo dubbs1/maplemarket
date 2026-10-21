@@ -1941,6 +1941,8 @@ function drawExpPage(force) {
       `<div class="big">${x && x.per_hour != null ? fmt(x.per_hour) : "…"}<small> EXP/h</small></div>${vs}` +
       (x ? `<div class="mu">Last 5 min ${x.last5 != null ? fmt(x.last5) + "/h" : "…"} · ${x.pct_per_hour != null ? x.pct_per_hour + "%" : "…"} per hour` +
         `${x.idle ? ' · <span class="xidle">paused (no EXP)</span>' : ""}</div>` +
+        (x.mesos != null ? `<div class="mu">Mesos ${fmt(x.mesos)}${x.mesos_gained ? ` (+${fmt(x.mesos_gained)})` : ""}` +
+          `${x.mesos_per_hour != null ? ` · ${fmt(x.mesos_per_hour)}/h` : ""}</div>` : "") +
         (x.run && (x.run.map || x.run.party > 1) ? `<div class="mu">${esc(x.run.map || "")}${x.run.map && x.run.party > 1 ? " · " : ""}` +
           `${x.run.party > 1 ? "party of " + x.run.party : ""}</div>` : "") : "") + `</div>` +
       (sl.length > 1 ? `<div class="xspark" aria-hidden="true">${sl.map(n => `<i style="height:${Math.max(4, (n / Math.max(1, ...sl)) * 100).toFixed(0)}%"></i>`)
@@ -1982,7 +1984,7 @@ function expLogHtml(st, x) {
         : `<button data-xl="rename" data-id="${e.id}">Rename</button><button data-xl="delete" data-id="${e.id}">Delete</button>`) + `</td></tr>`;
   return `<section class="card xlog" aria-label="EXP log"><div class="row"><b>EXP log</b><label class="xlon"><input type="checkbox" data-xl="on"` +
     `${logOn ? " checked" : ""}> Log my runs</label></div><p class="mu">A new line starts at each level-up, on a new map, or after 30 minutes ` +
-    `without EXP. The map and party are read from the minimap and the party window; mesos come later.</p>` +
+    `without EXP. The map and party come from the minimap and the party window, mesos from the Item window (open it now and then).</p>` +
     (r || L.length ? `<div class="tw"><table><thead><tr><th>Date</th><th>Map</th><th>Lv</th><th>Party</th><th>Time</th><th>EXP/h</th><th>Mesos/h</th><th></th></tr></thead>` +
       `<tbody>${r ? row(r, true) : ""}${L.map(e => row(e)).join("")}</tbody></table></div>` : '<p class="mu">Nothing logged yet.</p>') + `</section>`;
 }
