@@ -35,7 +35,7 @@ async def main():
         listings = lambda: pg.evaluate("() => window.App.analyze().rows.filter(o=>o.st==='sale').length")
         n = await listings(); ok(f'L1 page imports all_scans.txt by itself ({n} for sale)', n == 3)
         ok('L2 no sample data in live mode', await pg.evaluate("() => window.App.S.listings.length") == 0)
-        banner = await pg.inner_text('#chip'); ok('L3 header chip shows live status: ' + banner[:90], 'CH 10' in banner and 'FM 1' in banner)
+        banner = await pg.inner_text('#chip'); ok('L3 header chip shows live status: ' + banner[:90], 'CH 10' in banner and 'Room 1' in banner)
         add([f'Mithril Maul | 9000 | White Crusader Chainmail | 1 | 10 | {stamp()}'])
         await pg.wait_for_timeout(3000)
         ok('L4 a new row appears within 3 s, no importing', await listings() == 4)
