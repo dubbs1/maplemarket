@@ -20,6 +20,7 @@ run "group server (cloud)" python3 maple-cloud/tests/test_cloud.py
 run "reader: session"    bash -c 'cd MapleReader && python3 tests/test_session.py'
 run "reader: scrolling"  bash -c 'cd MapleReader && python3 tests/test_scroll.py'
 run "reader: resizing"   bash -c 'cd MapleReader && python3 tests/test_resize.py'
+run "reader: names"      bash -c 'cd MapleReader && python3 tests/test_names.py'
 run "reader: EXP tracker" bash -c 'cd MapleReader && python3 tests/test_exp.py'
 run "reader: revisits"   bash -c 'cd MapleReader && python3 tests/test_revisit.py'
 run "reader: app server" bash -c 'cd MapleReader && python3 tests/test_market.py'

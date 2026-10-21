@@ -192,6 +192,52 @@ def hours_and_days():
     check(E.ExpDays(path).days and sum(E.ExpDays(path).days.values()) == 1500, 'the totals survive a restart (losses never count)')
 
 
+def breaks_and_log():
+    print('Breaks (no EXP for a minute) and the EXP log:')
+    import tempfile
+    runs = []
+    t = E.ExpTracker(on_run=runs.append)
+    need = 240500
+    r = lambda x, lv=38: {'exp': x, 'pct': round(x * 100 / need, 2), 'level': lv}
+    t.add(r(50000), now=0)
+    t.add(r(50000), now=3)
+    t.set_map('The Land of Wild Boar II', now=3)
+    x = 50000
+    for i in range(1, 31):                                  # 30 minutes hunting: 300 EXP a minute
+        x += 300
+        t.add(r(x), now=3 + i * 60)
+    s = t.summary(now=1803 + 600)                           # then 10 minutes in town
+    check(s['idle'] and s['minutes'] == 31 and s['per_hour'] > 15000, f'10 minutes without EXP: paused at 31 min, {s["per_hour"]}/h')
+    for i in range(1, 11):                                  # back hunting
+        x += 300
+        t.add(r(x), now=2403 + i * 60)
+    s = t.summary(now=2403 + 600)
+    check(not s['idle'] and s['minutes'] == 40 and s['per_hour'] == 18000 and s['last5'] == 18000,
+          f'back: the break is left out ({s["minutes"]} min, {s["per_hour"]}/h, last 5 min {s["last5"]}/h)')
+    check(not runs and s['run']['map'] == 'The Land of Wild Boar II' and s['run']['gained'] == 12000,
+          f'a short break keeps the same EXP log entry ({s["run"]})')
+    for i in range(1, 6):                                   # after a 2-hour break, 5 more minutes (the minute
+                                                            # of waiting before the pause counts)
+        x += 300
+        t.add(r(x), now=2403 + 600 + 7200 + i * 60)
+    check(len(runs) == 1 and runs[0]['minutes'] == 41 and runs[0]['gained'] == 12000 and runs[0]['map'] == 'The Land of Wild Boar II',
+          f'a long break ends the entry: {runs and {k: runs[0][k] for k in ("minutes", "gained", "per_hour", "level", "map")}}')
+    t.set_map('Ant Tunnel I', now=2403 + 600 + 7200 + 330)
+    check(len(runs) == 2 and runs[1]['gained'] == 1500 and t.summary(now=2403 + 600 + 7200 + 330)['run']['map'] == 'Ant Tunnel I',
+          'a new map starts a new entry')
+    t.add(r(x + 300), now=2403 + 600 + 7200 + 390)
+    t.add({'exp': 3000, 'pct': 1.2, 'level': 39}, now=2403 + 600 + 7200 + 450)
+    check(len(runs) == 3 and runs[2]['level'] == 38 and t.summary(now=2403 + 600 + 7200 + 450)['run']['level'] == 39,
+          'a level-up starts a new entry at the new level')
+    path = os.path.join(tempfile.mkdtemp(prefix='maplereader_explog_'), 'scans', 'exp_log.json')
+    log = E.ExpLog(path)
+    for e in runs:
+        log.add(e)
+    first = log.list()[0]
+    check(log.rename(first['id'], '  Boars with Sam  ') and E.ExpLog(path).list()[0]['name'] == 'Boars with Sam', 'a line can be renamed (kept)')
+    check(log.delete(first['id']) and len(E.ExpLog(path).list()) == 2 and not log.delete('nope'), 'and deleted')
+
+
 def loop():
     print('EXP is recorded on its own (no shop watching needed):')
     pics = [load('live_shop.png')] * 4
@@ -245,6 +291,7 @@ if __name__ == '__main__':
     low_bars()
     tracker()
     hours_and_days()
+    breaks_and_log()
     loop()
     print()
     print('EXP tracker: all checks passed.' if not fails else f'EXP tracker: {len(fails)} FAILED')
