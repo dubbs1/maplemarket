@@ -15,7 +15,7 @@ import re
 import threading
 import time
 from PIL import Image, ImageOps
-from .config import EXP_EVERY, EXP_SEARCH_EVERY
+from .config import EXP_EVERY, EXP_IDLE, EXP_RUN_GAP, EXP_SEARCH_EVERY
 from .layout import color_boxes
 from . import engine
 from .exp_font import GLYPHS
@@ -359,9 +359,11 @@ class ExpTracker:
     RECENT = 10 * 60                                     # "per hour" from the last 10 minutes
     SLOT, SLOTS = 10 * 60, 12                            # the EXP page's chart: 10-minute slots, the last 2 hours
 
-    def __init__(self, on_gain=None):
+    def __init__(self, on_gain=None, on_run=None):
         self.lock = threading.Lock()
         self.on_gain = on_gain                           # called with each gain (n, time): the daily totals
+        self.on_run = on_run                             # called with each finished run (a line for the EXP log)
+        self.map = None                                  # the map you're on, when known (for the EXP log)
         self.paused = None                               # when recording was stopped: the clock stands still
         self.reset()
 
@@ -378,15 +380,67 @@ class ExpTracker:
             if self.paused is None:
                 return
             gap, self.paused = max(0, now - self.paused), None
-            sh = lambda p: (p[0] + gap,) + tuple(p[1:])
-            if self.start:
-                self.start, self.last = sh(self.start), sh(self.last)
-                self.history = [sh(h) for h in self.history]
-                self.trail = [sh(h) for h in self.trail]
+            self._shift(gap)
             self.first = None                            # (a reading from before the stop doesn't count as agreeing)
 
-    def reset(self):
+    def _shift(self, gap):
+        """Leave out `gap` seconds (stopped, or idle): every time so far moves later, as if they never happened."""
+        sh = lambda p: (p[0] + gap,) + tuple(p[1:])
+        if self.start:
+            self.start, self.last = sh(self.start), sh(self.last)
+            self.history = [sh(h) for h in self.history]
+            self.trail = [sh(h) for h in self.trail]
+            self.gain_t += gap
+            if self.run:
+                self.run['t0'] += gap
+
+    def _close_run(self, end, gained):
+        """The current run ends (a level-up, a long break, Reset, a new map, closing the app): log it."""
+        r, self.run = self.run, None
+        if not r:
+            return
+        mins, got = (end - r['t0']) / 60, gained - r['g0']
+        if mins >= 1 and got > 0 and self.on_run:
+            self.on_run({'date': r['wall'], 'minutes': round(mins), 'gained': got, 'per_hour': round(got / mins * 60),
+                         'level': r['level'], 'map': r['map']})
+
+    def _open_run(self, t, wall, gained, level):
+        self.run = {'t0': t, 'wall': wall, 'g0': gained, 'level': level, 'map': self.map}
+
+    def end_run(self, now=None):
+        """Log the current run now (Reset, closing the app)."""
+        now = time.time() if now is None else now
         with self.lock:
+            if getattr(self, 'start', None):             # (nothing yet when first made)
+                self._close_run(self._now(now), self.gained)
+
+    def set_map(self, name, now=None):
+        """The map changed: the EXP log starts a new entry there."""
+        now = time.time() if now is None else now
+        with self.lock:
+            if name == self.map:
+                return
+            if self.start and self.run:
+                end = self._now(now)
+                self._close_run(end, self.gained)
+                self.map = name
+                self._open_run(end, now, self.gained, self.last[1])
+            else:
+                self.map = name
+
+    def _now(self, now):
+        """The tracker's clock: it stands still while stopped, and after a minute with no EXP."""
+        if self.paused is not None:
+            now = min(now, self.paused)
+        if self.start and now - self.gain_t > EXP_IDLE:
+            now = self.gain_t + EXP_IDLE
+        return now
+
+    def reset(self):
+        self.end_run()
+        with self.lock:
+            self.run = None                             # the EXP log's current entry
+            self.gain_t = None                          # the last time EXP went up (the tracker's clock)
             self.start = self.last = None               # first and latest accepted reading: (t, level, exp, pct)
             self.first = None                           # a first reading, until a second one agrees with it
             self.gained = self.lost = self.levels = 0
@@ -417,6 +471,8 @@ class ExpTracker:
                 self.start = self.last = f
                 self.need = self._need_of(f[2], f[3]) or need
                 self.history, self.trail = [(f[0], 0)], [(f[0], 0)]
+                self.gain_t = f[0]
+                self._open_run(f[0], f[0], 0, f[1])
                 self.first = None
                 if (exp, pct) == (f[2], f[3]):
                     return True
@@ -451,6 +507,18 @@ class ExpTracker:
                 self.need = need                         # keep refining it (a bigger percentage is more exact)
         else:
             self.lost += exp0 - exp                     # EXP lost (from dying)
+        if self.gained > g0:
+            idle = now - self.gain_t
+            if idle > EXP_IDLE:                          # back after a break: the time without EXP doesn't count
+                if idle > EXP_RUN_GAP:                   # (a long one starts a new EXP log entry)
+                    self._close_run(self.gain_t + EXP_IDLE, g0)
+                self._shift(idle - EXP_IDLE)
+                if not self.run:
+                    self._open_run(now, now, g0, lv0 or level)
+            self.gain_t = now
+        if up:                                           # a level-up starts a new EXP log entry
+            self._close_run(now, self.gained)
+            self._open_run(now, now, self.gained, lv0 or level)
         self.last = (now, lv0 or level, exp, pct)       # once known, the level changes only by levelling up
         self.history.append((now, self.gained))
         self.history = [h for h in self.history if now - h[0] <= self.RECENT] or [(now, self.gained)]
@@ -484,12 +552,11 @@ class ExpTracker:
 
     def summary(self, now=None):
         """What the window shows, or None before the first readings."""
-        now = time.time() if now is None else now
+        real = time.time() if now is None else now
         with self.lock:
-            if self.paused is not None:
-                now = min(now, self.paused)
             if self.last is None:
                 return None
+            now = self._now(real)
             t0, g0 = self.history[0]
             span = now - t0
             recent = (self.gained - g0) / span * 3600 if span >= 60 else None
@@ -500,7 +567,13 @@ class ExpTracker:
             left = need - exp if need else None
             eta = left / per_hour * 3600 if left and per_hour and per_hour > 0 else None
             slots, hour, prev, best = self._hours(now)
-            return {'slots': slots, 'hour': hour, 'prev_hour': prev, 'best_hour': best,'level': level, 'exp': exp, 'pct': pct, 'need': need, 'left': left,
+            r = self.run
+            run = r and {'minutes': round((now - r['t0']) / 60), 'gained': self.gained - r['g0'], 'map': r['map'], 'level': level,
+                         'per_hour': round((self.gained - r['g0']) / (now - r['t0']) * 3600) if now - r['t0'] >= 60 else None}
+            return {'slots': slots, 'hour': hour, 'prev_hour': prev, 'best_hour': best, 'run': run,
+                    'last5': (self.gained - self._at(now - 300)) * 12 if whole >= 300 else None,
+                    'idle': self.paused is None and real - self.gain_t > EXP_IDLE, 'stopped': self.paused is not None,
+                    'level': level, 'exp': exp, 'pct': pct, 'need': need, 'left': left,
                     'gained': self.gained, 'lost': self.lost, 'levels': self.levels,
                     'per_hour': round(per_hour) if per_hour is not None else None,
                     'pct_per_hour': round(per_hour / self.need * 100, 2) if per_hour is not None and self.need else None,
@@ -556,3 +629,56 @@ class ExpDays:
             os.replace(tmp, self.path)
         except OSError:
             pass                                      # (a full or read-only disk: the totals stay in memory)
+
+
+class ExpLog:
+    """The EXP log: one line per run (one map and level, until a level-up, a long break or a new map), newest first,
+    kept in scans/exp_log.json. Each line can be renamed or deleted from the EXP tab."""
+    KEEP = 300
+
+    def __init__(self, path):
+        self.path, self.lock = path, threading.Lock()
+        try:
+            with open(path, encoding='utf-8') as f:
+                self.items = [e for e in json.load(f) if isinstance(e, dict) and 'id' in e][:self.KEEP]
+        except Exception:
+            self.items = []
+
+    def add(self, e):
+        with self.lock:
+            e = dict(e, id='%x' % int(e['date'] * 1000))
+            self.items.insert(0, e)
+            del self.items[self.KEEP:]
+            self._save()
+            return e
+
+    def rename(self, id, name):
+        with self.lock:
+            for e in self.items:
+                if e['id'] == id:
+                    e['name'] = str(name or '').strip()[:40] or None
+                    self._save()
+                    return True
+            return False
+
+    def delete(self, id):
+        with self.lock:
+            n = len(self.items)
+            self.items = [e for e in self.items if e['id'] != id]
+            if len(self.items) < n:
+                self._save()
+            return len(self.items) < n
+
+    def list(self, n=50):
+        with self.lock:
+            return [dict(e) for e in self.items[:n]]
+
+    def _save(self):
+        try:
+            os.makedirs(os.path.dirname(self.path) or '.', exist_ok=True)
+            tmp = self.path + '.tmp'
+            with open(tmp, 'w', encoding='utf-8') as f:
+                json.dump(self.items, f)
+            os.replace(tmp, self.path)
+        except OSError:
+            pass                                      # (a full or read-only disk: kept in memory)

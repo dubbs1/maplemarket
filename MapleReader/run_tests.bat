@@ -15,6 +15,9 @@ echo.
 py -3.13 tests\test_resize.py
 if errorlevel 1 set FAILED=1
 echo.
+py -3.13 tests\test_names.py
+if errorlevel 1 set FAILED=1
+echo.
 py -3.13 tests\test_exp.py
 if errorlevel 1 set FAILED=1
 echo.

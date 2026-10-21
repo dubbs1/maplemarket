@@ -73,6 +73,8 @@ The installer needs nothing else first (no Python, no `setup.bat`, no `build_exe
    - **Reset** starts counting again (for example when you start a new hunting trip).
    - EXP lost from dying is shown apart, not taken off what you gained.
    - To stop it: **Stop** on the EXP card (or Options > **Record my EXP**). MapleReader remembers your choice next time it opens.
+   - While it's stopped, the numbers stay as they were. When you start again, the stopped time isn't counted.
+   - With no EXP for a minute (in town, selling, a break), the clock pauses by itself, so EXP per hour stays honest. It carries on at your next EXP gain.
    - If the card keeps saying "Looking for the EXP line", send Claude a screenshot of the whole game window.
 
 The rest of this guide is the manual way (the zip folder), which still works.
@@ -181,7 +183,7 @@ The app is one window with these tabs (on a phone they sit along the bottom):
 | **Home** | A big search, today's numbers, what was just listed, and your price alerts ("Price hit" when one is for sale at your price) |
 | **Prices** | One card per item you've scanned: the cheapest price on sale now. Click one to see its details beside the cards |
 | **Listings** | Every shop listing. Pick a kind of item on the left (guessed from the name: Scrolls, Stars and arrows, Potions and food, Ores and crystals, Other), **For sale**, **Sold** or **All**, and **Newest**, **Best deal** (furthest under its usual price) or **Cheapest**. Click a listing to see its item beside the list. Two identical copies in one shop show once, as "×2" |
-| **EXP** | Your EXP on its own page (drawn dark): EXP per hour against the hour before, today, your best hour, time to the next level, and charts of this session (every 10 minutes) and the last 7 days. Start, Stop and Reset are here too |
+| **EXP** | Your EXP on its own page (drawn dark): EXP per hour against the hour before, the last 5 minutes, % per hour, today, your best hour, time to the next level, and charts of this session (every 10 minutes) and the last 7 days. Start, Stop and Reset are here too. Below is the **EXP log**: one line per run (a new line at each level-up, a new map, or after 30 minutes without EXP) with its date, level, time and EXP/h. **Rename** or **Delete** a line with its buttons; turn **Log my runs** off to stop logging |
 | **Options** | Settings, the dark theme, alerts and deals, your own shop's listings, where prices come from, and importing older scan files |
 
 **Trending today** sits on top of Home, Prices and Listings: the items whose cheapest price now is furthest from their usual price (▼ green = cheaper than usual), and whether prices are lower or higher than usual overall. Click one to see its prices.
