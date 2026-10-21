@@ -56,7 +56,7 @@ The more actionable discovery is how much of the data problem is still open. Bun
 
 The installer needs nothing else first (no Python, no `setup.bat`, no `build_exe.bat`). Updates then come by themselves.
 
-1. Download `MapleReader-Setup-<version>.exe` from the project's **Releases** page on GitHub (or from the file Claude sends you).
+1. Download `MapleReader-Setup-<version>.exe` from the project's **Releases** page on GitHub.
 2. Double-click it.
    - If Windows says "Windows protected your PC": click **More info**, then **Run anyway**. (The installer isn't signed with a paid certificate; it was built automatically from this project's code.)
    - You should see "Setup - MapleReader". Click **Next**, then **Install**, then **Finish** with "Start MapleReader" ticked.
@@ -75,7 +75,7 @@ The installer needs nothing else first (no Python, no `setup.bat`, no `build_exe
    - To stop it: **Stop** on the EXP card (or Options > **Record my EXP**). MapleReader remembers your choice next time it opens.
    - While it's stopped, the numbers stay as they were. When you start again, the stopped time isn't counted.
    - With no EXP for a minute (in town, selling, a break), the clock pauses by itself, so EXP per hour stays honest. It carries on at your next EXP gain.
-   - If the card keeps saying "Looking for the EXP line", send Claude a screenshot of the whole game window.
+   - If the card keeps saying "Looking for the EXP line", keep a screenshot of the whole game window for a bug report.
 7. **Room:** MapleReader reads the room from the minimap (keep it open and not covered). If the Room tile on the Scan tab shows "—", click **Change** next to Room, type the number and press **Save**. A shop seen while the room is unknown waits up to 20 seconds for it (counted from when the channel is known too), so it's saved in the right room; once a wait runs out, shops are saved with the room unknown ("?") until a room is known again. The room and channel, typed or read, are kept when you press Stop and Start, and when you reopen MapleReader within 2 hours, until the minimap or the Change Channel window shows different ones. If the minimap can't be read when the first shop opens, MapleReader says which remembered room it's using. A shop seen before any channel is known can't be saved at all: when you press Stop, a message says how many shops that lost.
 
 The rest of this guide is the manual way (the zip folder), which still works.
@@ -138,7 +138,7 @@ Do the steps in order. Do one thing at a time and check that you see what is des
 
 12. Double-click `start.bat`.
     - You should see a black window starting with `MapleReader 2026-10-20b. Text reading: fast (Tesseract kept in memory).`, then where it is saving, and asking for your channel.
-    - If it says `standard (tesseract.exe each time)` instead: everything still works, just slower. Tell Claude, so the fast way can be fixed for your PC.
+    - If it says `standard (tesseract.exe each time)` instead: everything still works, just slower. Report it, so the fast way can be fixed for your PC.
     - If it says Tesseract was not found: repeat step 4.
 13. Open the game's **Change Channel** window once (then press Cancel). The reader reads your channel from the highlighted button.
     - You should see `channel set to 10 (read from the Change Channel window)`.
@@ -152,7 +152,7 @@ Do the steps in order. Do one thing at a time and check that you see what is des
     - Use the wheel rather than dragging the handle or clicking the bar to jump. A jump skips rows the reader never sees; it then counts only what it saw.
 16. The room is read from the minimap automatically. Keep the minimap open (it can be anywhere, including a windowed game).
     - You should see the room in each "Saved" line, like `(room 1, ch 10)`.
-    - If it shows room 0: check the minimap isn't closed, or type `room 1` (the real number) in the black window. The reader keeps a picture of what it saw in `scans\room_check.png`, which helps Claude fix it.
+    - If it shows room 0: check the minimap isn't closed, or type `room 1` (the real number) in the black window. The reader keeps a picture of what it saw in `scans\room_check.png`, which helps when reporting a problem.
     - If shop names come out as `Shop`, the reader keeps a picture in `scans\title_check.png` for the same reason.
 17. Chime too loud or quiet? Open `start.bat` in Notepad (right-click, Edit) and change the last-but-one line to `py -3.13 maple_shop_reader.py --volume 0.04` (softer) or `--volume 0.2` (louder). Use `--quiet` for no sound at all. Save, then double-click `start.bat` again.
 18. When you are finished, close the black window.
@@ -221,7 +221,7 @@ B. Use it:
    - **Options** (the last tab): start watching when MapleReader opens (on unless you switch it off), chime on or off and its volume, the screen the game is on, **Test a screenshot** to check a saved picture, and **Open scans folder**.
    - Pictures are cut from the shop window the first time each item is seen, and kept in `scans\icons`.
    - The first time, the app reads all of `all_scans.txt`, so everything you scanned before is there. **Options > Older scan files > Reload all** clears it and reads the file again.
-   - The copy of the market on Claude still works, but it doesn't update by itself and has no pictures: there you import `all_scans.txt` as before (Part G).
+   - The market page opened as a plain file (not from the app) still works, but it doesn't update by itself and has no pictures: there you import `all_scans.txt` as before (Part G).
    - Using `start.bat` instead? Double-click `market.bat` to open the live market in your browser.
 
 **Part G3: Share with friends (the group market)**
@@ -239,7 +239,7 @@ The group market is a shared website (https://maple.vendormarket.app) where you 
 23. Double-click `run_tests.bat`.
     - It reads the saved test pictures in `tests\fixtures` and plays a pretend game session through the reader. It takes a few minutes.
     - You should see `ALL PICTURE CHECKS PASSED`, `SESSION CHECK PASSED`, then `Everything passed.`
-    - If something failed: copy the text in the window and send it to Claude.
+    - If something failed: copy the text in the window into a bug report.
 
 **Part I: Installing an update**
 
@@ -283,7 +283,7 @@ The group market is a shared website (https://maple.vendormarket.app) where you 
 | `No module named shopreader` | `shopreader` folder missing or moved | Extract the full zip again so `shopreader` sits next to `maple_shop_reader.py` |
 | Rows missed when scrolling | You dragged the handle or jumped down the list | Scroll with the mouse wheel (step 15) |
 | Chime too loud | Default volume | Use `--volume 0.04` or `--quiet` (step 17) |
-| Reader crashes or closes as soon as it reads a shop | The fast way of running Tesseract does not suit your PC | Edit `start.bat` so the reader line ends in `--slow-ocr`, and tell Claude |
+| Reader crashes or closes as soon as it reads a shop | The fast way of running Tesseract does not suit your PC | Edit `start.bat` so the reader line ends in `--slow-ocr` (and report it) |
 | Site says "Nothing new" | You already imported every row | Scan more shops, then import `all_scans.txt` again |
 | Top right says "MapleReader closed" | The app (or `market.bat`) was closed | Start it again; the page catches up by itself |
 | Sharing says it can't reach the market | No internet, or the server is down | Nothing to do: your scans are kept and sent when it's back |

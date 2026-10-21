@@ -242,7 +242,7 @@ class Controller:
             try:
                 sc.run()
             except Exception as e:                   # never stop silently
-                self.note(f'Scanning stopped: {type(e).__name__}: {e}. Send this line to Claude.', 'error')
+                self.note(f'Scanning stopped: {type(e).__name__}: {e}. Please report this line.', 'error')
             finally:
                 if self.scanner is sc:
                     self.scanner = None
@@ -262,7 +262,7 @@ class Controller:
             try:
                 r.run()
             except Exception as e:
-                self.note(f'EXP recording stopped: {type(e).__name__}: {e}. Send this line to Claude.', 'error')
+                self.note(f'EXP recording stopped: {type(e).__name__}: {e}. Please report this line.', 'error')
             finally:
                 if self.exp_runner is r:
                     self.exp_runner = None

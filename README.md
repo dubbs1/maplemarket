@@ -1,37 +1,46 @@
 # Maple Classic Market
 
-Free Market prices for MapleStory Classic, collected from your own screen while you browse shops.
+Know what things cost in the Free Market, without walking every room.
 
-- **MapleReader** (`MapleReader/`): a Windows app that watches the shop windows you open, reads every listing (item, price, shop, sold or not, room, channel, item picture) and keeps them. It only takes screenshots and reads them. It never clicks, types, reads game memory or touches the network traffic.
-- **Market page**: the market view with Scan, Home, Prices, Listings, EXP and Options tabs, shown inside the app (and on the group market, phones included).
-- **Group market** (`maple-cloud/`): the shared website (`maple.vendormarket.app`) on Vercel + Supabase free plans. Friends' apps send their scans to it, and everyone sees everyone's listings, phones included. (`maple-server/` is the same thing for a droplet of its own.)
+**MapleReader** is a small Windows app. While you browse shops as usual, it reads each shop window on your screen and keeps every listing: item, price, shop, room, channel, sold or not, and the item's picture. Then it shows you prices, trends, where to buy, and your EXP per hour — on your PC, and (if you share) on a website your friends can open on their phones.
 
-## Start here
+It only takes screenshots and reads the text in them. It never clicks, types, reads the game's memory or touches its network traffic.
 
-| I want to… | Read |
+## Get started
+
+1. Open the **Releases** page (on the right) and download `MapleReader-Setup-<version>.exe`.
+2. Double-click it. Click **Yes** if Windows asks.
+   - You should see a MapleReader icon on your desktop, and the app opens by itself.
+3. The first time, press the big button to install **Tesseract** (the free program that reads text). Click **Yes** if Windows asks, then wait for "Done".
+4. Play. Open the Change Channel window once (so the app knows your channel), keep the minimap open (so it knows your room), and open shops as you normally would.
+   - You should hear a soft chime each time a shop's listings are saved.
+
+Full instructions, with "You should see…" at every step, are in [`MapleReader/GUIDE.md`](MapleReader/GUIDE.md).
+
+## What you get
+
+| Tab | What it shows |
 |---|---|
-| Install and use MapleReader on Windows | the installer from **Releases**, or [`MapleReader/GUIDE.md`](MapleReader/GUIDE.md) |
-| Put the group market online (Vercel + Supabase, free) | [`maple-cloud/SETUP.md`](maple-cloud/SETUP.md) |
-| …or on a DigitalOcean droplet of its own | [`maple-server/SETUP.md`](maple-server/SETUP.md) |
-| Work on the code (or have Claude Code work on it) | [`CLAUDE.md`](CLAUDE.md) |
+| **Home** | Search any item, today's numbers, what was just listed, and your price alerts |
+| **Prices** | Every item you've seen, cheapest for sale now, usual price, and a price history chart |
+| **Listings** | Every listing by kind of item: for sale, sold, newest, best deal, with the shop, room and channel |
+| **EXP** | EXP per hour, the last 5 minutes, time to level, mesos per hour, and a log of your hunting runs |
+| **Options** | Sound, dark theme, sharing with friends, and the settings |
 
-## Folders
+## Share with friends
 
-```
-MapleReader/          the Windows app (Python 3.13)
-  app.py              starts the app window (MapleReader.exe after build_exe.bat)
-  maple_shop_reader.py  the black-window version (start.bat)
-  shopreader/         the parts: reading shops, scrolling, room/channel, pictures, app server, sharing
-  tests/              checks with real screenshots (run_tests.bat)
-maple-cloud/          the group market on Vercel + Supabase (schema.sql, api/market.py, SETUP.md)
-maple-server/         the group market for a droplet (plain Python + SQLite) and its setup scripts
-dev-tests/            extra checks for development (market page, browser end-to-end, install script)
-tools/                small helpers (keeping the two market.html copies the same)
-```
+Everyone who scans sees everyone's listings. The group market is a website (`maple-cloud/`) that runs on Vercel and Supabase for free: each friend gets a personal key, puts it in **Options › Share with friends**, and their scans flow to the site. Phones work too (open the site, then "Add to Home Screen"). Setting it up takes about 20 minutes: [`maple-cloud/SETUP.md`](maple-cloud/SETUP.md).
 
-## Checks
+## Privacy and rules
 
-- **Windows:** double-click `MapleReader\run_tests.bat`.
-- **Market page:** `npm install`, then `npm test`.
-- **Group server:** `python3 maple-server/tests/test_server.py`.
-- **More (browser end-to-end, install script):** see the Checks table in [`CLAUDE.md`](CLAUDE.md).
+- Everything stays on your PC unless you turn sharing on. Then only the scan lines and item pictures are sent, with your key.
+- No game files are read or changed. Nexon has not said whether screen readers are allowed; use at your own judgement.
+- Prices come only from what you and your friends see. Nothing is copied from other sites.
+
+## For developers
+
+- `MapleReader/` — the app (Python 3.13). `shopreader/` holds the parts: finding the shop list, reading rows, scrolling, room and channel, EXP, pictures, the local server and the sharing uploader. `tests/` checks it against real screenshots (`run_tests.bat`).
+- `maple-cloud/` — the group market: one Vercel function, a Supabase schema, the page.
+- `maple-server/` — the same group market for a server of your own (Python + SQLite).
+- `dev-tests/` — page checks (`npm test`), browser end-to-end runs, the install-script check. `bash dev-tests/run_all.sh` runs everything.
+- [`CLAUDE.md`](CLAUDE.md) — how it all fits together and the decisions behind it.

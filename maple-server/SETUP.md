@@ -9,7 +9,7 @@ You'll do four things, in order:
 3. Install the market with one command (5 minutes).
 4. Make keys for yourself and your friends (1 minute each).
 
-Each step says what you should see. If you see something else, stop and send Claude a screenshot or the window's text.
+Each step says what you should see. If you see something else, stop and keep a screenshot for a bug report or the window's text.
 
 ---
 
@@ -29,7 +29,7 @@ Each step says what you should see. If you see something else, stop and send Cla
 7. **Hostname:** type `maple-market`.
 8. Click **Create Droplet** at the bottom.
    - You should see the new droplet with a progress bar, then an address like `203.0.113.7` under **ipv4**.
-   - If it says the account has reached its droplet limit, send Claude a screenshot.
+   - If it says the account has reached its droplet limit, keep a screenshot for a bug report.
 9. Click the address once to copy it, and paste it somewhere safe (Notepad). Below it's called **the droplet's IP**.
 10. Check that you can log in. Press the Windows key, type `powershell` and press Enter. In the blue window type (with your IP):
     ```
@@ -39,7 +39,7 @@ Each step says what you should see. If you see something else, stop and send Cla
     - If you chose a password, type it (nothing shows while you type) and press Enter.
     - You should see a line ending in `root@maple-market:~#`. Type `exit` and press Enter.
     - If it says `Connection refused` or `timed out`, wait 2 minutes (the droplet is still starting) and try again.
-    - If it says `Permission denied`, the key or password didn't match. Send Claude the text.
+    - If it says `Permission denied`, the key or password didn't match. Keep the text for a bug report.
 
 ## Part 2: Point `maple.vendormarket.app` at the droplet
 
@@ -79,14 +79,14 @@ The name costs nothing: it's a sub-name of the domain you already own. You add i
    - It asks `Which droplet?`. Type `root@` and the droplet's IP, for example `root@203.0.113.7`, and press Enter. It remembers this for next time.
    - Type the password if you chose one.
    - You should see `OK` lines, including `nothing serves websites here yet: nginx and an HTTPS certificate will be set up just for Maple`, and finally `Check only: nothing was changed.`
-   - If you see **STOPPED**, send Claude the window's text.
+   - If you see **STOPPED**, keep the window's text for a bug report.
 4. Now install. Paste this (put your own email in; it's only used for "your certificate is expiring" notices, which normally never come) and press Enter:
    ```
    powershell -ExecutionPolicy Bypass -File deploy-maple.ps1 -Email you@example.com
    ```
    - It takes 2 to 5 minutes. You should see sections 1 to 3 with `OK` lines, `HTTPS certificate for maple.vendormarket.app`, and finally `All done.`
    - If it says it **couldn't get the HTTPS certificate yet**, the address from Part 2 isn't ready. Wait 10 minutes and run the same command again; it's safe to repeat.
-   - If it still fails after an hour, send Claude the window's text and the file `/tmp/maple-certbot.log` on the droplet.
+   - If it still fails after an hour, keep the window's text and the file `/tmp/maple-certbot.log` on the droplet.
 5. Open <https://maple.vendormarket.app> in your browser.
    - You should see the market page with a **Shared market** chip at the top right.
 
@@ -130,7 +130,7 @@ All of these run in PowerShell from the `maple-server` folder (it remembers the 
 
 | To… | Run |
 |---|---|
-| Update the market after Claude sends new files | `powershell -ExecutionPolicy Bypass -File deploy-maple.ps1` (data and keys are kept) |
+| Update the market after new files arrive | `powershell -ExecutionPolicy Bypass -File deploy-maple.ps1` (data and keys are kept) |
 | Only look at the droplet | `powershell -ExecutionPolicy Bypass -File deploy-maple.ps1 -Check` |
 | Take the site down (keeps the data) | `powershell -ExecutionPolicy Bypass -File deploy-maple.ps1 -Remove` |
 | Copy all the data to your PC | `scp -r root@203.0.113.7:/home/maple/maple-market/data maple-backup` |
