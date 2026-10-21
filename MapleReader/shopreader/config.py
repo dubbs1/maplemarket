@@ -38,10 +38,12 @@ NAME_MATCH = 0.85              # how close a read name must be to an items.txt n
 
 # --- room (minimap) ---
 ROOM_WAIT = 20                 # a shop seen while the room is unknown waits this long (s) for it (typed or read)
+PLACE_KEEP = 2 * 3600          # the channel and room are remembered this long (s) when the app is closed and reopened
 ROOM_REREAD = 3                # re-read the known minimap spot this often
 ROOM_MISSES = 3                # this many failed reads in a row: the minimap moved, search again
 ROOM_SEARCH = 5                # look for a lost minimap this often
 ROOM_SLOW_SEARCH = 30          # and do the slower text search this often
+ROOM_TITLE_REREAD = 15         # read the room from the minimap's whole title this often (3 Tesseract reads, ~0.15 s)
 
 # --- the watching loop ---
 INTERVAL = 0.15                # seconds between screenshots

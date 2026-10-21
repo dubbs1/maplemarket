@@ -49,8 +49,13 @@ def keep(img, rows, h):
             box = (int(x - 1.15 * h) + 2, int(y - 0.52 * h) + 2, int(x - 0.1 * h) - 2, int(y + 0.42 * h) - 2)
             if box[0] < 0 or box[1] < 0 or box[2] > img.width or box[3] > img.height or box[2] - box[0] < 12:
                 continue
-            os.makedirs(ICON_DIR, exist_ok=True)
-            img.crop(box).save(os.path.join(ICON_DIR, s + '.png'))
+            try:
+                os.makedirs(ICON_DIR, exist_ok=True)
+                path = os.path.join(ICON_DIR, s + '.png')
+                img.crop(box).save(path + '.tmp', format='PNG')
+                os.replace(path + '.tmp', path)      # whole or not at all: a half-written picture would be kept for good
+            except OSError:
+                continue
             idx[s], changed = kind, True
         if changed:
             path = os.path.join(ICON_DIR, 'index.json')

@@ -136,6 +136,13 @@ def tracker():
     t4.add({'exp': 50, 'pct': 0.05, 'level': 38}, now=10)          # levelled up (too small a % to know the new level)
     t4.add({'exp': 3000, 'pct': 2.0, 'level': 38}, now=20)
     check(not t4.add({'exp': 93000, 'pct': 2.1, 'level': 38}, now=30), 'a misread just after a level-up is dropped')
+    t5 = E.ExpTracker()                                     # ...and one while the % is still too small to know the level's EXP
+    t5.add(r(200000), now=0)
+    t5.add(r(200000), now=3)
+    t5.add({'exp': 500, 'pct': 0.2, 'level': 38}, now=10)
+    g5 = t5.summary()['gained']
+    check(not t5.add({'exp': 5100, 'pct': 0.2, 'level': 38}, now=20) and t5.add({'exp': 520, 'pct': 0.2, 'level': 38}, now=30)
+          and t5.summary()['gained'] == g5 + 20, f'a stray digit under 1% (5100 at 0.2%) is dropped: gained {t5.summary()["gained"] - g5} since')
     t5 = E.ExpTracker()                                     # your own readings (October 20): 36,420 of 240,500 at level 38
     for i, (x, p) in enumerate(((36420, 15.14), (36420, 15.14), (36450, 15.16), (36475, 15.17))):
         t5.add({'exp': x, 'pct': p, 'level': 38}, now=i * 30)
@@ -286,11 +293,14 @@ def mesos():
         t.add(r(50000 + i * 500), now=3 + i * 60)
         t.set_mesos(1_000_000 + i * 600 - (5000 if i >= 6 else 0), now=3 + i * 60)
     t.set_mesos(99_000_000, now=3 + 630)                    # a misread
-    s = t.summary(now=3 + 630)
-    check(s['mesos'] == 1_001_000 and s['mesos_gained'] == 5400 and s['mesos_per_hour'] == 36000,      # (the minute of the
+    t.set_mesos(1_000, now=3 + 640)                         # a digit lost (1,001,000 read as 1,000)...
+    t.set_mesos(1_001_000, now=3 + 650)                     # ...is not a million "gained" when the next look is right
+    mph = round(5400 / (650 - 60) * 3600)                   # (first look at 63, last at 653)
+    s = t.summary(now=3 + 650)
+    check(s['mesos'] == 1_001_000 and s['mesos_gained'] == 5400 and s['mesos_per_hour'] == mph,        # (the minute of the
           f'gained {s["mesos_gained"]} (spending not taken off, a misread jump ignored), {s["mesos_per_hour"]}/h')   # spend shows -4,400)
-    t.end_run(now=3 + 630)
-    check(runs and runs[0]['mesos'] == 5400 and runs[0]['mesos_per_hour'] == 36000, f'the EXP log line has mesos/h: {runs and runs[0]}')
+    t.end_run(now=3 + 650)
+    check(runs and runs[0]['mesos'] == 5400 and runs[0]['mesos_per_hour'] == mph, f'the EXP log line has mesos/h: {runs and runs[0]}')
 
 
 def loop():

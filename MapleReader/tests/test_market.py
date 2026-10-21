@@ -84,7 +84,15 @@ def main():
     ctl.start()
     kept = (ctl.scanner.state['ch'], ctl.scanner.state['room'], ctl.state['room']) if ctl.scanner else None
     ctl.stop()
-    ok(f'a typed channel and room are kept when watching starts (Stop/Start, reopening): {kept}', kept == (5, 2, 2))
+    ok(f'a typed channel and room are kept when watching starts (Stop/Start): {kept}', kept == (5, 2, 2))
+    again = CT.Controller()                                      # closed and reopened a little later
+    ok(f'...and when the app is reopened: channel {again.state["channel"]}, room {again.state["room"]}',
+       (again.state['channel'], again.state['room']) == (5, 2))
+    ctl.settings['last_place']['t'] -= CT.PLACE_KEEP + 1
+    ctl._save()
+    stale = CT.Controller()                                      # but not the next day
+    ok('...but not after a long time', (stale.state['channel'], stale.state['room']) == (0, 0))
+    ctl.remember_place()
     press('api/set', {'auto_start': False}, {'X-MapleReader': '1'})
     ok('...and switching it off is remembered', json.load(open(CT.SETTINGS))['auto_start'] is False)
     app.stop()

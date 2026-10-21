@@ -95,7 +95,8 @@ _NUM = re.compile(r'[0-9]{1,10}')
 
 
 def _seen_ok(stamp, now):
-    """A row's '@time' is real and not in the future. Rows from older readers have no time zone; their
+    """A row's '@time' is real, not in the future and not older than the 35 days kept (a friend's first share
+    sends their whole history: nobody needs the old part). Rows from older readers have no time zone; their
     local time is at most 14 hours off UTC, so a day of leeway covers every zone."""
     s = stamp[1:].replace('Z', '+00:00')
     try:
@@ -104,7 +105,7 @@ def _seen_ok(stamp, now):
         return False
     if t.tzinfo is None:
         t = t.replace(tzinfo=timezone.utc)
-    return t.timestamp() <= now + 86400
+    return now - 35 * 86400 <= t.timestamp() <= now + 86400
 
 
 def clean_line(line, now=None):

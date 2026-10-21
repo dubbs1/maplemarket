@@ -3,7 +3,7 @@ import os
 import re
 import time
 from PIL import Image, ImageChops, ImageOps
-from .config import BUTTON_GREY, ROOM_MISSES, ROOM_REREAD, ROOM_SEARCH, ROOM_SLOW_SEARCH
+from .config import BUTTON_GREY, ROOM_MISSES, ROOM_REREAD, ROOM_SEARCH, ROOM_SLOW_SEARCH, ROOM_TITLE_REREAD
 from .layout import color_boxes
 from .ocr import ocr_lines
 from . import engine
@@ -41,19 +41,14 @@ def world_buttons(img):
     W, H = img.width // step, img.height // 2 // step
     sm = img.crop((0, 0, img.width, img.height // 2)).resize((W, H), Image.NEAREST)
     px = sm.load()
-    orange = lambda p: p[0] > 200 and 130 < p[1] < 185 and p[2] < 70
     blue = lambda p: p[2] > 190 and 130 < p[1] < 195 and p[0] < 90
+    r, g, b = sm.split()[:3]                         # the orange pixels, found in Pillow (pixel by pixel took ~50 ms)
+    orange = ImageChops.multiply(ImageChops.multiply(r.point(lambda v: 255 if v > 200 else 0), g.point(lambda v: 255 if 130 < v < 185 else 0)),
+                                 b.point(lambda v: 255 if v < 70 else 0)).tobytes()
     runs = []                                        # horizontal runs of orange pixels
     for y in range(H):
-        x = 0
-        while x < W:
-            if orange(px[x, y]):
-                x0 = x
-                while x < W and orange(px[x, y]):
-                    x += 1
-                if x - x0 >= 2:
-                    runs.append([y, x0, x])
-            x += 1
+        for m in re.finditer(rb'\xff{2,}', orange[y * W:(y + 1) * W]):
+            runs.append([y, m.start(), m.end()])
     groups = []                                      # join runs that touch the run above into shapes
     for r in runs:
         for g in groups:
@@ -88,22 +83,34 @@ def _map_fix(line):
     return line if len(re.findall(r'[A-Za-z]', line)) >= 4 and re.search(r'[A-Za-z]{3,}', line) and not re.search(r'[?=|]', line) else None
 
 
-def read_map(img):
+MAP_READS = tuple((th, sc) for th in (185, 190, 195, 200) for sc in (2, 3, 4))   # 12 reads, ~0.5 s, every 20 s (EXP log)
+ROOM_READS = ((190, 3), (195, 2), (200, 2))              # 3 reads, ~0.15 s: on the shop-reading thread (RoomWatcher)
+
+
+def _room_no(line):
+    """The room in a title line ("Free Market <2>", or "Market <2>" when the F was lost), for voting on the number."""
+    m = re.search(r'arket <(\d{1,2})>', line)
+    return m.group(1) if m else None
+
+
+def read_map(img, reads=MAP_READS, need=3, key=None):
     """The map's name from the minimap's title ("Hidden Street" / "1st Accompaniment <1st Stage>": the second line
-    is the map), or None. White letters on light blue: only the near-white ones are kept, read a few ways, and the
-    reading most of them agree on wins."""
+    is the map), or None. White letters on light blue: only the near-white ones are kept, read a few ways (`reads`:
+    (threshold, scale) pairs), and the reading at least `need` of them agree on wins. `key` turns a read line into
+    what is voted on (the line itself without it; None = no vote)."""
     for bx0, by0, bx1, hb in world_buttons(img):
         box = (max(0, int(bx0 - 18 * hb)), by0 + int(2 * hb), min(img.width, int(bx1 + 0.8 * hb)), by0 + int(5.9 * hb))
         red = img.crop(box).split()[0]
         votes = {}
-        for th, sc in ((th, sc) for th in (185, 190, 195, 200) for sc in (2, 3, 4)):   # (12 reads: ~1 s every 20 s)
+        for th, sc in reads:
             g = red.point(lambda v, th=th: 0 if v > th else 255).resize((red.width * sc, red.height * sc), Image.LANCZOS)
             lines = [_map_fix(x) for x in engine.text(ImageOps.expand(g, border=12, fill=255), config='--psm 6').splitlines()]
             lines = [x for x in lines if x]
-            if lines:
-                votes[lines[-1]] = votes.get(lines[-1], 0) + 1
+            k = (key(lines[-1]) if key else lines[-1]) if lines else None
+            if k:
+                votes[k] = votes.get(k, 0) + 1
         best = max(votes, key=lambda k: (votes[k], len(k))) if votes else None
-        if best and votes[best] >= 3:                    # a real name reads the same again and again; junk doesn't
+        if best and votes[best] >= need:                 # a real name reads the same again and again; junk doesn't
             return best
     return None
 
@@ -178,13 +185,15 @@ class RoomWatcher:
         self.saved = not keep_picture              # True = don't write scans/room_check.png
 
     def _title_room(self, img):
-        m = re.search(r'Free Market <(\d{1,2})>', read_map(img) or '')
-        return int(m.group(1)) if m and 1 <= int(m.group(1)) <= 40 else None
+        """The room from the minimap's whole title, read like the EXP log's map name but with a quarter of the reads
+        (this runs on the shop-reading thread, where a long pause would miss scrolled rows), voting on the number."""
+        n = read_map(img, ROOM_READS, need=2, key=_room_no)
+        return int(n) if n and 1 <= int(n) <= 40 else None
 
     def update(self, img, lines=None, force=False):
         now = time.time()
         if self.by_title:                              # (bigger minimap text than the usual boxes read: the owner's)
-            if force or now - self.last_title > ROOM_REREAD * 3:
+            if force or now - self.last_title > ROOM_TITLE_REREAD:
                 self.last_title = now
                 r = self._title_room(img)
                 if r:
@@ -220,8 +229,8 @@ class RoomWatcher:
                     self.room, self.box, self.last_read = r, box, now
                     break
             else:
-                if force or now - self.last_title > ROOM_SEARCH * 2:   # the other way: the minimap's whole title,
-                    self.last_title = now                              # read like the EXP log's map name
+                if force or now - self.last_title > ROOM_TITLE_REREAD:   # the other way: the minimap's whole title
+                    self.last_title = now
                     r = self._title_room(img)
                     if r:
                         self.room, self.by_title = r, True
@@ -239,7 +248,7 @@ def channel_window(img):
     return None
 
 
-def read_channel(img, lines=None):
+def read_channel(img):
     """If the Change Channel window is open, read the highlighted (blue) channel button."""
     g = channel_window(img)
     if not g:

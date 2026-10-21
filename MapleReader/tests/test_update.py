@@ -54,6 +54,11 @@ def main():
     ok('a newer release is found', info['state'] == 'available' and info['version'] == '2099-01-01')
     ok('the same version is not offered again', update.check(api, current='2099-01-01')['state'] == 'none')
     ok('an older release is not offered', update.check(api, current='2100-01-01')['state'] == 'none')
+    rel = json.loads(FILES['/latest'][1])
+    for a in rel['assets']:
+        a['browser_download_url'] = 'https://elsewhere.example' + a['browser_download_url'].split('/dl')[1]
+    FILES['/latest'] = (200, json.dumps(rel).encode())
+    ok('files that are not on the release page are never downloaded', update.check(api, current='2026-10-20f')['state'] == 'none')
     FILES.pop('/latest')
     ok('no public release (private repository or none yet): says so quietly', update.check(api)['state'] == 'unavailable')
     ok('offline: says so quietly', update.check('http://127.0.0.1:9/latest')['state'] == 'offline')

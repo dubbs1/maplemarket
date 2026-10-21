@@ -122,19 +122,38 @@ def whole():
     check(not t.whole, 'shopS.png with its 5th listing unread: not whole (that slot is not empty)')
 
 
+def patched(scanner, screen):
+    """A pretend screen, no chime and no sleeping, for one scanner run; returns what to put back afterwards."""
+    old = (scanner.time, scanner.beep, sys.modules.get('mss'), scanner.ROOM_WAIT)
+    sys.modules['mss'] = types.SimpleNamespace(MSS=screen)
+    scanner.time = types.SimpleNamespace(sleep=lambda s: None, time=__import__('time').time)
+    scanner.beep = lambda v: None
+    return old
+
+
+def unpatch(scanner, old):
+    scanner.time, scanner.beep, mss, scanner.ROOM_WAIT = old
+    if mss is None:
+        sys.modules.pop('mss', None)
+    else:
+        sys.modules['mss'] = mss
+
+
 def room_typed():
     print('The minimap can\'t be read: shops wait a little for the room, typed by hand:')
     import test_session as TS
     from shopreader import scanner
     from PIL import ImageDraw
 
-    def run(type_at, wait):
+    def run(type_at, wait, shop_first=False, channel_at=0, frames=None):
         pics = []
-        for im in TS.frames():
+        for im in frames or TS.frames():
             im = im.copy()
             ImageDraw.Draw(im).rectangle((0, 0, im.width // 4, im.height // 4), fill=(0, 0, 0))   # no minimap
             pics.append(im)
-        n = [0]
+        if shop_first:                               # the first shop before the Change Channel window
+            pics[2:5], pics[5:8] = pics[5:8], pics[2:5]
+        n, said = [0], []
 
         class Shot:
             def __init__(s, img):
@@ -146,32 +165,40 @@ def room_typed():
                 n[0] += 1
                 if n[0] == type_at:
                     sc.set_room(2)                   # typed on the Scan tab, part-way through
+                if n[0] == channel_at:
+                    sc.set_channel(4)                # typed on the Scan tab
                 if not pics:
                     sc.stop()
                     return Shot(Image.new('RGB', (64, 64)))
                 return Shot(pics.pop(0))
-        sys.modules['mss'] = types.SimpleNamespace(MSS=Screen)
-        scanner.ROOM_WAIT = wait
-        scanner.beep = lambda v: None
 
         class Ev(scanner.Events):
-            def message(self, text): pass
+            def message(self, text): said.append(text)
             def saved(self, rows, room, ch, total): pass
+        old = patched(scanner, Screen)
+        scanner.ROOM_WAIT = wait
         os.makedirs('roomtest', exist_ok=True)
-        old = os.getcwd()
+        cwd = os.getcwd()
         os.chdir(tempfile.mkdtemp(dir='roomtest'))
         try:
             sc = scanner.Scanner(events=Ev(), interval=0)
             sc.run()
-            return sorted({ln.split(' | ')[3] for ln in lines()}), sc.saver.total
+            got = lines() if os.path.exists(os.path.join('scans', 'all_scans.txt')) else []
+            return sorted({ln.split(' | ')[3] for ln in got}), sc.saver.total, said
         finally:
-            os.chdir(old)
-    scanner.time = types.SimpleNamespace(sleep=lambda s: None, time=__import__('time').time)
-    rooms, total = run(type_at=12, wait=60)
+            os.chdir(cwd)
+            unpatch(scanner, old)
+    rooms, total, _ = run(type_at=12, wait=60)
     check(rooms == ['2'] and total == 29, f'typed part-way: every listing saved in room 2 ({rooms}, {total} saved), none as "?"')
-    rooms, total = run(type_at=10 ** 6, wait=0.2)
+    rooms, total, _ = run(type_at=10 ** 6, wait=0.2)
     check(rooms == ['0'] and total > 0, f'never typed: after a short wait they are saved anyway, room unknown ({rooms}, {total} saved)')
-    scanner.ROOM_WAIT = 20
+    rooms, total, _ = run(type_at=12, wait=60, shop_first=True)
+    check(rooms == ['2'] and total == 29, f'a shop before the channel is known: it waits for the room too ({rooms}, {total} saved)')
+    rooms, total, _ = run(type_at=12, wait=60, shop_first=True, channel_at=4)
+    check(rooms == ['2'] and total == 29, f'...also with the channel typed instead of read ({rooms}, {total} saved)')
+    rooms, total, said = run(type_at=10 ** 6, wait=60, frames=TS.frames()[:2] + TS.frames()[5:10])   # no channel, ever
+    check(not rooms and total == 0 and any('not saved' in s for s in said),
+          f'never a channel: nothing saved (a line needs one), and Stop says so ({total} saved, {said[-1:]})')
 
 
 def room_windowed():
@@ -209,14 +236,16 @@ def screen_fails():
                 sc.stop()
                 return Shot(Image.new('RGB', (64, 64)))
             return Shot(pics.pop(0))
-    sys.modules['mss'] = types.SimpleNamespace(MSS=Screen)
-    scanner.time = types.SimpleNamespace(sleep=lambda s: None, time=__import__('time').time)
 
     class Ev(scanner.Events):
         def message(self, text): pass
         def saved(self, rows, room, ch, total): pass
-    sc = scanner.Scanner(events=Ev(), interval=0)
-    sc.run()
+    old = patched(scanner, Screen)
+    try:
+        sc = scanner.Scanner(events=Ev(), interval=0)
+        sc.run()
+    finally:
+        unpatch(scanner, old)
     check(len(made) >= 2 and not pics, f'watching carried on: {len(made)} screen readers opened, every picture looked at')
 
 

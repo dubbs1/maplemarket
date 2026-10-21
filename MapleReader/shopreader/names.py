@@ -39,7 +39,7 @@ def fix_name(name, items):
     name = ' '.join(w[:1].upper() + w[1:] if w.islower() and (i == 0 or w not in small) else w
                     for i, w in enumerate(name.split()))   # "Smithing kit" -> "Smithing Kit", so one item = one name
     # snap a slightly misread name onto the closest known item (only if you made items.txt)
-    if not items:
+    if not items or name in items:
         return name
     m = difflib.get_close_matches(name, items, n=1, cutoff=NAME_MATCH)
     return m[0] if m else name

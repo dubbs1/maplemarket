@@ -53,6 +53,9 @@ def main():
                       'Zone Item | 700 | UTC Shop | 2 | 5 | c1 | @2026-10-19T19:41:00Z',
                       f'Future Item | 700 | Shop | 2 | 5 | c1 | {future}'])
     ok(f'times with a time zone are kept; times in the future are refused ({r})', r['added'] == 2 and r['bad'] == 1)
+    old = time.strftime('@%Y-%m-%dT%H:%M:%S+00:00', time.gmtime(time.time() - 40 * 86400))
+    code, r = up(k1, [f'Old Item | 700 | Shop | 2 | 5 | c1 | {old}'])
+    ok(f"a line older than the 35 days kept is refused (a friend's first share of a long history) ({r})", r['added'] == 0 and r['bad'] == 1)
     code, f = call('/api/rows?from=0')
     ok('everyone can read the rows', code == 200 and f['text'].count('\n') == 7 and f['status']['scanning'] == 2)
     code, f2 = call(f"/api/rows?from={f['next']}")

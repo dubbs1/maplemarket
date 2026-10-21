@@ -22,7 +22,6 @@ from .exp_font import GLYPHS
 
 HP_RED, MP_BLUE = (204, 8, 0), (0, 124, 204)        # the status bar's HP and MP fill colours
 MP_LOW = (0, 46, 70)           # the MP fill drawn dark navy (with a red outline) when MP is low
-HP_BAR = 168                   # width (px) of the HP bar at the usual interface size
 BAR_STEP = 169                 # from the HP fill's left edge to the MP fill's at the usual size (exact edges)
 
 _white = lambda p: min(p) > 130 and max(p) - min(p) < 45           # the EXP number and the percentage digits
@@ -130,8 +129,9 @@ def _boxes(img, bar, part):
             ty = _ink_rows(px, a, b, y0, y1, _tile)
             dx = [x for x in range(a, b + 1) if any(_digit(px[x, y]) for y in range(*ty))]
             dy = dx and _ink_rows(px, dx[0], dx[-1], ty[0], ty[1], _digit)
-            if dy:
-                out.append((dx[0], dy[0], dx[-1] + 1, dy[1]))
+            if not dy:
+                return [], _digit                    # a tile whose digit can't be seen (a window over it): unclear, not "3" for 38
+            out.append((dx[0], dy[0], dx[-1] + 1, dy[1]))
         return out, _digit
     y0, y1 = bar['line']
     if part in ('hp', 'mp'):
@@ -448,11 +448,18 @@ class ExpTracker:
             t = self._now(now)
             if self.mesos is not None and amount - self.mesos > self.MESO_JUMP:
                 return                                   # a misread (no pickup is that big): nothing changes
-            if self.mesos is not None and 0 < amount - self.mesos:
+            if self.mesos is not None and amount < self.mesos:
+                if self.meso_low is None:                # lower: spent, or a digit lost (1,421,566 read as 421,566, which
+                    self.meso_low = amount               # would make the next look a million "gained"): wait for a second
+                    return                               # look; lower again = real, and what came in since then counts
+                self.meso_gain += max(0, amount - self.meso_low)
+                if self.run:
+                    self.run['mg'] += max(0, amount - self.meso_low)
+            elif self.mesos is not None and 0 < amount - self.mesos:
                 self.meso_gain += amount - self.mesos
                 if self.run:
                     self.run['mg'] += amount - self.mesos
-            self.mesos = amount                          # (spending lowers it)
+            self.mesos, self.meso_low = amount, None     # (spending lowers it)
             self.mt0 = self.mt0 if self.mt0 is not None else t
             self.mt1 = t
             if self.run:
@@ -488,6 +495,8 @@ class ExpTracker:
             self.first = None                           # a first reading, until a second one agrees with it
             self.gained = self.lost = self.levels = 0
             self.need = None                            # EXP the current level needs (exp / pct)
+            self.need_prev = None                       # the level before's (a loose check while the new one is unknown)
+            self.meso_low = None                        # a lower meso amount seen once: real (spent) only if seen again
             self.history = []                           # (t, total gained) for the per-hour rate
             self.trail = []                             # (t, total gained) about once a minute, the whole session
 
@@ -497,6 +506,13 @@ class ExpTracker:
 
     def _fits(self, need, than):
         return than is None or need is None or abs(need / than - 1) < 0.03
+
+    def _new_level_ok(self, exp, pct, need):
+        """Just after a level-up, before the new level's EXP is known, a reading is kept only if the level it implies
+        needs between half and 2.5 times what the level before did (a digit read wrong implies ten times more)."""
+        if need is None:                                 # under 1%: the rounded % gives a lower bound only
+            return exp * 100 / (pct + 0.005) <= self.need_prev * 2.5
+        return 0.5 < need / self.need_prev < 2.5
 
     def add(self, r, now=None):
         """Feed a reading; True if it was accepted (it changed something)."""
@@ -540,10 +556,12 @@ class ExpTracker:
             if self.need:
                 self.gained += max(0, round(self.need) - exp0) + exp
             self.levels += 1
-            self.need = need
+            self.need_prev, self.need = self.need or self.need_prev, need
             lv0 = lv0 + 1 if lv0 else None             # counted from the level known before, not re-read
         elif not fits:
             return False                                 # a misread: the number and the percentage disagree
+        elif not self.need and self.need_prev and not self._new_level_ok(exp, pct, need):
+            return False                                 # (just after a level-up: a misread here would be kept as the level's EXP)
         elif exp >= exp0:
             self.gained += exp - exp0
             if need and (pct >= 5 or not self.need):   # (just after a level-up the level's EXP isn't known yet)
@@ -573,24 +591,26 @@ class ExpTracker:
             self.on_gain(self.gained - g0, now)
         return True
 
-    def _at(self, t):
-        """Total gained at time t (from the trail)."""
-        i = bisect.bisect_right([p[0] for p in self.trail], t)
+    def _at(self, t, ts=None):
+        """Total gained at time t (from the trail; `ts` = the trail's times, when the caller has them)."""
+        i = bisect.bisect_right(ts if ts is not None else [p[0] for p in self.trail], t)
         return self.trail[i - 1][1] if i else 0
 
     def _hours(self, now):
         """The last 2 hours in 10-minute slots (oldest first), the last hour, the hour before, the best hour."""
         t0 = self.start[0]
+        ts = [p[0] for p in self.trail]                  # (once: summary() runs every second, the trail grows all day)
+        at = lambda t: self._at(t, ts)
         n = min(self.SLOTS, max(1, -int(-(now - t0) // self.SLOT)))
         edges = [max(t0, now - (n - k) * self.SLOT) for k in range(n)] + [now]
-        slots = [self._at(b) - self._at(a) for a, b in zip(edges, edges[1:])]
+        slots = [at(b) - at(a) for a, b in zip(edges, edges[1:])]
         whole = now - t0
-        hour = self.gained - self._at(now - 3600) if whole >= 3600 else None
-        prev = self._at(now - 3600) - self._at(now - 7200) if whole >= 7200 else None
+        hour = self.gained - at(now - 3600) if whole >= 3600 else None
+        prev = at(now - 3600) - at(now - 7200) if whole >= 7200 else None
         best = None
         if whole >= 3600:
-            ends = [p[0] for p in self.trail if p[0] >= t0 + 3600] + [now]
-            best = max(self._at(t) - self._at(t - 3600) for t in ends)
+            ends = [t for t in ts if t >= t0 + 3600] + [now]
+            best = max(at(t) - at(t - 3600) for t in ends)
         return slots, hour, prev, best
 
     def summary(self, now=None):

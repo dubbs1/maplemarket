@@ -54,6 +54,8 @@ You need about 30 minutes. Do the parts in order. Keep a Notepad window open to 
    - You should see the market page, empty for now ("Nothing yet. Listings appear here as friends scan.").
 7. Check the connection: add `/api/rows?from=0` to the end of that address and press Enter.
    - You should see a short line of text starting with `{"text": ""`.
+8. Check that the address carries its question: change the end to `/api/rows?from=99999` and press Enter.
+   - You should see `"reset": true` somewhere in the line. (If it says `"reset": false`, send Claude the exact line: the `from=` part didn't arrive, and the market would re-read everything on every look.)
    - If it says **not set up yet**: a setting from step 4 is missing. In Vercel, open the project, **Settings** › **Environment Variables**, fix it, then **Deployments**, the **⋯** next to the newest one, **Redeploy**.
    - If it says **said no**: schema.sql didn't run. Do Part 1 step 4 again.
 

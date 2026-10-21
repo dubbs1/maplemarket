@@ -334,7 +334,8 @@ html.app main{max-width:1320px}
 /* phones: the tabs along the bottom, within reach of a thumb */
 @media(max-width:640px){html.app nav{position:fixed;top:auto;bottom:0;left:0;right:0;margin:0;border-radius:0;border-width:1px 0 0;
   padding:4px 4px calc(6px + env(safe-area-inset-bottom,0px));z-index:20}html.app main{padding-bottom:90px}
-  html.app nav button{min-height:48px;font-size:13px}}
+  html.app nav button{min-height:48px;font-size:13px}
+  html.app #live{bottom:calc(72px + env(safe-area-inset-bottom,0px))}}
 </style>
 <main>
 <header class="top"><div class="brand"><svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15" fill="var(--ac)"/><circle cx="17" cy="17" r="10.5" fill="none" stroke="var(--acbg)" stroke-width="2"/><text x="17" y="21.5" text-anchor="middle" font-family="var(--mono)" font-size="12" font-weight="700" fill="var(--acbg)">m</text></svg><div><h1>Maple Classic Market</h1><p>Free Market prices from your own shop scans</p></div></div><div class="hr"><span id="chip" class="lchip" hidden></span><button id="theme" aria-label="Switch light or dark theme">Theme</button></div></header>
@@ -637,13 +638,34 @@ function load() {
 function saveRoom() {
   if (save()) return true;
   S.scans.sort((a, b) => a.t - b.t);
-  while (S.scans.length > 1) {
-    S.scans.splice(0, Math.ceil(S.scans.length / 10));
+  HAVE = null;
+  while (S.scans.length) {
+    if (S.scans.length > 1) S.scans.splice(0, Math.ceil(S.scans.length / 10));
+    else {
+      // one long session (the group's feed joins everyone's rows): drop its oldest tenth
+      const rows = S.scans[0].rows.sort((a, b) => (a.t || 0) - (b.t || 0));
+      if (rows.length < 10) return false;
+      rows.splice(0, Math.ceil(rows.length / 10));
+      S.scans[0].t = rows[0].t || S.scans[0].t;
+    }
     S.rev = (S.rev || 0) + 1;
     if (save()) return true;
   }
   return false;
 }
+// While scanning, rows arrive every few seconds: writing the whole store each time (megabytes) would make the
+// page stutter, so live pulls save a few seconds later, all at once (and at once when the page is left)
+let saveTimer = 0;
+function saveSoon() {
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = 0;
+    if (!saveRoom()) say("This browser's storage is full: new listings can't be kept. Clear old data with Reload all.");
+  }, 5000);
+}
+addEventListener("pagehide", () => {
+  if (saveTimer) (clearTimeout(saveTimer), (saveTimer = 0), saveRoom());
+});
 function save() {
   // false = the browser refused (storage full or blocked); the data stays on screen until the page closes
   try {
@@ -688,7 +710,9 @@ function scanAll() {
         .sort((a, b) => (m[b].n || 1) - (m[a].n || 1))
         .forEach(k => extra-- > 0 && (m[k].st = "gone"));
     });
-    sc.rows.forEach(r => {
+    // in time order, not arrival order: a friend's older "for sale" row arriving after this PC's "gone" line
+    // must not put the listing back on sale (a stable sort keeps same-second rows as they came)
+    [...sc.rows].sort((a, b) => (a.t || sc.t) - (b.t || sc.t)).forEach(r => {
       let k = K(r);
       const at = r.t || sc.t;
       // sold rows are numbered apart from those for sale: "c1 sold" seen at the same moment as a "c1" for sale is
@@ -816,7 +840,7 @@ function tidyNames() {
     map = {};
   let n = 0;
   ITEMS.forEach(it => {
-    const f = S.custom.includes(it) ? fixName(it.name) || it.name : it.name,
+    const f = S.custom.includes(it) && !it.typed ? fixName(it.name) || it.name : it.name,
       k = f.toLowerCase(),
       to = by.get(k);
     if (to && S.custom.includes(it)) map[it.id] = to.id;
@@ -837,7 +861,7 @@ function tidyNames() {
     if (S.watch[a] && !S.watch[b]) S.watch[b] = S.watch[a];
     delete S.watch[a];
   });
-  ITEM_IDX = null;
+  ITEM_IDX = NAME_IDX = HAVE = null;
   AC = null;
   S.rev = (S.rev || 0) + 1;
   save();
@@ -864,7 +888,7 @@ function parseScanRows(text) {
         skipped++;
         return;
       }
-      const r = addItem(fixName(p[0]) || p[0], "Other", true);
+      const r = addItem(fixName(p[0]) || p[0], "Other", true, true);
       if (!r) {
         skipped++;
         return;
@@ -908,7 +932,17 @@ function addSnapshot(rows, t, end) {
 // Rows the reader timed (@2026-10-19T15:31:08) are added one by one, skipping any already imported, so
 // the same all_scans.txt can be imported again and again. Rows are grouped into scanning sessions;
 // rows that continue a session already imported join it. Old files without times work as before.
-function importScan(text) {
+// Every timed row already stored, by ROWK (and "#copy"): kept between imports, since a live page imports every
+// few seconds; set to null wherever S.scans is replaced or rows change item (RESET, tidyNames, pruning)
+let HAVE = null;
+const haveSet = () => {
+  if (!HAVE) {
+    HAVE = new Set();
+    S.scans.forEach(sc => sc.rows.forEach(r => r.t && HAVE.add(ROWK(r) + (r.copy > 1 ? "#" + r.copy : ""))));
+  }
+  return HAVE;
+};
+function importScan(text, lazy) {
   const { rows, skipped } = parseScanRows(text),
     old = LIVE ? Date.now() - 30 * DAY : 0, // live pages keep 30 days: older rows aren't stored at all
     timed = rows.filter(r => r.t && r.t > old).sort((a, b) => a.t - b.t),
@@ -916,9 +950,8 @@ function importScan(text) {
   let added = 0,
     already = 0;
   if (timed.length) {
-    const have = new Set();
-    S.scans.forEach(sc => sc.rows.forEach(r => r.t && have.add(ROWK(r) + (r.copy > 1 ? "#" + r.copy : ""))));
-    const fresh = [],
+    const have = haveSet(),
+      fresh = [],
       inText = {};
     timed.forEach(r => {
       const k = ROWK(r);
@@ -927,10 +960,12 @@ function importScan(text) {
       if (have.has(kk)) already++;
       else {
         if (inText[k] > 1) r.copy = inText[k];
+        have.add(kk);
         fresh.push(r);
       }
     });
     let cur = null;
+    const touched = new Set();
     fresh.forEach(r => {
       if (!cur || r.t - cur.end > SESSION_GAP) {
         cur = S.scans.find(sc => sc.timed && r.t >= sc.t - SESSION_GAP && r.t - sc.end <= SESSION_GAP) || null;
@@ -939,13 +974,13 @@ function importScan(text) {
       cur.rows.push(r);
       cur.t = Math.min(cur.t, r.t);
       cur.end = Math.max(cur.end, r.t);
+      touched.add(cur);
       added++;
     });
-    S.scans.forEach(sc => {
-      if (sc.timed) {
-        numberCopies(sc.rows);
-        sc.areas = [...new Set(sc.rows.map(x => x.room + "/" + x.ch))];
-      }
+    touched.forEach(sc => {
+      // (only the sessions that got rows: numbering every session again on each pull was most of the work)
+      numberCopies(sc.rows);
+      sc.areas = [...new Set(sc.rows.map(x => x.room + "/" + x.ch))];
     });
   }
   if (plain.length) {
@@ -958,7 +993,8 @@ function importScan(text) {
   if (added) {
     S.scans.sort((a, b) => a.t - b.t);
     S.rev = (S.rev || 0) + 1;
-    full = !(LIVE ? saveRoom() : save());
+    if (LIVE && lazy) saveSoon();
+    else full = !(LIVE ? saveRoom() : save());
   }
   return { added, skipped, already, dup: !added && already > 0, full };
 }
@@ -1012,7 +1048,13 @@ function parsePrice(v) {
   const s = String(v).replace(/,/g, "").trim();
   return /^\d+$/.test(s) && +s >= 1 && +s <= 2e9 ? +s : null;
 }
-function addItem(name, cat, ns) {
+// name → item, like item() by id (a scan of 40,000 lines asks thousands of times: a Map, not a search of ITEMS)
+let NAME_IDX = null;
+function itemByName(name) {
+  if (!NAME_IDX || NAME_IDX.n !== ITEMS.length) (NAME_IDX = new Map(ITEMS.map(i => [i.name.toLowerCase(), i]))).n = ITEMS.length;
+  return NAME_IDX.get(String(name).toLowerCase());
+}
+function addItem(name, cat, ns, scanned) {
   name = String(name || "")
     .trim()
     .replace(/\s+/g, " ");
@@ -1021,10 +1063,12 @@ function addItem(name, cat, ns) {
       .trim()
       .slice(0, 24) || "Other";
   if (!name || name.length > 60) return null;
-  const ex = ITEMS.find(i => i.name.toLowerCase() === name.toLowerCase());
+  const ex = itemByName(name);
   if (ex) return { dup: 1, it: ex };
   const it = { id: "c" + Date.now().toString(36) + ITEMS.length, name, cat, base: 0 };
+  if (!scanned) it.typed = 1; // a name someone typed: never "fixed" like a misread (tidyNames)
   ITEMS.push(it);
+  if (NAME_IDX) NAME_IDX.set(name.toLowerCase(), it);
   S.custom.push(it);
   S.sg[it.id] = [];
   if (!ns) save();
@@ -1574,12 +1618,12 @@ function priceRows() {
   analyze().rows.forEach(o => (by[o.item] = by[o.item] || []).push(o));
   const k = norm(q).split(/\s+/).filter(Boolean);
   return Object.entries(by)
+    .filter(([id]) => item(id) && k.every(w => norm(item(id).name).includes(w))) // (the name first: stats cost)
     .map(([id, R]) => {
       const live = forSale(R);
       return { id, it: item(id), n: live.length, low: live.length ? Math.min(...live.map(o => o.price)) : null,
         usual: stats(id).usual, seen: Math.max(...R.map(o => o.last || o.first)) };
     })
-    .filter(p => p.it && k.every(w => norm(p.it.name).includes(w)))
     .sort((a, b) =>
       psort === "low" ? (a.low ?? a.usual ?? 9e9) - (b.low ?? b.usual ?? 9e9) : psort === "az" ? a.it.name.localeCompare(b.it.name) : b.seen - a.seen
     );
@@ -1877,8 +1921,8 @@ function alertsHtml() {
     return `<div class="card mu">No alerts yet. Open an item and press <b>Tell me when it's this price or less</b>.</div>`;
   const live = forSale(analyze().rows);
   return `<div class="feed">${S.alerts.map(a => {
-    const t = norm(a.term).trim(),
-      m = live.filter(o => item(o.item) && norm(item(o.item).name).includes(t)),
+    const k = norm(a.term).split(/\s+/).filter(Boolean), // every word of the alert, anywhere in the name: the
+      m = live.filter(o => item(o.item) && k.every(w => norm(item(o.item).name).includes(w))), // same rule as the chime
       low = m.length ? Math.min(...m.map(o => o.price)) : null,
       hit = low != null && (!a.max || low <= a.max),
       id = m.length ? m.find(o => o.price === low).item : null;
@@ -2326,7 +2370,7 @@ const RESET = () => {
   AC = null;
   ITEMS.length = 0;
   ITEMS.push(...BASE);
-  ITEM_IDX = null;
+  ITEM_IDX = NAME_IDX = HAVE = null;
   cur = null;
   view = "market";
   q = "";
@@ -2374,12 +2418,14 @@ function setOff(n) {
     localStorage.setItem(OFFK, String(n));
   } catch (e) {}
 }
+let PRUNED = Date.now();
 function pruneOld() {
   const cut = Date.now() - 30 * DAY,
     n = S.scans.length;
   S.scans = S.scans.filter(sc => (sc.end || sc.t) > cut); // listings older than 30 days are dropped
   if (S.scans.length < n) {
     S.rev = (S.rev || 0) + 1;
+    HAVE = null;
     save();
   }
 }
@@ -2444,8 +2490,12 @@ function puller(path, offKey, isMain) {
       } catch (e) {}
     };
   let off = get();
+  // this PC's own file: every 2 s. The group's market runs on a free plan: every 20 s is plenty (the app's own
+  // scans show at once anyway; a friend's appear within half a minute)
+  const EVERY = MODE === "local" && isMain ? 2000 : 20000;
   const pull = async () => {
-    let wait = 2000;
+    let wait = EVERY;
+    if (isMain && Date.now() - PRUNED > 3600e3) (PRUNED = Date.now()), pruneOld(); // the window stays open for days
     try {
       const r = await fetch(path + "?from=" + off, { cache: "no-store" });
       if (!r.ok) throw new Error(r.status);
@@ -2461,7 +2511,7 @@ function puller(path, offKey, isMain) {
       if (j.reset) off = 0;
       if (j.text) {
         const before = alertHits().map(K),
-          res = importScan(j.text);
+          res = importScan(j.text, true);
         if (res.added) {
           liveAdded += res.added;
           liveLast = newestRow() || Date.now();
