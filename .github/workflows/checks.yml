@@ -43,11 +43,9 @@ jobs:
           python -m playwright install --with-deps chromium
           npm ci
       - name: Code check (pyflakes)
-        run: python -m pyflakes MapleReader maple-server maple-cloud tools dev-tests
+        run: python -m pyflakes MapleReader maple-cloud tools dev-tests
       - name: All checks
         run: bash dev-tests/run_all.sh
-      - name: Install-script checks (this machine is thrown away afterwards)
-        run: sudo bash dev-tests/e2e/test_install.sh | tee install.log && grep -q "ALL INSTALL CHECKS PASSED" install.log
 
   windows:
     if: >-

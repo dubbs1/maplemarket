@@ -21,11 +21,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, os.path.join(ROOT, 'maple-cloud', 'api'))
-sys.path.insert(0, os.path.join(ROOT, 'maple-server'))
 sys.path.insert(0, os.path.join(ROOT, 'MapleReader'))
 os.environ['MAPLE_QUIET'] = '1'
 import market as C                                          # noqa: E402
-import server as OLD                                        # noqa: E402
 from shopreader import share                                # noqa: E402
 
 fails = []
@@ -205,7 +203,7 @@ def main():
               f'upload: 2 added, 1 already there, 2 bad lines refused, from Gunther ({got})')
         code, body, _ = http(url + '/api/rows?from=0')
         feed = json.loads(body)
-        check(code == 200 and feed['text'].splitlines() == [OLD.clean_line(r) for r in rows] and feed['status']['scanning'] == 1
+        check(code == 200 and feed['text'].splitlines() == [C.clean_line(r) for r in rows] and feed['status']['scanning'] == 1
               and not feed['more'], f'/api/rows: both rows, tidied, "1 scanning now" (next {feed["next"]})')
         code, body, _ = http(url + f'/api/market?route=rows&from={feed["next"]}')
         check(json.loads(body)['text'] == '', 'the address as vercel.json passes it (?route=rows) works too, and from=next is empty')
@@ -252,7 +250,8 @@ def main():
         corpus = rows + ['x | 1 | s | 0 | 1 | @2026-01-01T00:00', 'x | ² | s | 1 | 1 | @2026-01-01T00:00', 'x | 1 | s | 41 | 1 | @2026-01-01T00:00',
                          'x | 1 | s | 1 | 1 | c1', 'x | 1 | s | 1 | 1 | sold | @2026-01-01T00:00:00Z', 'x | 1 | s | 1 | 1 | hack | @2026-01-01T00:00',
                          '\x01 | 1 | s | 1 | 1 | @2026-01-01T00:00', 'a' * 61 + ' | 1 | s | 1 | 1 | @2026-01-01T00:00', None, 5]
-        check(all(C.clean_line(x) == OLD.clean_line(x) for x in corpus), 'the same rules as the droplet server for what is accepted')
+        check([C.clean_line(x) for x in corpus] == [C.clean_line(x) for x in rows] + [None] * (len(corpus) - 2) and all(C.clean_line(x) for x in rows),
+              'clean_line: a real row is tidied, everything odd (ASCII digits only, room 0-40, a time, no junk, no length) is refused')
     finally:
         pg.stop()
     print()

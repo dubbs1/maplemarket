@@ -1,6 +1,6 @@
 """Maple Classic Market on Vercel + Supabase: the group's shared market (maple.vendormarket.app).
 
-The same addresses as maple-server/server.py, so MapleReader's uploader (share.py) and the market page work
+The addresses MapleReader's uploader (share.py) and the market page expect, so they work
 unchanged: GET /api/ping, /api/rows?from=N, /api/icons, /icons/<slug>.png; POST /api/upload, /api/icon (with
 a personal key). vercel.json sends /api/* and /icons/* here. Listings, keys and the picture index live in
 Supabase (schema.sql), reached through its maple_* functions with the secret key; the pictures are in Supabase
@@ -80,7 +80,7 @@ def who_is(auth_header):
     return rpc('maple_who', p_hash=hash_key(key))
 
 
-# ---------- checking what friends send (the same rules as maple-server/server.py) ----------
+# ---------- checking what friends send ----------
 # re.ASCII: digits are 0-9 only ("²" or Arabic-Indic digits are not numbers here)
 _ISO = re.compile(r'^@\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d)?(Z|[+-]\d\d:\d\d)?$', re.ASCII)   # offset: newer readers
 _EXTRA = re.compile(r'^(sold|gone|c\d{1,4}|x?\d{1,4}|#\d{1,4})$', re.I | re.ASCII)

@@ -1,12 +1,12 @@
 import sys, os, time, json, subprocess, tempfile, asyncio, urllib.request
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the repository
 R = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_ROOT, 'MapleReader')
-SRV = sys.argv[2] if len(sys.argv) > 2 else os.path.join(_ROOT, 'maple-server')
-OUT = sys.argv[3] if len(sys.argv) > 3 else tempfile.mkdtemp(prefix='mr_shots_'); HERE = os.path.dirname(os.path.abspath(__file__))
-data = tempfile.mkdtemp(prefix='maple_share_')
-env = dict(os.environ, MAPLE_DATA=data, MAPLE_PORT='8799', MAPLE_QUIET='1')
-mk = lambda name: subprocess.run([sys.executable, os.path.join(SRV, 'manage.py'), 'add', name], capture_output=True, text=True, env=env).stdout.split(f'Key for {name}:')[1].split()[0]
-kA, kB = mk('Cass'), mk('Gunther')
+OUT = sys.argv[2] if len(sys.argv) > 2 else tempfile.mkdtemp(prefix='mr_shots_'); HERE = os.path.dirname(os.path.abspath(__file__))
+# the group market: the real Vercel function with a throwaway Postgres (cloud_stub.py); keys first, online on "go"
+psrv = subprocess.Popen([sys.executable, os.path.join(HERE, 'cloud_stub.py'), '8799', 'Cass', 'Gunther'], stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+keys = json.loads(psrv.stdout.readline())
+kA, kB = keys['Cass'], keys['Gunther']
 server = 'http://127.0.0.1:8799'
 fails = []
 def ok(n, c):
@@ -19,8 +19,7 @@ pC = subprocess.Popen([sys.executable, os.path.join(HERE, 'friend.py'), R, wC, '
 time.sleep(12)
 stA = json.load(open(os.path.join(wA, 'status.json')))
 ok(f"A: server down -> scans kept, says offline ({stA['share']['state']})", stA['share']['state'] in ('offline', 'retrying'))
-psrv = subprocess.Popen([sys.executable, os.path.join(SRV, 'server.py')], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-time.sleep(2)
+psrv.stdin.write('go\n'); psrv.stdin.flush(); psrv.stdout.readline()   # the market comes online
 pB = subprocess.Popen([sys.executable, os.path.join(HERE, 'friend.py'), R, wB, '8767', kB, server, 'session', '130'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 pB2 = None
 time.sleep(70)

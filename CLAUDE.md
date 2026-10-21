@@ -7,14 +7,14 @@ How the project works and the decisions behind it, so new work picks up where th
 - The owner is a beginner on Windows. Give **step-by-step instructions**, one action per step, each with "You should see …" and "If … then …". Plain words; avoid jargon or explain it once.
 - Their PC: Windows, Python 3.13 as `py -3.13`, Tesseract 5.5.3 in `C:\Program Files\Tesseract-OCR`; the app installs per user from the Releases page.
 - **Updates** reach them through the installer on the Releases page (the app offers them itself once releases are public); a zip over the folder also works, and then the **full** folder must be sent whenever files were added.
-- They also run **Rev Market** (vendormarket.app), a separate Ragnarok Online market site on its own server. It must never be touched by Maple work: Maple stands alone; only the DNS record `maple` under vendormarket.app is shared. **The group market runs on Vercel + Supabase free plans** (`maple-cloud/`, which replaced the own-droplet plan): the owner sets it up with `maple-cloud/SETUP.md` (a Claude Code session can't reach Vercel, Supabase or DigitalOcean). Friends use personal keys (Discord login is a possible later option). The droplet server (`maple-server/`) still works but isn't the plan. Rev Market's design language (clean, everything visible, no hover-only controls, cards never touching, item pictures on rows, "just listed" in green) is the standard for this UI too.
+- They also run **Rev Market** (vendormarket.app), a separate Ragnarok Online market site on its own server. It must never be touched by Maple work: Maple stands alone; only the DNS record `maple` under vendormarket.app is shared. **The group market runs on Vercel + Supabase free plans** (`maple-cloud/`): the owner sets it up with `maple-cloud/SETUP.md` (a Claude Code session can't reach Vercel or Supabase). Friends use personal keys (Discord login is a possible later option). Rev Market's design language (clean, everything visible, no hover-only controls, cards never touching, item pictures on rows, "just listed" in green) is the standard for this UI too.
 
 ## Hard rules
 
 - **Passive only.** No packet sniffing, no auto-clicking, scrolling or typing, no game-memory reading. Screenshots + OCR only. Nexon has not said screen readers are allowed; the guide says so honestly.
 - **Don't copy other sites' data** (MeowDB, MesoWatch, planet-helper and others). Link only.
 - **No "MapleStory" in product or domain names** (Nexon's trademark). "Maple" and "meso" are fine.
-- **Never edit Rev Market's files, service or droplet.** Maple's droplet is separate; the same-droplet install path still exists but isn't the plan.
+- **Never edit Rev Market's files, service or server.** Maple runs on Vercel + Supabase; nothing of it lives on that server.
 
 ## How it fits together
 
@@ -26,7 +26,6 @@ Game window --screenshots--> MapleReader (scanner thread)
    -> app server http://127.0.0.1:8765 -> app window (Edge --app mode) showing market.html
    -> (sharing on) uploads new lines + pictures to the group server with a personal key
 Group market (maple.vendormarket.app on Vercel: maple-cloud/api/market.py + public/index.html) -> Supabase (Postgres + Storage) -> /api/rows feed -> everyone's market page
-   (or the droplet version: maple-server/, nginx + certbot -> SQLite; same addresses)
 ```
 
 ### Scan line format (all_scans.txt, and what the server stores)
@@ -54,7 +53,7 @@ Group market (maple.vendormarket.app on Vercel: maple-cloud/api/market.py + publ
 | `update.py` | updates: reads the latest GitHub release of `UPDATE_REPO` (config.py); a release must carry `MapleReader-Setup-<v>.exe` **and** `<that>.sha256`, and the download only runs if the SHA-256 matches; both files must sit under `https://github.com/<UPDATE_REPO>/releases/download/` (or the tests' pretend GitHub's origin), since the fingerprint file comes from the same answer as the exe. Installing: PowerShell waits for this process to exit, then runs the setup `/VERYSILENT`; the setup's [Run] starts the app again. Only the installed (frozen) app installs; the zip version gets a "Download page" button. `MAPLEREADER_UPDATE_API` = another address (tests) or `off` (all checks set it). Controller field is `update_info` (not `update`: that's the settings method) |
 | `migrate.py` | the installed app's first run copies `scans/`, `settings.json`, `items.txt` from an older zip folder (Desktop / OneDrive\Desktop / Documents / Downloads `\MapleReader`), never `share_state.json`, never changing the old folder |
 | `share.py` | uploader: tails all_scans.txt from a saved offset (`scans/share_state.json`, moved on after every batch of 2,000 lines, so a refused batch never re-sends the earlier ones); skips lines older than `KEEP_DAYS` (30); survives offline and restarts; a typed `http://` address becomes `https://` (except 127.0.0.1/localhost); `fetch_icon` keeps only a real PNG ≤ 100 KB |
-| `market.html` | **the one true copy of the market page.** Run `python tools/sync_market.py` after editing it to copy it to `maple-server/` |
+| `market.html` | **the one true copy of the market page.** Run `python tools/sync_market.py` after editing it to make `maple-cloud/public/index.html` from it |
 
 ### Market page modes (`MODE` in the page script)
 
@@ -72,17 +71,10 @@ In live modes the page keeps 30 days in the browser's localStorage (about 40,000
 
 ### Group market on Vercel + Supabase (`maple-cloud/`, the plan)
 
-- **Same addresses as `maple-server`** (`/api/ping`, `/api/rows?from=`, `/api/icons`, `/icons/<slug>.png`, POST `/api/upload`, `/api/icon`), so `share.py` and the page work unchanged. `api/market.py` is one Vercel Python function (class `handler`); `vercel.json` rewrites `/api/:route` and `/icons/:file` to it with `?route=` (it also reads the plain path). `public/index.html` is the page with `window.MAPLE={mode:"shared"}` already in (made by `tools/sync_market.py`, checked by `--check`).
-- **Supabase:** `schema.sql` (run in the SQL Editor; re-running is safe) makes `maple_rows`/`maple_keys`/`maple_seen`/`maple_icons` (row level security on, no rules), the public `icons` Storage bucket, and the `maple_*` functions the website calls over `/rest/v1/rpc/` with the secret key (`SUPABASE_URL`, `SUPABASE_SECRET_KEY` or `SUPABASE_SERVICE_KEY` in Vercel; `sb_` keys go in `apikey` only). Everything is revoked from public/anon/authenticated; the owner's commands (`maple_add_key`, `maple_revoke`, `maple_restore`, `maple_purge`, views `maple_people`, `maple_stats`) aren't open to the website either. Keys are `mm-` + 32 hex, stored as sha256. `clean_line` is the same as the droplet server's (the test compares them); both refuse `@time`s more than a day in the future or older than the 35 days kept (a friend's first share of a long history). `who_is` refuses keys not shaped `mm-` + 32 hex before asking Supabase. Pictures: `maple_icon_ok` decides, the file goes to Storage (`x-upsert`), then `maple_icon_set`; `/icons/x.png` is a 302 to the public Storage URL. Rate limits are per running copy only.
+- **Addresses** (`/api/ping`, `/api/rows?from=`, `/api/icons`, `/icons/<slug>.png`, POST `/api/upload`, `/api/icon`): what `share.py` and the page expect. `api/market.py` is one Vercel Python function (class `handler`); `vercel.json` rewrites `/api/:route` and `/icons/:file` to it with `?route=` (it also reads the plain path). `public/index.html` is the page with `window.MAPLE={mode:"shared"}` already in (made by `tools/sync_market.py`, checked by `--check`).
+- **Supabase:** `schema.sql` (run in the SQL Editor; re-running is safe) makes `maple_rows`/`maple_keys`/`maple_seen`/`maple_icons` (row level security on, no rules), the public `icons` Storage bucket, and the `maple_*` functions the website calls over `/rest/v1/rpc/` with the secret key (`SUPABASE_URL`, `SUPABASE_SECRET_KEY` or `SUPABASE_SERVICE_KEY` in Vercel; `sb_` keys go in `apikey` only). Everything is revoked from public/anon/authenticated; the owner's commands (`maple_add_key`, `maple_revoke`, `maple_restore`, `maple_purge`, views `maple_people`, `maple_stats`) aren't open to the website either. Keys are `mm-` + 32 hex, stored as sha256. `clean_line` refuses `@time`s more than a day in the future or older than the 35 days kept (a friend's first share of a long history). `who_is` refuses keys not shaped `mm-` + 32 hex before asking Supabase. Pictures: `maple_icon_ok` decides, the file goes to Storage (`x-upsert`), then `maple_icon_set`; `/icons/x.png` is a 302 to the public Storage URL. Rate limits are per running copy only.
 - **Checks:** `maple-cloud/tests/test_cloud.py` runs a throwaway Postgres (`initdb`; as root via `runuser -u postgres`), a stand-in for Supabase's rpc/Storage (as `service_role` with BYPASSRLS, like Supabase), and the function, with MapleReader's own `share.fetch_rows`/`fetch_icon`. CI installs `postgresql`.
 - **Not yet:** EXP on the phone (needs a per-person login); Discord login.
-
-### Group server on a droplet (`maple-server/`)
-
-- **Code:** stdlib Python + SQLite. `server.py` listens on 127.0.0.1:8790; `manage.py` handles keys (add/list/revoke/restore/purge/stats). Numbers are ASCII digits only (`re.ASCII`); a bad line is counted, never a crash; rows older than 35 days are deleted hourly and a page starting from `from=0` gets the last 30 days; at most 20,000 pictures, written via temp file + `os.replace`.
-- **Install:** `install.sh` creates its own user/folder/env/service. On a fresh droplet (nothing on ports 80/443 **and** no nginx/Caddy installed) it installs nginx + certbot itself (nginx installed but stopped = refuse: it may hold other sites). Re-running with another `MAPLE_DOMAIN` updates Maple's own nginx entry. On a shared server it detects the front door (nginx, Caddy or a Cloudflare tunnel), refuses if another site already uses the address, backs up, validates, rolls back if refused. `--check` changes nothing; `--remove` takes the site down and keeps the data. `MAPLE_DOMAIN` / `MAPLE_EMAIL` set the address and certificate email.
-- **Deploy:** `deploy-maple.ps1` (from Windows: tar → scp → ssh → install.sh). It asks for the droplet's login once and remembers it in `deploy-target.json` (not in git). `-Check`, `-Remove`, `-Domain`, `-Email`, `-Server`.
-- **Status:** not the plan any more (see Vercel + Supabase above) and not installed. If it's ever wanted: `maple-server/SETUP.md` (make droplet → DNS → `-Check` → install → keys), run by the owner (a Claude Code session has no DigitalOcean or SSH access).
 
 ## Building and releasing
 
@@ -97,17 +89,14 @@ In live modes the page keeps 30 days in the browser's localStorage (about 40,000
 
 ## Checks (run before handing anything over)
 
-**All at once (Linux):** `bash dev-tests/run_all.sh` (`--quick` skips pictures and browser tests; `--install` adds the install-script checks, throwaway container only). It prints one PASS/FAIL line per check and fails if any does.
+**All at once (Linux):** `bash dev-tests/run_all.sh` (`--quick` skips pictures and browser tests). It prints one PASS/FAIL line per check and fails if any does.
 
 | What | How |
 |---|---|
 | On Windows | `MapleReader\run_tests.bat`: pictures (tolerant of Tesseract 5.3 vs 5.5), pretend session, scrolling, local server |
 | On Linux/macOS | `cd MapleReader && python3 tests/test_pictures.py && python3 tests/test_session.py && python3 tests/test_scroll.py && python3 tests/test_resize.py && python3 tests/test_exp.py && python3 tests/test_revisit.py && python3 tests/test_market.py && python3 tests/test_update.py` |
 | Market page | `npm install && npm test` (jsdom; t14 = gone lines; t13 runs the app's simple layout via `window.MAPLE={mode:'shared'}`). Keep script lines ≤ 200 characters (a check enforces it) |
-| Group server | `python3 maple-server/tests/test_server.py` |
-| End-to-end in a real browser | `python3 dev-tests/e2e/<name>.py` (no arguments needed; `app_e2e.py` covers the simple layout), needs `pip install playwright` (`PW_CHROMIUM=/path/to/chrome` optional): `live_e2e.py`, `app_e2e.py`, `share_e2e.py` (pretend friends + server) |
-| Install script | `bash dev-tests/e2e/test_install.sh` (30 checks): only in a throwaway container as root, with the stub tools in `dev-tests/e2e/stubs` (fresh droplet, nginx, Caddy, tunnel, address clash, port moves, remove) |
-| Deploy script | needs `pwsh`; run it with fake `scp`/`ssh` that run the command locally, against the same stubs |
+| End-to-end in a real browser | `python3 dev-tests/e2e/<name>.py` (no arguments needed; `app_e2e.py` covers the simple layout), needs `pip install playwright` (`PW_CHROMIUM=/path/to/chrome` optional): `live_e2e.py`, `app_e2e.py`, `share_e2e.py` (pretend friends + the group market: `cloud_stub.py` runs the real Vercel function with a throwaway Postgres and serves the page) |
 
 Tesseract versions differ: the expected outputs were made with 5.3. Linux wheels of `tesserocr` bundle libtesseract 5.5, useful to reproduce the owner's results (point `MAPLEREADER_TESSLIB` at it).
 
@@ -117,5 +106,5 @@ Tesseract versions differ: the expected outputs were made with 5.3. Linux wheels
 - **EXP digit shapes:** `tools/make_exp_font.py` cuts them from test pictures at the usual interface size (live_shop, desk_live, s711, and `status38.png`, the owner's bar at level 38 with EXP 36,420 / 240,500 from the game's tooltip; the other-size pictures test the reading). Every digit of the small font is real now (the hand-drawn 5 in `MADE_UP` is only used if no picture has one). The level tiles' font has **3, 7, 8, 9** only (9 from `kerning_inv.png`, level part only): other level digits are never guessed (`TILE_MATCH`, no Tesseract): the level shows "—" until known, and once known the tracker counts level-ups itself instead of re-reading it. To add digits: put a screenshot with a known status bar in `tests/fixtures`, add it to `SOURCES`, run the tool, run `tests/test_exp.py`. At 0.6× interface size the digits are too small: readings are skipped, never wrong.
 - **Stack counts:** the numbers on item icons (e.g. 100) aren't read yet; every listing counts as quantity 1.
 - **Fast scrolling:** flicking or dragging straight to the bottom of a long identical list undercounts (by design it never overcounts).
-- **Untested for real:** the Windows exe + Edge app window on the owner's PC, and the install on a real droplet (real certbot, real DNS). Ask for screenshots or output on the first run.
+- **Untested for real:** the Windows exe + Edge app window on the owner's PC, and the real Vercel + Supabase deployment (SETUP.md). Ask for screenshots or output on the first run.
 - **Possible next steps**: recognise items by their icon to fix misread names; the MapleClassic Wiki item list (CC BY-SA, credit) for names and categories; Windows notifications for alerts; stack counts; a "report a problem" button; CSV export.
