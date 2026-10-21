@@ -239,6 +239,7 @@ class Controller:
             if self.exp_runner:
                 return {'ok': True}
             r = self.exp_runner = ExpRunner(self.exp, monitor=int(self.settings['monitor']), events=_Feed(self))
+            self.exp.resume()                            # (the time it was stopped doesn't count)
 
         def run():
             try:
@@ -255,6 +256,7 @@ class Controller:
         r, self.exp_runner = self.exp_runner, None
         if r:
             r.stop()
+        self.exp.pause()                                 # the numbers stay as they were, not sinking while stopped
         return {'ok': True}
 
     def exp_reset(self):
