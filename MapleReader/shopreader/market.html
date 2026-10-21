@@ -99,7 +99,6 @@ a{color:var(--sky)}
 @media(max-width:480px){.grid{grid-template-columns:minmax(0,1fr)}h1{font-size:20px}nav button{padding:8px 8px;font-size:13px}}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s,border-color .15s,color .15s}}
 /* App mode (opened from MapleReader): wider window, clean header with a live status chip, item pictures */
-html.app main{max-width:1120px}
 html.app #app.narrow{max-width:820px}
 @media(max-width:560px){.brand p{display:none}.top{align-items:flex-start}}
 html.app .note{display:none}
@@ -216,11 +215,6 @@ button.fr:last-child{border-bottom:0}
 .strip .tile>.chg{align-self:center}
 .upd{border:2px solid var(--ac)}
 /* Prices: one big search, item cards, and the chosen item's details beside them */
-.bigl{display:block;font-family:var(--display);font-size:24px;font-weight:700;margin:2px 0 10px}
-.bigq{display:flex;align-items:center;gap:10px;background:var(--card);border:2px solid var(--ac);border-radius:14px;padding:0 16px}
-.bigq svg{flex:none;color:var(--mu)}
-.bigq input{border:0;min-height:56px;font-size:18px;padding:0;background:transparent}
-.bigq input:focus-visible{outline:none}.bigq:focus-within{outline:2px solid var(--sky);outline-offset:2px}
 .pgrid{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
 .cards{flex:2 1 420px;min-width:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
 .cards>.empty{grid-column:1/-1;background:var(--card);border:1px solid var(--bd);border-radius:12px}
@@ -233,7 +227,7 @@ button.fr:last-child{border-bottom:0}
 .pc .num{font-size:22px}
 #ipanel{flex:1 1 300px;min-width:0;margin:0}
 @media(max-width:560px){.cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.pc{padding:10px}.pc .num{font-size:18px}
-  .bigl{font-size:20px}.bigq input{font-size:16px;min-height:50px}}
+  }
 #ipanel .ins-h{margin-top:14px}
 #ipanel .feed .fr{padding:8px 12px}
 /* Listings as cards (Compact is the ruled list above) */
@@ -258,20 +252,16 @@ button.oc .k{margin-top:auto;color:var(--sky)}
 /* ===== Design C (the app and the group market): Home, trends on top, Listings by category, the EXP tab ===== */
 html.app main{max-width:1320px}
 .trend{display:flex;flex-direction:column;gap:8px;margin:0 0 14px}
-.trend .th{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .trend h2,.hgrid h2{margin:0;font:700 17px var(--display)}
-.mood{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:10px;font-size:13px;background:var(--sf);color:var(--mu)}
-.mood.pd{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}.mood.pu{background:var(--acbg);color:var(--ac)}
 .pd{color:var(--ok)}.pu{color:var(--ac)}
-.movers{display:flex;gap:8px;flex-wrap:wrap}
-.chip{display:flex;align-items:center;gap:8px;min-height:44px;padding:4px 12px 4px 4px;border-radius:12px;border:1px solid var(--bd);
-  background:var(--card);color:var(--tx);text-align:left}
+/* Trending: rows (the item and how far its cheapest is from usual) */
+.movers{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--bd);border-radius:14px;overflow:hidden}
+.chip{display:flex;align-items:center;gap:12px;min-height:46px;padding:8px 14px;border:0;border-top:1px solid var(--bd);border-radius:0;background:none;color:var(--tx);text-align:left;justify-content:space-between}
+.chip:first-child{border-top:0}.chip:hover{background:var(--sf)}
+.chip>span{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:1;min-width:0}
 .chip .ic,.chip .ph{width:30px;height:30px}
-.chip b{display:block;font-size:13px;white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis}
-.chip .num{font-size:12px}
-@media(max-width:640px){.movers{flex-wrap:nowrap;overflow-x:auto;margin:0 -16px;padding:0 16px 2px}.chip{flex:none}}
-.bigs{display:flex;align-items:center;gap:10px;width:100%;max-width:640px;min-height:52px;padding:0 16px;border-radius:14px;
-  border:1px solid var(--bd);background:var(--card);color:var(--mu);font-size:16px;text-align:left}
+.chip b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip .num{font-size:14px;font-weight:600}
 .hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px;align-items:start;margin-top:16px}
 .hgrid .row{margin:0 0 8px;min-height:36px}
 .tag{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:5px;white-space:nowrap;flex:none}
@@ -333,14 +323,14 @@ html.app main{max-width:1320px}
 /* ===== The app and the group market: one header with the search and your status, underline tabs, calm cards ===== */
 html.app .top{margin:0;padding:12px 0;gap:16px;align-items:center}
 html.app .brand h1{font-size:17px}html.app .brand p{display:none}
-#gsf{flex:1;display:flex;align-items:center;gap:10px;min-width:0;background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:0 14px;height:44px;color:var(--mu)}
+#gsf{flex:1;display:none;align-items:center;gap:10px;min-width:0;background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:0 14px;height:44px;color:var(--mu)}
 #gsf:focus-within{border-color:var(--sky);box-shadow:0 0 0 3px var(--skybg)}
 #gsf input{flex:1;min-width:0;border:0;background:transparent;min-height:0;padding:0;font-size:15px}#gsf input:focus-visible{outline:none}
 #gsf kbd{font:12px var(--mono);color:var(--mu);border:1px solid var(--bd);border-radius:6px;padding:1px 7px;background:var(--card)}
-html.app #gsf{display:flex}#gsf[hidden]{display:none!important}
+html.app #gsf{display:flex}
 html.app .lchip{padding:8px 14px;font-weight:600;color:var(--mu)}html.app .lchip.on{background:color-mix(in srgb,var(--ok) 10%,var(--card));border-color:color-mix(in srgb,var(--ok) 40%,var(--bd));color:var(--ok)}
 html.app .lchip.off{background:color-mix(in srgb,var(--bad) 8%,var(--card));color:var(--bad)}
-html.app #theme{min-height:36px;padding:4px 12px;font-size:13px;color:var(--mu)}
+html.app #theme{min-height:36px}
 html.app nav{background:none;border:0;border-bottom:1px solid var(--bd);border-radius:0;padding:0;gap:2px;margin:0 0 20px;top:0}
 html.app nav button{flex:0 0 auto;border-radius:0;border-bottom:2px solid transparent;padding:10px 14px;margin-bottom:-1px;color:var(--mu)}
 html.app nav button:hover{background:none;color:var(--tx)}
@@ -349,17 +339,14 @@ html.app nav button[data-nav=more]{margin-left:auto}
 html.app .foot{display:none}
 html.app .card{border-radius:14px;margin-bottom:16px}
 html.app .tile{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px 16px}
-html.app .tile .v{font-size:26px}
 html.app .feed{border-radius:14px}
-html.app .fr{padding:11px 16px;grid-template-columns:40px minmax(0,1fr) auto}html.app .fr .ic,html.app .fr .ph{width:40px;height:40px;border-radius:10px}
-html.app .fresh{color:var(--ok);font-weight:600}
-html.app .seg button{min-height:30px;padding:3px 11px;border-radius:9px}
+html.app .fr{padding:11px 16px;grid-template-columns:40px minmax(0,1fr) auto}
+html.app .fr .ic,html.app .fr .ph,html.app .seg button{min-height:30px;padding:3px 11px;border-radius:9px}
 /* the MapleReader window is one size: the header and tabs stay put, each view scrolls inside */
 html.desk,html.desk body{height:100%;overflow:hidden}
 html.desk main{height:100vh;box-sizing:border-box;display:flex;flex-direction:column;padding-block:0 0;max-width:none;padding-inline:24px}
 html.desk nav{flex:none}html.desk .top{flex:none}
 html.desk #app{flex:1;min-height:0;overflow:auto;padding-bottom:16px}
-html.desk #app.narrow{margin-inline:auto}
 /* Home: three tiles, then just listed beside trending and alerts */
 .hgrid.home3{grid-template-columns:minmax(0,7fr) minmax(0,5fr);margin-top:16px}
 @media(max-width:860px){.hgrid.home3{grid-template-columns:minmax(0,1fr)}}
@@ -370,17 +357,7 @@ html.app .hgrid .row{min-height:32px}
 @media(max-width:700px){.tiles.today{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .tile .v.txt{font-family:var(--display);font-size:19px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tile .v small{font-size:14px;font-weight:500;color:var(--mu);font-family:var(--body)}
-html.app .bigs{display:none}
-@media(max-width:640px){html.app .bigs{display:none}}
-/* Trending as rows (a chip is one row: the item and how far its cheapest is from usual) */
-.movers.rows{flex-direction:column;gap:0;background:var(--card);border:1px solid var(--bd);border-radius:14px;overflow:hidden}
-.movers.rows .chip{border:0;border-top:1px solid var(--bd);border-radius:0;padding:8px 14px;min-height:46px;gap:12px;background:none;justify-content:space-between}
-.movers.rows .chip:first-child{border-top:0}.movers.rows .chip:hover{background:var(--sf)}
-.movers.rows .chip>span{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:1;min-width:0}
-.movers.rows .chip b{max-width:none;font-size:14px;font-weight:600}.movers.rows .chip .num{font-size:14px;font-weight:600}
-@media(max-width:640px){.movers.rows{flex-wrap:nowrap;overflow:visible;margin:0;padding:0}.movers.rows .chip{flex:none}}
 /* Prices: a list of rows on the left, the item on the right */
-html.app .bigl,html.app .bigq{display:none}
 html.app .pgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
 @media(min-width:900px){html.app .pgrid{grid-template-columns:400px minmax(0,1fr)}html.app #ipanel{position:sticky;top:0}}
 html.app .cards{display:flex;flex-direction:column;gap:10px}
@@ -403,7 +380,7 @@ html.app #ipanel .tile .v,html.app #lpanel .tile .v{font-size:20px}
   html.app #live{bottom:calc(72px + env(safe-area-inset-bottom,0px))}}
 </style>
 <main>
-<header class="top"><div class="brand"><svg width="30" height="30" viewBox="0 0 28 28" aria-hidden="true"><rect x="2" y="2" width="24" height="24" rx="7" fill="var(--ac)"/><path d="M8 18 L12 10 L15 15 L18 9 L21 18" fill="none" stroke="var(--onsky)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><h1>Maple Market</h1><p>Free Market prices from your own shop scans</p></div></div><form id="gsf" role="search" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="gs" type="search" placeholder="Search any item" aria-label="Search any item" autocomplete="off"><kbd>/</kbd></form><div class="hr"><span id="chip" class="lchip" hidden></span><button id="theme" aria-label="Switch light or dark theme">Theme</button></div></header>
+<header class="top"><div class="brand"><svg width="30" height="30" viewBox="0 0 28 28" aria-hidden="true"><rect x="2" y="2" width="24" height="24" rx="7" fill="var(--ac)"/><path d="M8 18 L12 10 L15 15 L18 9 L21 18" fill="none" stroke="var(--onsky)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><h1>Maple Market</h1><p>Free Market prices from your own shop scans</p></div></div><form id="gsf" role="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="gs" type="search" placeholder="Search any item" aria-label="Search any item" autocomplete="off"><kbd>/</kbd></form><div class="hr"><span id="chip" class="lchip" hidden></span><button id="theme" aria-label="Switch light or dark theme">Theme</button></div></header>
 <div class="note"><span><b>Mockup.</b> Sample data mixed with your imports, saved in this browser only.</span><button id="reset">Reset</button></div>
 <nav aria-label="Sections"><button data-nav="scan" hidden>Scanner</button><button data-nav="market">Market</button><button data-nav="mine">Mine</button><button data-nav="browse">Items</button><button data-nav="deals">Deals</button><button data-nav="sources">Sources</button></nav>
 <div id="app" tabindex="-1"></div><p id="live" class="mu" role="status" aria-live="polite"></p><p class="foot">Fan project, not affiliated with Nexon. Item names can be imported from the MapleClassic Wiki (CC BY-SA) with credit. Other price sites are linked, never copied.</p>
@@ -1724,18 +1701,9 @@ function drawPanel(force) {
 }
 function drawPrices() {
   $("#app").innerHTML =
-    `<label class="bigl" for="q">How much is it?</label><div class="bigq"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" ` +
-    `stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>` +
-    `<input id="q" type="search" placeholder="Type an item, for example scroll   (press / to jump here)"></div>` +
     `<div class="bar"><span class="mu" id="pcount"></span>${segBtns("ps", psort, [["new", "Newest"], ["low", "Cheapest"], ["az", "A–Z"]])}</div>` +
     `<div class="pgrid"><div class="cards" id="list"></div><section class="card" id="ipanel" aria-label="Item details" hidden></section></div>`;
-  $("#q").value = q;
-  if ($("#gs")) $("#gs").value = q;
-  $("#q").oninput = e => {
-    q = e.target.value;
-    if ($("#gs")) $("#gs").value = q;
-    drawPriceList();
-  };
+  $("#gs").value = q;
   drawPriceList();
 }
 // Every listing, with identical copies in one shop shown once ("62,999 ×2")
@@ -1953,28 +1921,21 @@ function movers() {
     mood: all.length >= 3 ? median(all.map(m => m.pct)) : null
   });
 }
-function trendHtml() {
-  const { top, mood } = movers();
-  if (!top.length && mood == null) return "";
-  const m = mood == null ? "" : Math.abs(mood) < 2 ? '<span class="mood">Prices are about usual today</span>' :
-    `<span class="mood ${mood < 0 ? "pd" : "pu"}"><span class="num">${mood < 0 ? "▼" : "▲"} ${Math.abs(Math.round(mood))}%</span>` +
-    `prices ${mood < 0 ? "lower" : "higher"} than usual today</span>`;
+function trendHtml(top = movers().top) {
+  if (!top.length) return "";
   return `<section class="trend" id="trend" aria-label="Trending today"><div class="row"><h2>Trending today</h2>` +
-    `<span class="mu">vs usual</span></div>` +
-    (top.length ? `<div class="movers rows">${top.slice(0, 6).map(x => `<button class="chip" data-mv="${x.id}">${pic(x.it.name)}<span><b>${esc(x.it.name)}</b>` +
-      `<span class="num ${x.pct < 0 ? "pd" : "pu"}">${x.pct < 0 ? "▼" : "▲"} ${Math.abs(x.pct)}%</span></span></button>`).join("")}</div>` : "") +
-    (m ? `<div style="margin-top:8px">${m}</div>` : "") + `</section>`;
+    `<span class="mu">vs usual</span></div><div class="movers">${top.slice(0, 6).map(x => `<button class="chip" data-mv="${x.id}">${pic(x.it.name)}` +
+    `<span><b>${esc(x.it.name)}</b><span class="num ${x.pct < 0 ? "pd" : "pu"}">${x.pct < 0 ? "▼" : "▲"} ${Math.abs(x.pct)}%</span></span></button>`).join("")}</div></section>`;
 }
 // Home: a big search, today's numbers, what was just listed, and your price alerts
-const SEARCH_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ` +
-  `aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>`;
 function drawHome() {
   const R = analyze().rows,
     now = Date.now(),
     today = R.filter(o => now - (o.last || o.first) < DAY),
     shops = new Set(today.map(SHOPK)).size,
     fresh = R.filter(o => o.st === "sale" && now - o.first < 36e5).length,
-    tile = (k, v, sub) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="mu">${sub}</div></div>`,
+    tile = (k, v, sub, cls = "") =>
+      `<div class="tile"><div class="k">${k}</div><div class="v${cls ? " " + cls : ""}">${v}</div><div class="mu">${sub}</div></div>`,
     L = scanListings().filter(x => item(x.item)).sort((a, b) => b.t - a.t).slice(0, 6),
     row = l => {
       const it = item(l.item),
@@ -1988,15 +1949,14 @@ function drawHome() {
     moodTxt = mood == null ? ["No trend yet", "after a few days of scans"] : Math.abs(mood) < 2 ? ["Prices about usual", "within 2% of usual"] :
       [`Prices ${mood < 0 ? "lower" : "higher"} than usual`, `${Math.abs(Math.round(mood))}% ${mood < 0 ? "under" : "over"} usual`];
   $("#app").innerHTML =
-    `<div id="home"><button class="bigs" data-tosearch="1">${SEARCH_SVG}How much is it? Search an item</button>` +
-    `<div class="tiles today">${tile("Saved today", `${fmt(today.length)} <small>listings · ${fmt(shops)} shop${shops === 1 ? "" : "s"}</small>`, `${fmt(fresh)} new in the last hour`)}` +
-    (best ? `<div class="tile"><div class="k">Best deal right now</div><div class="v txt">${esc(best.it.name)}</div>` +
-      `<div class="mu"><span class="num">${fmt(best.low)}</span> · <span class="pd">${-best.pct}% under usual</span></div></div>` :
+    `<div id="home"><div class="tiles today">` +
+    tile("Saved today", `${fmt(today.length)} <small>listings · ${fmt(shops)} shop${shops === 1 ? "" : "s"}</small>`, `${fmt(fresh)} new in the last hour`) +
+    (best ? tile("Best deal right now", esc(best.it.name), `<span class="num">${fmt(best.low)}</span> · <span class="pd">${-best.pct}% under usual</span>`, "txt") :
       tile("Best deal right now", "<small>none yet</small>", "nothing well under usual yet")) +
-    `<div class="tile"><div class="k">Market mood</div><div class="v txt">${moodTxt[0]}</div><div class="mu">${moodTxt[1]}</div></div></div>` +
+    `${tile("Market mood", moodTxt[0], moodTxt[1], "txt")}</div>` +
     `<div class="hgrid home3"><section><div class="row"><h2>Just listed</h2><button class="chg" data-tonav="market">All listings ›</button></div>` +
     `<div class="feed">${L.length ? L.map(row).join("") : `<div class="empty">${EMPTY_SCAN}</div>`}</div></section>` +
-    `<div class="col">${trendHtml()}<section><div class="row"><h2>Your price alerts</h2></div>${alertsHtml()}</section></div></div></div>`;
+    `<div class="col">${trendHtml(top)}<section><div class="row"><h2>Your price alerts</h2></div>${alertsHtml()}</section></div></div></div>`;
 }
 function alertsHtml() {
   if (!S.alerts.length)
@@ -2130,7 +2090,7 @@ function expLogHtml(st, x) {
 }
 // The new buttons (Home, trends, Listings' filters, the history's 7/30 days, the EXP tab): true when handled
 function cClick(e) {
-  const b = e.target.closest("[data-mv],[data-tosearch],[data-tonav],[data-lst],[data-lc],[data-hd],[data-hk],[data-hs],[data-x],[data-xr],[data-xk],[data-xs],[data-xl]");
+  const b = e.target.closest("[data-mv],[data-tonav],[data-lst],[data-lc],[data-hd],[data-hk],[data-hs],[data-x],[data-xr],[data-xk],[data-xs],[data-xl]");
   if (!b) return false;
   const d = b.dataset;
   if (d.xl) {
@@ -2153,11 +2113,6 @@ function cClick(e) {
     pick = d.mv;
     draw();
     scrollTo(0, 0);
-  } else if (d.tosearch) {
-    view = "browse";
-    cur = null;
-    draw(false);
-    searchBox().focus();
   } else if (d.tonav) {
     view = d.tonav;
     cur = null;
@@ -2438,11 +2393,7 @@ document.addEventListener("keydown", e => {
   const typing = /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || "");
   if (e.key === "/" && !typing && !e.ctrlKey && !e.metaKey) {
     e.preventDefault();
-    if (!searchBox()) {
-      view = "browse";
-      cur = null;
-      draw(false);
-    }
+    if (!searchBox()) showPrices();
     searchBox().focus();
   } else if (e.key === "Escape" && cur && !typing) {
     cur = null;
@@ -2644,21 +2595,23 @@ let FRIENDS = null;
 const MAIN = puller("/api/rows", OFFK, true),
   FEED2 = MODE === "local" ? puller("/api/shared/rows", KEY + ":friendsoff", false) : null;
 const livePull = MAIN.pull;
-// The search box to jump to: the header's (the app and the group market), else the one on the Prices or Listings page
-const searchBox = () => ($("#gs") && $("#gs").offsetParent ? $("#gs") : $("#q, #ms"));
+// The search box: the header's in the app and the group market, else the one on the Prices or Listings page
+const searchBox = () => (LIVE ? $("#gs") : $("#q, #ms"));
+// Show the Prices tab (redraw = refresh its list if it is already showing)
+function showPrices(redraw) {
+  if (view !== "browse" || cur) {
+    view = "browse";
+    cur = null;
+    draw(false);
+  } else if (redraw) drawPriceList();
+}
 if (LIVE) {
   document.documentElement.classList.add("app");
   if (MODE === "local") document.documentElement.classList.add("desk"); // (the MapleReader window: one size, views scroll inside)
-  $("#gsf").hidden = false;
   $("#gsf").onsubmit = e => e.preventDefault();
   $("#gs").oninput = () => {
-    // typing in the header searches the Prices tab, whatever tab was open; the box keeps the focus
-    q = $("#gs").value;
-    if (view !== "browse" || cur) {
-      view = "browse";
-      cur = null;
-      draw(false);
-    } else drawPriceList();
+    q = $("#gs").value; // typing in the header searches the Prices tab, whatever tab was open; the box keeps the focus
+    showPrices(true);
   };
   const fav = document.createElement("link");
   fav.rel = "icon";

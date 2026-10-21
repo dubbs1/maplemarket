@@ -23,7 +23,8 @@ BROWSERS = [r'%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe',
             r'%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe',
             r'%LocalAppData%\Google\Chrome\Application\chrome.exe']
 QUIET_FOR = 90                     # no word from the window this long (seconds) = it was closed
-WINDOW_TITLE = 'Maple Market'      # the page's <title>: how the app window is found to lock its size
+WINDOW_TITLE = 'Maple Market'      # the page's <title> (the self-check looks for it; the window lock's fallback)
+WINDOW_SIZE = (1240, 860)          # the app window, outer size: the page is drawn for exactly this
 
 
 def _profile_dir():
@@ -55,16 +56,18 @@ def open_window(url):
     if exe:
         try:
             return subprocess.Popen([exe, f'--app={url}', f'--user-data-dir={_profile_dir()}', '--no-first-run',
-                                     '--no-default-browser-check', '--window-size=1240,860', '--disable-features=Translate'])
+                                     '--no-default-browser-check', f'--window-size={WINDOW_SIZE[0]},{WINDOW_SIZE[1]}', '--disable-features=Translate'])
         except OSError:
             pass
     webbrowser.open(url)
     return None
 
 
-def _lock_window(title, w=1240, h=860, wait=25):
-    """Windows: once the app window is up, take away its resize border and Maximise button and set its size, so the
-    page (drawn for exactly this window) never has to squeeze or stretch. Quietly does nothing if it can't."""
+def _lock_window(proc, title, wait=25):
+    """Windows: once the app window is up, take away its resize border and Maximise button, so the page (drawn for
+    exactly this window) never has to squeeze or stretch. The window is the one owned by the browser we started;
+    if that browser handed the window to a copy already running, the one with our title. Quietly does nothing
+    if it can't (the window is then simply resizable)."""
     if sys.platform != 'win32':
         return
     try:
@@ -73,25 +76,26 @@ def _lock_window(title, w=1240, h=860, wait=25):
         u = ctypes.windll.user32
         GWL_STYLE, WS_THICKFRAME, WS_MAXIMIZEBOX = -16, 0x00040000, 0x00010000
         SWP_NOMOVE, SWP_NOZORDER, SWP_FRAMECHANGED = 0x2, 0x4, 0x20
-        found = []
+        buf, pid, found = ctypes.create_unicode_buffer(len(title) + 1), wt.DWORD(), []
 
         @ctypes.WINFUNCTYPE(ctypes.c_bool, wt.HWND, wt.LPARAM)
-        def each(hwnd, _):
-            n = u.GetWindowTextLengthW(hwnd)
-            if n and u.IsWindowVisible(hwnd):
-                buf = ctypes.create_unicode_buffer(n + 1)
-                u.GetWindowTextW(hwnd, buf, n + 1)
-                if buf.value.startswith(title):
+        def each(hwnd, by_pid):
+            if u.IsWindowVisible(hwnd) and not u.GetParent(hwnd):
+                if by_pid:
+                    u.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+                    if pid.value == proc.pid and u.GetWindowTextLengthW(hwnd):
+                        found.append(hwnd)
+                elif u.GetWindowTextW(hwnd, buf, len(title) + 1) and buf.value == title:
                     found.append(hwnd)
             return True
         end = time.time() + wait
         while time.time() < end and not found:
-            time.sleep(0.5)
-            u.EnumWindows(each, 0)
-        for hwnd in found[:1]:
-            style = u.GetWindowLongW(hwnd, GWL_STYLE)
-            u.SetWindowLongW(hwnd, GWL_STYLE, style & ~(WS_THICKFRAME | WS_MAXIMIZEBOX))
-            u.SetWindowPos(hwnd, 0, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED)
+            time.sleep(1)
+            u.EnumWindows(each, 1 if proc.poll() is None else 0)
+        if found:
+            style = u.GetWindowLongW(found[0], GWL_STYLE)
+            u.SetWindowLongW(found[0], GWL_STYLE, style & ~(WS_THICKFRAME | WS_MAXIMIZEBOX))
+            u.SetWindowPos(found[0], 0, 0, 0, WINDOW_SIZE[0], WINDOW_SIZE[1], SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED)
     except Exception:
         pass
 
@@ -130,7 +134,8 @@ def run():
         return
     ctl.autostart()
     proc, opened = open_window(url), time.time()
-    threading.Thread(target=_lock_window, args=(WINDOW_TITLE,), daemon=True).start()   # one size, not resizable
+    if proc is not None:                             # one size, not resizable
+        threading.Thread(target=_lock_window, args=(proc, WINDOW_TITLE), daemon=True).start()
     try:
         while True:
             time.sleep(1)
