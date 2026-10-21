@@ -3,6 +3,7 @@
 It takes screenshots, waits for a shop list to stop moving, reads it and saves new listings.
 Everything it has to tell you goes through an Events object, so each front end can show it its own way.
 """
+import difflib
 import json
 import os
 import re
@@ -11,7 +12,7 @@ import time
 from collections import Counter
 from datetime import datetime
 from PIL import Image, ImageOps, ImageChops
-from .config import CHANGED_LIST, CHANGED_SHOP, FORGET_AFTER, INTERVAL, PIXEL_CHANGE, THUMB, TITLE_TRIES, VOLUME
+from .config import CHANGED_LIST, CHANGED_SHOP, EXP_LOOK_EVERY, FORGET_AFTER, INTERVAL, PIXEL_CHANGE, THUMB, TITLE_TRIES, VOLUME
 from .exp import ExpWatcher
 from .layout import list_boxes
 from .location import RoomWatcher, channel_window, read_channel
@@ -197,6 +198,28 @@ class ExpRunner:
         self.events = events or Events()
         self.watcher = ExpWatcher()
         self._stop = threading.Event()
+        self.looked, self.seen_map = 0, None          # the map's name must be read the same twice before it counts
+
+    def look(self, img):
+        """Every EXP_LOOK_EVERY s: the map's name (minimap title) and the party (its window's HP bars), for the EXP log."""
+        from . import location
+        n = location.party_size(img)
+        if n:
+            self.tracker.set_party(n)
+        try:
+            name = location.read_map(img)              # (needs Tesseract; EXP itself doesn't)
+        except Exception:
+            name = None
+        if not name:
+            return
+        known = self.tracker.map
+        if known and difflib.SequenceMatcher(None, name.lower(), known.lower()).ratio() >= 0.85:
+            self.seen_map = None                       # the same map, read slightly differently
+        elif name == self.seen_map:
+            self.tracker.set_map(name)
+            self.seen_map = None
+        else:
+            self.seen_map = name
 
     @property
     def found(self):
@@ -229,6 +252,9 @@ class ExpRunner:
                     continue
                 try:
                     img = Image.frombytes('RGB', shot.size, shot.bgra, 'raw', 'BGRX')
+                    if time.time() - self.looked >= EXP_LOOK_EVERY:
+                        self.looked = time.time()
+                        self.look(img)
                     reading = self.watcher.update(img)
                     if reading and self.tracker.add(reading):
                         self.events.exp(self.tracker.summary())
