@@ -37,6 +37,7 @@ FADED_ROWS_WIDE = 5.3          # ...and a list of only sold (faded) rows, whose 
 NAME_MATCH = 0.85              # how close a read name must be to an items.txt name to be snapped onto it
 
 # --- room (minimap) ---
+ROOM_WAIT = 20                 # a shop seen while the room is unknown waits this long (s) for it (typed or read)
 ROOM_REREAD = 3                # re-read the known minimap spot this often
 ROOM_MISSES = 3                # this many failed reads in a row: the minimap moved, search again
 ROOM_SEARCH = 5                # look for a lost minimap this often

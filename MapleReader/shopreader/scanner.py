@@ -12,7 +12,8 @@ import time
 from collections import Counter
 from datetime import datetime
 from PIL import Image, ImageOps, ImageChops
-from .config import CHANGED_LIST, CHANGED_SHOP, EXP_LOOK_EVERY, FORGET_AFTER, INTERVAL, PIXEL_CHANGE, THUMB, TITLE_TRIES, VOLUME
+from .config import (CHANGED_LIST, CHANGED_SHOP, EXP_LOOK_EVERY, FORGET_AFTER, INTERVAL, PIXEL_CHANGE, ROOM_WAIT, THUMB,
+                     TITLE_TRIES, VOLUME)
 from .exp import ExpWatcher
 from .layout import list_boxes
 from .location import RoomWatcher, channel_window, read_channel
@@ -182,12 +183,12 @@ class Saver:
             if not self.quiet:
                 beep(self.volume)
 
-    def flush(self):
-        """Save shops seen before the channel was known."""
+    def flush(self, room=0):
+        """Save shops seen before the channel (or the room) was known; `room` for those seen without a room."""
         with self.lock:
             pending, self.pending = self.pending, []
             for r_, rm_, whole in pending:
-                self._save(r_, rm_, whole)
+                self._save(r_, rm_ or room, whole)
 
 
 class ExpRunner:
@@ -287,10 +288,12 @@ class Scanner:
     def set_channel(self, ch):
         if 1 <= ch <= 40:
             self.state['ch'] = ch
-            self.saver.flush()
+            self.saver.flush(self.state['room'])
 
     def set_room(self, room):
         self.state['room'] = room
+        if room and self.state['ch']:
+            self.saver.flush(room)                     # shops that waited for the room get it
 
     def set_sound(self, volume=None, quiet=None):
         if volume is not None:
@@ -302,7 +305,7 @@ class Scanner:
     def run(self):
         import mss
         ev, state, saver = self.events, self.state, self.saver
-        nagged, region, status = 0, None, None
+        nagged, region, status, room_wait, gave_up = 0, None, None, 0, False
         prev_t = done_t = done_ch = None
         title_tries, last_room = 0, None
         watcher = RoomWatcher()
@@ -319,6 +322,9 @@ class Scanner:
         try:
             while not self._stop.is_set():
                 time.sleep(self.interval)
+                if saver.pending and state['ch'] and not gave_up and time.time() - room_wait >= ROOM_WAIT:
+                    gave_up = True                       # the shop was closed while it waited for the room: save it now
+                    saver.flush(state['room'])
                 try:
                     if sct is None:
                         sct = (getattr(mss, 'MSS', None) or mss.mss)()
@@ -405,12 +411,26 @@ class Scanner:
                         ev.message('Shop seen, but no channel yet. Open the Change Channel window, or type the number.')
                         nagged = time.time()
                     continue
+                if room:
+                    gave_up = False
+                elif not gave_up:                    # the room unknown: wait a little for it (read or typed)
+                    if not saver.pending:
+                        room_wait = time.time()
+                    gave_up = time.time() - room_wait >= ROOM_WAIT   # (then shops save as room "?" without waiting)
+                    if not gave_up:
+                        saver.pending.append((rows, room, tracker.whole))
+                        if time.time() - nagged > 10:
+                            ev.message('Shop seen, but no room yet. Open the minimap, or type the room on the Scan tab.')
+                            nagged = time.time()
+                        continue
                 if rows[0]['shop'] == 'Shop' and title_tries < TITLE_TRIES:
                     title_tries += 1
                     done_t = None                    # name not read: look once more before saving
                     continue
                 saver.save(rows, room, tracker.whole)
-                saver.flush()
+                saver.flush(room)
         finally:
+            if state['ch']:
+                saver.flush(state['room'])           # shops still waiting for the room are saved, not lost
             if sct is not None:
                 getattr(sct, 'close', lambda: None)()
