@@ -402,10 +402,10 @@ class ExpTracker:
         mins, got = (end - r['t0']) / 60, gained - r['g0']
         if mins >= 1 and got > 0 and self.on_run:
             self.on_run({'date': r['wall'], 'minutes': round(mins), 'gained': got, 'per_hour': round(got / mins * 60),
-                         'level': r['level'], 'map': r['map']})
+                         'level': r['level'], 'map': r['map'], 'party': r['party']})
 
     def _open_run(self, t, wall, gained, level):
-        self.run = {'t0': t, 'wall': wall, 'g0': gained, 'level': level, 'map': self.map}
+        self.run = {'t0': t, 'wall': wall, 'g0': gained, 'level': level, 'map': self.map, 'party': None}
 
     def end_run(self, now=None):
         """Log the current run now (Reset, closing the app)."""
@@ -427,6 +427,12 @@ class ExpTracker:
                 self._open_run(end, now, self.gained, self.last[1])
             else:
                 self.map = name
+
+    def set_party(self, n):
+        """The party window showed n members: the EXP log keeps the most seen in a run (None = solo or not shown)."""
+        with self.lock:
+            if self.run and n:
+                self.run['party'] = max(self.run['party'] or 0, n)
 
     def _now(self, now):
         """The tracker's clock: it stands still while stopped, and after a minute with no EXP."""
@@ -569,6 +575,7 @@ class ExpTracker:
             slots, hour, prev, best = self._hours(now)
             r = self.run
             run = r and {'minutes': round((now - r['t0']) / 60), 'gained': self.gained - r['g0'], 'map': r['map'], 'level': level,
+                         'party': r['party'],
                          'per_hour': round((self.gained - r['g0']) / (now - r['t0']) * 3600) if now - r['t0'] >= 60 else None}
             return {'slots': slots, 'hour': hour, 'prev_hour': prev, 'best_hour': best, 'run': run,
                     'last5': (self.gained - self._at(now - 300)) * 12 if whole >= 300 else None,
