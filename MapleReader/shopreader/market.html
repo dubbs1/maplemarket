@@ -1,4 +1,5 @@
 <title>Maple Classic Market</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -258,6 +259,77 @@ button.oc .k{margin-top:auto;color:var(--sky)}
 .imp input[type=file]{width:100%;box-sizing:border-box}
 .imp #e5:empty{display:none}
 .imp details summary{cursor:pointer;margin-top:8px}
+
+/* ===== Design C (the app and the group market): Home, trends on top, Listings by category, the EXP tab ===== */
+html.app main{max-width:1320px}
+.trend{display:flex;flex-direction:column;gap:8px;margin:0 0 14px}
+.trend .th{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.trend h2,.hgrid h2{margin:0;font:700 17px var(--display)}
+.mood{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:10px;font-size:13px;background:var(--sf);color:var(--mu)}
+.mood.pd{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}.mood.pu{background:var(--acbg);color:var(--ac)}
+.pd{color:var(--ok)}.pu{color:var(--ac)}
+.movers{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:flex;align-items:center;gap:8px;min-height:44px;padding:4px 12px 4px 4px;border-radius:12px;border:1px solid var(--bd);
+  background:var(--card);color:var(--tx);text-align:left}
+.chip .ic,.chip .ph{width:30px;height:30px}
+.chip b{display:block;font-size:13px;white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis}
+.chip .num{font-size:12px}
+@media(max-width:640px){.movers{flex-wrap:nowrap;overflow-x:auto;margin:0 -16px;padding:0 16px 2px}.chip{flex:none}}
+.bigs{display:flex;align-items:center;gap:10px;width:100%;max-width:640px;min-height:52px;padding:0 16px;border-radius:14px;
+  border:1px solid var(--bd);background:var(--card);color:var(--mu);font-size:16px;text-align:left}
+.hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px;align-items:start;margin-top:16px}
+.hgrid .row{margin:0 0 8px;min-height:36px}
+.tag{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:5px;white-space:nowrap;flex:none}
+.tag.sale{background:var(--skybg);color:var(--sky)}.tag.sold,.tag.gone,.tag.wait{background:var(--sf);color:var(--mu)}
+.tag.hit{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}.tag.buy{background:var(--acbg);color:var(--ac)}
+.tl{display:flex;align-items:center;gap:8px;min-width:0}.tl .lk{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.rail{display:flex;flex-direction:column;gap:6px}
+.rail button{display:flex;justify-content:space-between;gap:10px;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;
+  border:1px solid var(--bd);background:var(--card);color:var(--tx);font-weight:600;font-size:14px;flex:none;text-align:left}
+.rail button[aria-pressed=true]{background:var(--sky);border-color:var(--sky);color:var(--onsky)}
+.rail .num{font-size:12px;opacity:.75}
+.lbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.lbar #ms{flex:1 1 260px;margin:0}
+#lpanel{margin:0}#lpanel .hint{color:var(--mu);text-align:center;padding:24px 8px;margin:0}
+@media(min-width:1000px){.lgrid{grid-template-columns:170px minmax(0,1fr) 380px}.lgrid.norail{grid-template-columns:minmax(0,1fr) 380px}
+  .rail,#lpanel{position:sticky;top:64px}#lpanel{max-height:calc(100vh - 80px);overflow:auto}}
+@media(max-width:999px){.rail{flex-direction:row;overflow-x:auto}#lpanel.none{display:none}}
+.rail[hidden]{display:none}
+.card.picked{border-color:var(--sky);box-shadow:0 0 0 1px var(--sky)}.num.gold{color:var(--ac)}
+.isub{color:var(--mu);font-size:13px;margin:-6px 0 0}
+#lpanel .tile .v,#ipanel .tile .v{font-size:19px;overflow-wrap:anywhere}#lpanel .tile,#ipanel .tile{padding:8px 10px}
+.good{font-weight:600;margin:10px 0 0}
+.hist{margin-top:12px}.hist .row{margin:0 0 6px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--mu);margin:0 0 4px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;background:var(--sky);vertical-align:middle;margin-right:6px}
+.legend i.b{width:10px;height:10px;background:color-mix(in srgb,var(--sky) 22%,transparent)}
+.hist svg{display:block;width:100%;height:auto;overflow:visible}
+.hist .hb{fill:color-mix(in srgb,var(--sky) 22%,transparent)}
+.hist .hl{fill:none;stroke:var(--sky);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}.hist .hd{fill:var(--sky)}
+.ax{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--mu)}
+.wr{display:grid;grid-template-columns:64px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--bd)}
+.wr:last-child{border-bottom:0}.wr .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wr .s,.wr .w{font-size:12px;color:var(--mu)}.wr.old{opacity:.6}
+/* the EXP tab: its own page, drawn dark */
+:root[data-view=exp]{--bg:#0e1822;--card:#15212d;--sf:#1a2836;--tx:#e3ebf3;--mu:#91a3b5;--bd:#253646;--ac:#f0b54a;--acbg:#352812;
+  --sky:#6db2ec;--skybg:#14283b;--onsky:#0e1822;--ok:#5fcf8d;--bad:#f08a80;color-scheme:dark}
+.xband{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:flex-end;justify-content:space-between}
+.xband .big{font-family:var(--mono);font-size:32px;color:var(--ac);line-height:1.15}.xband .big small{font-size:14px;color:var(--mu)}
+.xvs{font-size:13px;font-weight:600}
+.xspark{display:flex;align-items:flex-end;gap:3px;height:44px;width:140px}
+.xspark i,.xchart i{flex:1;border-radius:2px;background:color-mix(in srgb,var(--ac) 32%,transparent);min-height:2px}
+.xspark i:last-child,.xchart i:last-child{background:var(--ac)}
+.xband .tiles{flex:1 1 320px;max-width:540px}
+.xgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:start;margin-top:16px}
+.xlv{display:flex;align-items:baseline;gap:12px;margin:4px 0}.xlv b{font:700 48px/1 var(--display)}.xlv .num{font-size:22px;color:var(--ac)}
+.xgrid .xbar{height:14px}.xgrid .xbar i{background:var(--ac)}
+.xchart{display:flex;align-items:flex-end;gap:6px;height:150px;margin:10px 0 6px}
+.xchart i{border-radius:5px 5px 2px 2px}
+.xctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+/* phones: the tabs along the bottom, within reach of a thumb */
+@media(max-width:640px){html.app nav{position:fixed;top:auto;bottom:0;left:0;right:0;margin:0;border-radius:0;border-width:1px 0 0;
+  padding:4px 4px calc(6px + env(safe-area-inset-bottom,0px));z-index:20}html.app main{padding-bottom:90px}
+  html.app nav button{min-height:48px;font-size:13px}}
 </style>
 <main>
 <header class="top"><div class="brand"><svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15" fill="var(--ac)"/><circle cx="17" cy="17" r="10.5" fill="none" stroke="var(--acbg)" stroke-width="2"/><text x="17" y="21.5" text-anchor="middle" font-family="var(--mono)" font-size="12" font-weight="700" fill="var(--acbg)">m</text></svg><div><h1>Maple Classic Market</h1><p>Free Market prices from your own shop scans</p></div></div><div class="hr"><span id="chip" class="lchip" hidden></span><button id="theme" aria-label="Switch light or dark theme">Theme</button></div></header>
@@ -1127,6 +1199,7 @@ function drawMB() {
   if (SIMPLE && $("#lcount")) {
     const L = listingRows();
     $("#lcount").textContent = L.length ? `${L.length} listing${L.length === 1 ? "" : "s"}` : "";
+    drawRail();
     return void ($("#mb").innerHTML = simpleRows(L));
   }
   $("#mb").innerHTML = mrows();
@@ -1433,7 +1506,12 @@ let psort = "new",
   lsort = "new",
   lview = "compact", // Listings: "compact" rows or "cards"
   pick = null, // Prices: the item whose details show beside the cards
-  lold = false; // Listings: also show listings nobody has seen for 3 days
+  lold = false, // Listings: also show listings nobody has seen for 3 days
+  lst = "sale", // Listings: "sale" (for sale), "sold" or "all"
+  lcat = "", // Listings: one kind of item ("Scrolls"…), or all
+  lpick = null, // Listings: the item whose details show beside the list
+  hdays = 7, // the item's price history: the last 7 or 30 days
+  xr = "session"; // the EXP tab's chart: "session" (10-minute slots) or "week" (each day)
 const RECENT = 3 * DAY;
 const segBtns = (name, cur, opts) =>
   `<div class="seg" role="group">${opts.map(([v, t]) => `<button data-${name}="${v}" aria-pressed="${v === cur}">${t}</button>`).join("")}</div>`;
@@ -1483,7 +1561,7 @@ function drawPanel(force) {
   bindItem(pick);
 }
 function drawPrices() {
-  $("#app").innerHTML =
+  $("#app").innerHTML = trendHtml() +
     `<label class="bigl" for="q">How much is it?</label><div class="bigq"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" ` +
     `stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>` +
     `<input id="q" type="search" placeholder="Type an item, for example scroll   (press / to jump here)"></div>` +
@@ -1502,51 +1580,98 @@ function listingRows() {
     g = {},
     now = Date.now();
   listingRows.older = 0;
-  S.listings.filter(x => !x.sold).concat(scanListings()).forEach(x => {
+  const kinds = (listingRows.kinds = {}),
+    own = lst === "sold" ? [] : S.listings.filter(x => !x.sold);
+  own.concat(lst === "sold" ? [] : scanListings(), lst === "sale" ? [] : soldListings()).forEach(x => {
     const it = item(x.item);
     if (!it || !k.every(w => norm(it.name + " " + x.store).includes(w))) return;
     if (x.scan && !lold && now - x.seen > RECENT) return void listingRows.older++;
-    const key = [x.item, x.price, x.store, x.room, x.ch, x.type].join("|"),
-      o = g[key] || (g[key] = { ...x, n: 0 });
+    const key = [x.item, x.price, x.store, x.room, x.ch, x.type, x.sold ? 1 : 0].join("|"),
+      kd = kindOf(it);
+    if (!g[key] && !(key in kinds)) kinds[key] = kd;
+    if (lcat && kd !== lcat) return;
+    const o = g[key] || (g[key] = { ...x, n: 0 });
     o.n += x.mine ? x.qty || 1 : 1;
     o.t = Math.max(o.t, x.t);
     o.seen = Math.max(o.seen || o.t, x.seen || x.t);
   });
-  return Object.values(g).sort((a, b) => (lsort === "low" ? a.price - b.price : b.seen - a.seen));
+  const U = {},
+    us = id => (id in U ? U[id] : (U[id] = stats(id).usual)),
+    deal = l => l.price / (us(l.item) || l.price);
+  return Object.values(g).sort((a, b) =>
+    lsort === "low" ? a.price - b.price : lsort === "deal" ? deal(a) - deal(b) || a.price - b.price : b.seen - a.seen);
 }
+// Sold listings, for Listings' "Sold" and "All"
+function soldListings() {
+  return analyze()
+    .rows.filter(o => o.st === "sold")
+    .map(o => ({ id: "sd|" + K(o), item: o.item, type: "sell", price: o.price, qty: o.qty || 1, store: o.shop, room: o.room, ch: o.ch,
+      t: o.first, seen: o.soldAt || o.last || o.first, scan: true, sold: true }));
+}
+// What kind of item it is, guessed from its name (scanned names carry no category yet)
+const KINDS = [
+  ["Scrolls", /\bscroll\b/i],
+  ["Stars and arrows", /throwing|\bstars?\b|arrow|bullet|capsule/i],
+  ["Potions and food", /elixir|potion|\bpills?\b|juice|\btea\b|candy|dango|pizza|soda|apple|\begg\b|meat|salad|milk|cake|\bwater\b/i],
+  ["Ores and crystals", /\bore\b|crystal|\bplate\b|jewel/i]
+];
+const kindOf = it => {
+  const k = KINDS.find(([, re]) => re.test(it.name));
+  return k ? k[0] : it.cat && it.cat !== "Other" ? it.cat : "Other";
+};
 function listingRow(l) {
   const it = item(l.item),
-    fresh = Date.now() - l.t < JUST, // first seen in the last few minutes
-    age = Date.now() - l.seen;
+    fresh = Date.now() - l.t < JUST && !l.sold, // first seen in the last few minutes
+    age = Date.now() - l.seen,
+    tag = l.sold ? '<span class="tag sold">Sold</span>' : l.type === "buy" ? '<span class="tag buy">Buying</span>' :
+      '<span class="tag sale">For sale</span>',
+    when = l.sold ? "sold " + ago(age) : fresh ? '<span class="fresh">just listed</span>' : "seen " + ago(age);
   if (lview === "cards")
-    return `<div class="card${fresh ? " new" : ""}"><div class="nm">${pic(it.name)}<span class="mu">${fresh ? '<span class="fresh">just listed</span>' :
-      "seen " + ago(age)}</span></div><button class="t lk" data-open="${l.item}">${esc(it.name)}</button>` +
+    return `<div class="card${fresh ? " new" : ""}${l.sold ? " sold" : ""}"><div class="nm">${pic(it.name)}<span class="mu">${when}</span></div>` +
+      `<div class="tl"><button class="t lk" data-open="${l.item}">${esc(it.name)}</button>${tag}</div>` +
       `<div class="num">${fmt(l.price)}${l.n > 1 ? ` <span class="cnt">×${l.n}</span>` : ""}</div>` +
       `<div class="mu">${esc(l.store)}<br>FM ${l.room || "?"}${l.ch ? " · CH " + l.ch : ""}${l.type === "buy" ? " · buying" : ""}${l.mine ? " · yours" : ""}` +
-      `${age > 2 * DAY ? ' · <span class="dn">may be gone</span>' : ""}</div></div>`;
-  return `<div class="card fr${fresh ? " new" : ""}">${pic(it.name)}<div style="min-width:0">` +
-    `<button class="t lk" data-open="${l.item}">${esc(it.name)}</button>` +
+      `${age > 2 * DAY && !l.sold ? ' · <span class="dn">may be gone</span>' : ""}</div></div>`;
+  return `<div class="card fr${fresh ? " new" : ""}${l.sold ? " sold" : ""}">${pic(it.name)}<div style="min-width:0">` +
+    `<div class="tl"><button class="t lk" data-open="${l.item}">${esc(it.name)}</button>${tag}</div>` +
     `<div class="s">${esc(l.store)} · FM ${l.room || "?"}${l.ch ? " · CH " + l.ch : ""}${l.type === "buy" ? " · buying" : ""}${l.mine ? " · yours" : ""}</div></div>` +
     `<div class="p"><div class="num">${fmt(l.price)}${l.n > 1 ? ` <span class="cnt">×${l.n}</span>` : ""}</div><div class="mu">` +
-    `${fresh ? '<span class="fresh">just listed</span>' : "seen " + ago(age)}${age > 2 * DAY ? ' · <span class="dn">may be gone</span>' : ""}</div></div></div>`;
+    `${when}${age > 2 * DAY && !l.sold ? ' · <span class="dn">may be gone</span>' : ""}</div></div></div>`;
 }
 function simpleRows(L = listingRows()) {
   const older = listingRows.older ? `<button class="more-old" data-lold="1">Show ${listingRows.older} older listing${listingRows.older === 1 ? "" : "s"} ` +
       `(not seen for 3 days or more)</button>` : "";
   return (L.length ? L.slice(0, 500).map(listingRow).join("") :
-    `<div class="empty">${mt.q.trim() ? `No listing matches "${esc(mt.q.trim())}" in the last 3 days.` : EMPTY_SCAN}</div>`) + older;
+    `<div class="empty">${mt.q.trim() || lcat || lst !== "sale" ? `Nothing matches${mt.q.trim() ? ` "${esc(mt.q.trim())}"` : ""}` +
+      `${lcat ? " in " + esc(lcat) : ""}${lst === "sold" ? " among sold listings" : ""} in the last 3 days.` : EMPTY_SCAN}</div>`) + older;
 }
 function drawListings() {
-  $("#app").innerHTML =
-    `<input id="ms" type="search" placeholder="Find an item or shop" aria-label="Find an item or shop">` +
-    `<div class="bar"><span class="mu" id="lcount"></span><span class="hr">${segBtns("ls", lsort, [["new", "Newest"], ["low", "Cheapest"]])}` +
-    `${segBtns("lv", lview, [["compact", "Compact"], ["cards", "Cards"]])}</span></div><div id="mb"${lview === "cards" ? ' class="lcards"' : ""}></div>`;
+  $("#app").innerHTML = trendHtml() +
+    `<div class="lgrid" id="lgrid"><nav class="rail" id="rail" aria-label="Kinds of item"></nav><div style="min-width:0"><div class="lbar">` +
+    `<input id="ms" type="search" placeholder="Find an item or shop   (press / to jump here)" aria-label="Find an item or shop">` +
+    `${segBtns("lst", lst, [["sale", "For sale"], ["sold", "Sold"], ["all", "All"]])}</div>` +
+    `<div class="bar"><span class="mu" id="lcount"></span><span class="hr">` +
+    `${segBtns("ls", lsort, [["new", "Newest"], ["deal", "Best deal"], ["low", "Cheapest"]])}` +
+    `${segBtns("lv", lview, [["compact", "Compact"], ["cards", "Cards"]])}</span></div><div id="mb"${lview === "cards" ? ' class="lcards"' : ""}></div></div>` +
+    `<section class="card" id="lpanel" aria-label="Item details"></section></div>`;
   $("#ms").value = mt.q;
   $("#ms").oninput = e => {
     mt.q = e.target.value;
     drawMB();
   };
   drawMB();
+  drawLPanel(true);
+}
+// Listings: the picked listing's item, beside the list (not redrawn under someone typing an alert price in it)
+function drawLPanel(force) {
+  const el = $("#lpanel");
+  if (!el) return;
+  el.classList.toggle("none", !lpick);
+  if (!lpick) return void (el.innerHTML = '<p class="hint">Click a listing to see its prices, its history and every shop it was seen in.</p>');
+  if (!force && el.contains(document.activeElement) && document.activeElement !== el) return;
+  el.innerHTML = itemHtml(lpick);
+  bindItem(lpick);
+  document.querySelectorAll("#mb [data-open]").forEach(x => x.closest(".card").classList.toggle("picked", x.dataset.open === lpick));
 }
 // One item: what it costs now, where to buy it, and (one click away) its history
 function drawItemSimple() {
@@ -1560,7 +1685,9 @@ function drawItemSimple() {
 function itemHtml(id) {
   const it = item(id),
     s = stats(id),
-    live = forSale(analyze(id).rows),
+    A = analyze(id).rows,
+    now = Date.now(),
+    live = forSale(A),
     g = {};
   live.forEach(o => {
     const key = [o.price, o.shop, o.room, o.ch].join("|"),
@@ -1570,19 +1697,260 @@ function itemHtml(id) {
   });
   const W = Object.values(g).sort((a, b) => a.price - b.price),
     low = W.length ? W[0].price : null,
-    tile = (k, v, sub) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="mu">${sub}</div></div>`;
+    wk = A.filter(o => now - (o.last || o.first) < 7 * DAY),
+    med = median(wk.map(o => o.price)),
+    soldN = A.filter(o => o.st === "sold" && now - (o.soldAt || o.last || o.first) < 7 * DAY).length,
+    shopsN = new Set(wk.map(SHOPK)).size,
+    d = low != null && s.usual ? Math.round((low / s.usual - 1) * 100) : null,
+    // sold and gone ones from the last week, after the ones for sale now
+    past = A.filter(o => o.st !== "sale" && now - (o.soldAt || o.last || o.first) < 7 * DAY)
+      .sort((a, b) => (b.soldAt || b.last || b.first) - (a.soldAt || a.last || a.first)).slice(0, 6),
+    tile = (k, v, sub) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="mu">${sub}</div></div>`,
+    wrow = (o, st) => {
+      const t = st === "sold" ? o.soldAt || o.last || o.first : o.last || o.first;
+      return `<div class="wr${st === "sale" ? "" : " old"}"><span class="w">${ago(now - t)}</span><div style="min-width:0">` +
+        `<div class="t">${esc(o.shop)}${o.n > 1 ? ` <span class="cnt">×${o.n}</span>` : ""}</div><div class="s">FM ${o.room || "?"} · CH ${o.ch}</div></div>` +
+        `<span class="tag ${st}">${st === "sale" ? "For sale" : st === "sold" ? "Sold" : "Gone"}</span><span class="num">${fmt(o.price)}</span></div>`;
+    };
   return `<div class="nm">${ico(it.name, "lg")}<h2>${esc(it.name)}</h2></div>` +
-    `<div class="tiles t3">${tile("Cheapest now", low == null ? "–" : fmt(low), low == null ? "none for sale" : "mesos each")}` +
-    `${tile("Usual price", s.usual == null ? "–" : fmt(s.usual), "last 14 days")}${tile("For sale now", live.length, "copies seen today")}</div>` +
-    `<h3 class="ins-h">Where to buy</h3>${W.length ? `<div class="feed">${W.map(o => `<div class="fr nopic"><div style="min-width:0">` +
-      `<div class="t">${esc(o.shop)}</div><div class="s">FM ${o.room || "?"} · CH ${o.ch} · ${seenTxt(o.last)}</div></div>` +
-      `<div class="p"><div class="num">${fmt(o.price)}${o.n > 1 ? ` <span class="cnt">×${o.n}</span>` : ""}</div></div></div>`).join("")}</div>` :
-      '<div class="card mu">Nobody has it for sale today, as far as your scans show.</div>'}` +
-    alertCard(it, low == null ? s.usual : low) +
-    `<details class="card" style="margin-top:12px"><summary>Price history and best times to buy</summary>${spark(s.list) || ""}${scanCard(id) ||
+    `<p class="isub">${esc(kindOf(it))} · seen in ${shopsN} shop${shopsN === 1 ? "" : "s"} this week</p>` +
+    `<div class="tiles t3">${tile("Cheapest now", low == null ? "–" : fmt(low), low == null ? "none for sale" : esc(W[0].shop) + " · " + ago(now - W[0].last))}` +
+    `${tile("7-day median", med == null ? "–" : fmt(med), `${wk.length} listing${wk.length === 1 ? "" : "s"} seen`)}` +
+    `${tile("Sold", soldN, "this week")}</div>` +
+    (d == null ? "" : d <= -5 ? `<p class="good pd">A good price: ${-d}% below the usual ${fmt(s.usual)}</p>` :
+      d >= 5 ? `<p class="good pu">${d}% above the usual ${fmt(s.usual)}</p>` : `<p class="good">About the usual price (${fmt(s.usual)})</p>`) +
+    alertCard(it, low == null ? s.usual : low) + histHtml(id) +
+    `<h3 class="ins-h">Where to buy</h3>${W.length || past.length ? `<div class="feed">${W.map(o => wrow(o, "sale")).join("")}` +
+      `${past.map(o => wrow(o, o.st)).join("")}</div>` : '<div class="card mu">Nobody has it for sale today, as far as your scans show.</div>'}` +
+    (W.length || !past.length ? "" : '<p class="mu">Nobody has it for sale today, as far as your scans show.</p>') +
+    `<details class="card" style="margin-top:12px"><summary>Best times to buy</summary>${scanCard(id) ||
       '<p class="mu">Not enough scans yet.</p>'}</details>` +
     `<p class="mu">Also check this item on <a href="https://meowdb.com/msclassic/free-market" target="_blank" rel="noopener">MeowDB</a> and ` +
     `<a href="https://meso.watch" target="_blank" rel="noopener">MesoWatch</a> (links only; nothing is copied).</p>`;
+}
+// Price history: the median price (line) and how many listings were seen (bars), per day (7 days) or per 3 days (30)
+function histHtml(id) {
+  const step = hdays === 7 ? 1 : 3,
+    nb = Math.ceil(hdays / step),
+    end = new Date();
+  end.setHours(24, 0, 0, 0); // midnight tonight
+  const t1 = end.getTime(),
+    t0 = t1 - nb * step * DAY,
+    pts = analyze(id).rows.map(o => ({ p: o.price, t: o.first }))
+      .concat((S.sg[id] || []).map(x => ({ p: x.p, t: x.t })))
+      .filter(x => x.t >= t0 && x.t < t1),
+    seg = segBtns("hd", String(hdays), [["7", "7 days"], ["30", "30 days"]]);
+  if (pts.length < 2)
+    return `<div class="card hist"><div class="row"><b>Price history</b>${seg}</div><p class="mu">Not enough scans yet. It fills in as you scan.</p></div>`;
+  const B = Array.from({ length: nb }, () => []);
+  pts.forEach(x => B[Math.min(nb - 1, Math.floor((x.t - t0) / (step * DAY)))].push(x.p));
+  const M = B.map(b => median(b)),
+    cnt = B.map(b => b.length),
+    mc = Math.max(...cnt),
+    V = M.filter(v => v != null),
+    lo = Math.min(...V),
+    hi = Math.max(...V),
+    w = 300 / nb,
+    y = v => (64 - (hi > lo ? (v - lo) / (hi - lo) : 0.5) * 56).toFixed(1),
+    bars = cnt.map((c, i) => (c ? `<rect class="hb" x="${(i * w + 2).toFixed(1)}" y="${(100 - (c / mc) * 30).toFixed(1)}" ` +
+      `width="${(w - 4).toFixed(1)}" height="${((c / mc) * 30).toFixed(1)}" rx="2"/>` : "")).join(""),
+    P = M.map((v, i) => (v == null ? null : [(i * w + w / 2).toFixed(1), y(v)])).filter(Boolean),
+    last = V[V.length - 1],
+    lp = P[P.length - 1];
+  return `<div class="card hist"><div class="row"><b>Price history</b>${seg}</div>` +
+    `<div class="legend"><span><i></i>Median price</span><span><i class="b"></i>Listings seen</span></div>` +
+    `<svg viewBox="0 0 300 100" role="img" aria-label="Median price over the last ${hdays} days: from ${fmt(lo)} to ${fmt(hi)}, now ${fmt(last)}">` +
+    `${bars}<polyline class="hl" points="${P.map(p => p.join(",")).join(" ")}"/><circle class="hd" cx="${lp[0]}" cy="${lp[1]}" r="3.5"/></svg>` +
+    `<div class="ax"><span>${hdays} days ago</span><span>${fmt(lo)} – ${fmt(hi)}</span><span>latest ${fmt(last)}</span></div></div>`;
+}
+// Trending: items whose cheapest price now is well off their usual price (and the market's mood, over every item)
+function movers() {
+  analyze();
+  const key = AC.sig + "|" + (S.rev || 0) + "|" + Math.floor(Date.now() / 6e4);
+  if (movers.key === key) return movers.v;
+  const all = [];
+  Object.entries(AC.by).forEach(([id, R]) => {
+    const it = item(id),
+      live = forSale(R);
+    if (!it || !live.length) return;
+    const s = stats(id);
+    if (s.usual == null || s.list.length < 3) return;
+    const low = Math.min(...live.map(o => o.price));
+    all.push({ id, it, low, pct: Math.round((low / s.usual - 1) * 100) });
+  });
+  movers.key = key;
+  return (movers.v = {
+    top: all.filter(m => Math.abs(m.pct) >= 5).sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct)).slice(0, 10),
+    mood: all.length >= 3 ? median(all.map(m => m.pct)) : null
+  });
+}
+function trendHtml() {
+  const { top, mood } = movers();
+  if (!top.length && mood == null) return "";
+  const m = mood == null ? "" : Math.abs(mood) < 2 ? '<span class="mood">Prices are about usual today</span>' :
+    `<span class="mood ${mood < 0 ? "pd" : "pu"}"><span class="num">${mood < 0 ? "▼" : "▲"} ${Math.abs(Math.round(mood))}%</span>` +
+    `prices ${mood < 0 ? "lower" : "higher"} than usual today</span>`;
+  return `<section class="trend" id="trend" aria-label="Trending today"><div class="th"><h2>Trending today</h2>${m}` +
+    `<span class="mu">cheapest now, against the usual price</span></div>` +
+    (top.length ? `<div class="movers">${top.map(x => `<button class="chip" data-mv="${x.id}">${pic(x.it.name)}<span><b>${esc(x.it.name)}</b>` +
+      `<span class="num ${x.pct < 0 ? "pd" : "pu"}">${x.pct < 0 ? "▼" : "▲"} ${Math.abs(x.pct)}% · ${fmt(x.low)}</span></span></button>`).join("")}</div>` : "") +
+    `</section>`;
+}
+// Home: a big search, today's numbers, what was just listed, and your price alerts
+const SEARCH_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ` +
+  `aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>`;
+function drawHome() {
+  const R = analyze().rows,
+    now = Date.now(),
+    today = R.filter(o => now - (o.last || o.first) < DAY),
+    shops = new Set(today.map(SHOPK)).size,
+    fresh = R.filter(o => o.st === "sale" && now - o.first < 36e5).length,
+    tile = (k, v, sub) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="mu">${sub}</div></div>`,
+    L = scanListings().filter(x => item(x.item)).sort((a, b) => b.t - a.t).slice(0, 6),
+    row = l => {
+      const it = item(l.item),
+        nw = now - l.t < JUST;
+      return `<button class="fr${nw ? " new" : ""}" data-open="${l.item}">${pic(it.name)}<div style="min-width:0"><div class="t">${esc(it.name)}</div>` +
+        `<div class="s">${esc(l.store)} · FM ${l.room || "?"}${l.ch ? " · CH " + l.ch : ""}</div></div><div class="p"><div class="num">${fmt(l.price)}</div>` +
+        `<div class="mu">${nw ? '<span class="fresh">just listed</span>' : "listed " + ago(now - l.t)}</div></div></button>`;
+    };
+  $("#app").innerHTML = trendHtml() +
+    `<div id="home"><button class="bigs" data-tosearch="1">${SEARCH_SVG}How much is it? Search an item</button>` +
+    `<div class="tiles t3" style="max-width:640px">${tile("Seen today", fmt(today.length), "listings")}` +
+    `${tile("Shops", fmt(shops), "looked at today")}${tile("New", fmt(fresh), "in the last hour")}</div>` +
+    `<div class="hgrid"><section><div class="row"><h2>Just listed</h2><button class="chg" data-tonav="market">See all ›</button></div>` +
+    `<div class="feed">${L.length ? L.map(row).join("") : `<div class="empty">${EMPTY_SCAN}</div>`}</div></section>` +
+    `<section><div class="row"><h2>Your price alerts</h2></div>${alertsHtml()}</section></div></div>`;
+}
+function alertsHtml() {
+  if (!S.alerts.length)
+    return `<div class="card mu">No alerts yet. Open an item and press <b>Tell me when it's this price or less</b>.</div>`;
+  const live = forSale(analyze().rows);
+  return `<div class="feed">${S.alerts.map(a => {
+    const t = norm(a.term).trim(),
+      m = live.filter(o => item(o.item) && norm(item(o.item).name).includes(t)),
+      low = m.length ? Math.min(...m.map(o => o.price)) : null,
+      hit = low != null && (!a.max || low <= a.max),
+      id = m.length ? m.find(o => o.price === low).item : null;
+    return `<div class="fr nopic"><div style="min-width:0">` +
+      (id ? `<button class="t lk" data-open="${id}">${esc(a.term)}</button>` : `<div class="t">${esc(a.term)}</div>`) +
+      `<div class="s">${a.max ? "under " + fmt(a.max) : "any price"} · ${low != null ? "cheapest now " + fmt(low) : "none for sale now"}</div></div>` +
+      `<div class="p"><span class="tag ${hit ? "hit" : "wait"}">${hit ? "Price hit" : "Waiting"}</span></div></div>`;
+  }).join("")}</div>`;
+}
+// Listings: the kinds of item down the side (a row along the top on narrow screens), each with its count
+function drawRail() {
+  const el = $("#rail"),
+    n = {};
+  if (!el) return;
+  Object.values(listingRows.kinds || {}).forEach(k => (n[k] = (n[k] || 0) + 1));
+  const K2 = Object.keys(n).sort((a, b) => (a === "Other") - (b === "Other") || n[b] - n[a]),
+    all = Object.values(n).reduce((a, b) => a + b, 0),
+    show = K2.length > 1 || !!lcat;
+  el.hidden = !show;
+  $("#lgrid").classList.toggle("norail", !show);
+  if (show)
+    el.innerHTML = [["", "All", all]].concat(K2.map(k => [k, k, n[k]]))
+      .map(([v, t, c]) => `<button data-lc="${esc(v)}" aria-pressed="${v === lcat}"><span>${esc(t)}</span><span class="num">${c}</span></button>`).join("");
+}
+// The EXP tab: its own page (drawn dark), with the trend on top and the charts
+function drawExpPage(force) {
+  const el = $("#app"),
+    st = APP.st || {},
+    x = st.exp,
+    on = !!st.exp_on,
+    D = st.exp_days || [],
+    today = D.length ? D[D.length - 1].gained : 0,
+    fig = (k, v, sub) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="mu">${sub}</div></div>`,
+    mins = m => (m < 60 ? m + " min" : `${Math.floor(m / 60)} h ${m % 60} min`),
+    bars = (v, lab) => {
+      const mx = Math.max(1, ...v);
+      return `<div class="xchart" role="img" aria-label="${lab}">${v.map(n => `<i style="height:${Math.max(2, (n / mx) * 100).toFixed(0)}%"></i>`).join("")}</div>`;
+    },
+    status = !on ? "EXP recording is stopped. Press Start to record it (no need to watch shops)." : !x
+      ? st.exp_found ? "Reading your EXP…" : "Looking for the EXP line at the bottom of the game window. Keep it on screen (not covered)."
+      : x.lost ? `Lost ${fmt(x.lost)} EXP from dying this session.` : "Recording. Keep the EXP line at the bottom of the game window on screen.";
+  let vs = "";
+  if (x && x.hour != null && x.prev_hour) {
+    const p = Math.round((x.hour / x.prev_hour - 1) * 100);
+    vs = Math.abs(p) < 2 ? '<div class="xvs mu">About the same as the hour before</div>' :
+      `<div class="xvs ${p > 0 ? "up" : "dn"}">${p > 0 ? "▲" : "▼"} ${Math.abs(p)}% ${p > 0 ? "faster" : "slower"} than the hour before</div>`;
+  } else if (x) vs = '<div class="xvs mu">After 2 hours this compares with the hour before</div>';
+  const sl = x && x.slots ? x.slots : [],
+    dayName = d => new Date(d.day + "T12:00:00").toLocaleDateString(undefined, { weekday: "short" }),
+    chart = xr === "week"
+      ? `<div class="row"><b>EXP per day</b><span class="num gold">${fmt(D.reduce((a, d) => a + d.gained, 0))}</span></div>` +
+        bars(D.map(d => d.gained), "EXP gained on each of the last 7 days") +
+        `<div class="ax">${D.map(d => `<span>${D.indexOf(d) === D.length - 1 ? "Today" : dayName(d)}</span>`).join("")}</div>`
+      : sl.length ? `<div class="row"><b>EXP every 10 minutes</b><span class="num gold">+${fmt(sl.reduce((a, b) => a + b, 0))}</span></div>` +
+        bars(sl, "EXP gained in each 10 minutes of this session") + `<div class="ax"><span>${sl.length * 10} min ago</span><span>now</span></div>`
+        : '<p class="mu">Starts with your first reading.</p>',
+    html = `<section class="card xband" aria-label="Your EXP trend"><div><div class="k mu">Your trend</div>` +
+      `<div class="big">${x && x.per_hour != null ? fmt(x.per_hour) : "…"}<small> EXP/h</small></div>${vs}</div>` +
+      (sl.length > 1 ? `<div class="xspark" aria-hidden="true">${sl.map(n => `<i style="height:${Math.max(4, (n / Math.max(1, ...sl)) * 100).toFixed(0)}%"></i>`)
+        .join("")}</div>` : "") +
+      `<div class="tiles t3">${fig("Today", fmt(today), "EXP gained")}` +
+      `${fig("Best hour", x && x.best_hour != null ? fmt(x.best_hour) : "—", x && x.best_hour != null ? "this session" : "after an hour")}` +
+      `${fig("Level in", (x && x.eta_text) || "—", x && x.left != null ? fmt(x.left) + " to go" : "")}</div></section>` +
+      `<div class="xgrid"><div>` +
+      (x ? `<div class="card"><div class="row"><span class="mu">Level</span><span class="mu">${x.left != null ? fmt(x.left) + " to go" : ""}</span></div>` +
+        `<div class="xlv"><b>${x.level || "—"}</b><span class="num">${x.pct.toFixed(2)}%</span></div>` +
+        `<div class="xbar" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, x.pct))}%"></i></div>` +
+        `<div class="mu num">${fmt(x.exp)}${x.need ? " of " + fmt(x.need) : ""} EXP</div></div>` +
+        `<div class="tiles t4" style="margin-top:12px">${fig("Gained", fmt(x.gained), "this session")}${fig("Lost", fmt(x.lost), "from dying")}` +
+        `${fig("Playing time", mins(x.minutes), "this session")}${fig("Level-ups", x.levels, "this session")}</div>`
+        : `<div class="card"><b>No EXP reading yet</b><p class="mu" style="margin:4px 0 0">${status}</p></div>`) +
+      `<div class="xctl"><button data-x="go">${on ? "Stop recording" : "Start recording"}</button><button data-x="reset">Reset</button>` +
+      `${x ? `<span class="mu">${status}</span>` : ""}</div></div>` +
+      `<div>${segBtns("xr", xr, [["session", "This session"], ["week", "Last 7 days"]])}<div class="card" style="margin-top:8px">${chart}</div></div></div>`;
+  if (force || el.dataset.html !== html) {
+    el.innerHTML = html;
+    el.dataset.html = html;
+  }
+}
+// The new buttons (Home, trends, Listings' filters, the history's 7/30 days, the EXP tab): true when handled
+function cClick(e) {
+  const b = e.target.closest("[data-mv],[data-tosearch],[data-tonav],[data-lst],[data-lc],[data-hd],[data-x],[data-xr]");
+  if (!b) return false;
+  const d = b.dataset;
+  if (d.mv) {
+    view = "browse";
+    cur = null;
+    q = "";
+    pick = d.mv;
+    draw();
+    scrollTo(0, 0);
+  } else if (d.tosearch) {
+    view = "browse";
+    cur = null;
+    draw(false);
+    $("#q").focus();
+  } else if (d.tonav) {
+    view = d.tonav;
+    cur = null;
+    draw();
+  } else if (d.lst) {
+    lst = d.lst;
+    draw(false);
+  } else if (d.lc !== undefined) {
+    lcat = d.lc;
+    drawMB();
+  } else if (d.hd) {
+    hdays = +d.hd;
+    if (cur) draw(false);
+    else {
+      drawPanel(true);
+      drawLPanel(true);
+    }
+  } else if (d.xr) {
+    xr = d.xr;
+    drawExpPage(true);
+  } else if (d.x === "go") {
+    api("/api/set", { exp: !(APP.st && APP.st.exp_on) }).then(r => r.ok || say(r.error || "Could not change EXP recording."));
+  } else if (d.x === "reset") {
+    api("/api/exp-reset").then(() => say("EXP tracking starts again from now"));
+  }
+  return true;
 }
 function bindItem(id) {
   const it = item(id);
@@ -1660,11 +2028,17 @@ function draw(f = true) {
     .forEach(b =>
       b.dataset.nav === (SIMPLE && MORE.includes(view) ? "more" : view) ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")
     );
-  $("#app").classList.toggle("narrow", !!cur || !["scan", "browse", "more", "market"].includes(view));
+  $("#app").classList.toggle("narrow", !!cur || !["scan", "home", "browse", "more", "market", "exp"].includes(view));
+  if (SIMPLE && view === "exp" && !HASAPP) view = "home";       // (EXP comes from the app on this PC)
+  document.documentElement.dataset.view = cur ? "item" : view;   // (the EXP tab is drawn dark)
   cur
     ? SIMPLE ? drawItemSimple() : drawItem()
     : view === "scan" && HASAPP
       ? drawScan()
+      : SIMPLE && view === "home"
+      ? drawHome()
+      : SIMPLE && view === "exp"
+      ? drawExpPage(true)
       : SIMPLE && view === "more"
       ? drawMore()
       : SIMPLE && view === "browse"
@@ -1691,8 +2065,12 @@ function draw(f = true) {
 }
 // New rows arrived: redraw the list on screen (and only the list, so typing and scrolling aren't disturbed)
 function refreshList() {
-  if (view === "market" && $("#mb")) drawMB();
-  else if (SIMPLE && view === "browse" && $("#pcount")) drawPriceList();
+  if (view === "market" && $("#mb")) {
+    drawMB();
+    drawLPanel();
+  } else if (SIMPLE && view === "browse" && $("#pcount")) drawPriceList();
+  else if (SIMPLE && view === "home" && !cur && $("#home")) drawHome();
+  if (SIMPLE && $("#trend")) $("#trend").outerHTML = trendHtml() || '<section id="trend" hidden></section>';
 }
 // Short messages ("Listing posted", "Alert: 2 new matches") show at the bottom of the window for a few seconds
 function say(m) {
@@ -1709,6 +2087,7 @@ document.addEventListener("click", e => {
     drawMB();
     return;
   }
+  if (SIMPLE && cClick(e)) return;
   const sg = e.target.closest("[data-ps],[data-ls],[data-lv],[data-go]");
   if (sg) {
     const d = sg.dataset;
@@ -1788,6 +2167,12 @@ document.addEventListener("click", e => {
     return;
   }
   const b = e.target.closest("[data-open]");
+  if (b && $("#lpanel") && b.closest("#mb")) {   // Listings: the item's details beside the list
+    lpick = b.dataset.open;
+    drawLPanel(true);
+    if (innerWidth < 1000) $("#lpanel").scrollIntoView({ block: "start" });
+    return;
+  }
   if (b && b.classList.contains("pc") && $("#ipanel")) {   // Prices: show its details beside the cards
     pick = b.dataset.open;
     document.querySelectorAll("#list .pc").forEach(x => x.setAttribute("aria-pressed", x === b));
@@ -1802,9 +2187,10 @@ document.addEventListener("click", e => {
   }
 });
 if (SIMPLE) {
-  $("nav").innerHTML = '<button data-nav="scan" hidden>Scan</button><button data-nav="browse">Prices</button>' +
-    '<button data-nav="market">Listings</button><button data-nav="more">Options</button>';
-  view = "browse";
+  $("nav").innerHTML = '<button data-nav="scan" hidden>Scan</button><button data-nav="home">Home</button>' +
+    '<button data-nav="browse">Prices</button><button data-nav="market">Listings</button>' +
+    '<button data-nav="exp" hidden>EXP</button><button data-nav="more">Options</button>';
+  view = "home";
 }
 document.querySelectorAll("[data-nav]").forEach(
   b =>
@@ -2063,8 +2449,7 @@ async function appPull(first) {
     }
     APP.seq = j.seq;
     if (!was) {
-      const b = $('[data-nav="scan"]');
-      if (b) b.hidden = false;
+      document.querySelectorAll('[data-nav="scan"],[data-nav="exp"]').forEach(b => (b.hidden = false));
       try {
         ICONS = new Set([...(await (await fetch("/api/icons")).json()), ...ICONS]);
       } catch (e) {}
@@ -2074,6 +2459,7 @@ async function appPull(first) {
       }
       draw(false);
     } else if (view === "scan" && !cur) updScan(j.events.length > 0);
+    else if (view === "exp" && !cur) drawExpPage();
     else if (view === "more" && !cur) updOpts(j);
   } catch (e) {
     if (HASAPP && view === "scan" && !cur) updScan(false, true);
@@ -2106,7 +2492,8 @@ function drawScan() {
     // the EXP tracker: reads the EXP line at the bottom of the game window while watching
     // EXP is recorded on its own (its own Start/Stop), whether or not shops are being watched
     `<div class="card" id="expc"><div class="row"><p class="sec" style="margin:0">Your EXP</p><span class="hr">` +
-    `<button id="expgo" class="chg"></button><button id="expreset" class="chg">Reset</button></span></div><div id="expt"></div><p class="mu" id="expn" style="margin:6px 0 0">` +
+    `<button id="expgo" class="chg"></button><button id="expreset" class="chg">Reset</button>` +
+    `<button class="chg" data-tonav="exp">More ›</button></span></div><div id="expt"></div><p class="mu" id="expn" style="margin:6px 0 0">` +
     `</p></div>` +
     `</div><div><div class="card msgs"><p class="sec">Messages</p><ul class="notes" id="notes"></ul></div>` +
     `<div class="feedh"><h2>Saved this session</h2><span class="mu" id="fcount"></span></div><div class="feed" id="feed"></div></div></div>`;
