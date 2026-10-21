@@ -37,13 +37,13 @@ jobs:
       - name: Tesseract and Python packages
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q tesseract-ocr
+          sudo apt-get install -y -q tesseract-ocr postgresql   # (Postgres: the cloud market check runs a throwaway one)
           tesseract --version | head -1
           python -m pip install -q -r MapleReader/requirements.txt playwright==1.64.0 pyflakes==4.0.3
           python -m playwright install --with-deps chromium
           npm ci
       - name: Code check (pyflakes)
-        run: python -m pyflakes MapleReader maple-server tools dev-tests
+        run: python -m pyflakes MapleReader maple-server maple-cloud tools dev-tests
       - name: All checks
         run: bash dev-tests/run_all.sh
       - name: Install-script checks (this machine is thrown away afterwards)

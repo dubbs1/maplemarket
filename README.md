@@ -3,15 +3,16 @@
 Free Market prices for MapleStory Classic, collected from your own screen while you browse shops.
 
 - **MapleReader** (`MapleReader/`): a Windows app that watches the shop windows you open, reads every listing (item, price, shop, sold or not, room, channel, item picture) and keeps them. It only takes screenshots and reads them. It never clicks, types, reads game memory or touches the network traffic.
-- **Market page**: the clean market view with Scanner, Market, Mine, Items, Deals and Sources tabs, shown inside the app.
-- **Group market** (`maple-server/`): an optional shared server (`maple.vendormarket.app`) on a DigitalOcean droplet of its own. Friends' apps send their scans to it, and everyone sees everyone's listings.
+- **Market page**: the market view with Scan, Home, Prices, Listings, EXP and Options tabs, shown inside the app (and on the group market, phones included).
+- **Group market** (`maple-cloud/`): the shared website (`maple.vendormarket.app`) on Vercel + Supabase free plans. Friends' apps send their scans to it, and everyone sees everyone's listings, phones included. (`maple-server/` is the same thing for a droplet of its own.)
 
 ## Start here
 
 | I want to… | Read |
 |---|---|
 | Install and use MapleReader on Windows | the installer from **Releases**, or [`MapleReader/GUIDE.md`](MapleReader/GUIDE.md) |
-| Put the group market online (its own DigitalOcean droplet) | [`maple-server/SETUP.md`](maple-server/SETUP.md) |
+| Put the group market online (Vercel + Supabase, free) | [`maple-cloud/SETUP.md`](maple-cloud/SETUP.md) |
+| …or on a DigitalOcean droplet of its own | [`maple-server/SETUP.md`](maple-server/SETUP.md) |
 | Work on the code (or have Claude Code work on it) | [`CLAUDE.md`](CLAUDE.md) |
 
 ## Folders
@@ -22,7 +23,8 @@ MapleReader/          the Windows app (Python 3.13)
   maple_shop_reader.py  the black-window version (start.bat)
   shopreader/         the parts: reading shops, scrolling, room/channel, pictures, app server, sharing
   tests/              checks with real screenshots (run_tests.bat)
-maple-server/         the group market server (plain Python + SQLite) and its setup scripts
+maple-cloud/          the group market on Vercel + Supabase (schema.sql, api/market.py, SETUP.md)
+maple-server/         the group market for a droplet (plain Python + SQLite) and its setup scripts
 dev-tests/            extra checks for development (market page, browser end-to-end, install script)
 tools/                small helpers (keeping the two market.html copies the same)
 ```

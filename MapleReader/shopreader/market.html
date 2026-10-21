@@ -1998,8 +1998,8 @@ function drawMore() {
     `<div class="btns"><label class="bt">Test a screenshot<input type="file" id="opic" accept="image/*"></label><button id="oscans">Open scans folder</button></div></div>` +
     `<div class="card oc"><b>Updates</b><p class="mu" id="updline">Updates</p><p class="mu" id="eng"></p>` +
     `<button id="updcheck" style="align-self:flex-start">Check now</button></div>` +
-    // sharing with a group market: only shown once it has been turned on (the group market is paused for now)
-    (sh.enabled ? `<div class="card oc"><div class="oh"><label for="shon"><b>Share with friends</b></label><label class="sw"><input type="checkbox" ` +
+    // sharing with the group market (maple.vendormarket.app, on Vercel + Supabase): a key from whoever runs it
+    (HASAPP ? `<div class="card oc"><div class="oh"><label for="shon"><b>Share with friends</b></label><label class="sw"><input type="checkbox" ` +
       `id="shon"${sh.enabled ? " checked" : ""}><span></span></label></div><p class="st" id="shst"><i></i><span></span></p>` +
       `<div class="shf"><label class="mu" for="shsv">Market address</label><input id="shsv" value="${esc(sh.server || "")}">` +
       `<label class="mu" for="shk">Your key</label><input id="shk" type="password" autocomplete="off" ` +
