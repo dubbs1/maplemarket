@@ -362,7 +362,28 @@ class ExpTracker:
     def __init__(self, on_gain=None):
         self.lock = threading.Lock()
         self.on_gain = on_gain                           # called with each gain (n, time): the daily totals
+        self.paused = None                               # when recording was stopped: the clock stands still
         self.reset()
+
+    def pause(self, now=None):
+        """Recording stopped: per hour, playing time and the charts stay as they were (not counting idle time)."""
+        with self.lock:
+            if self.paused is None:
+                self.paused = time.time() if now is None else now
+
+    def resume(self, now=None):
+        """Recording again: the stopped time is left out, as if it never happened."""
+        now = time.time() if now is None else now
+        with self.lock:
+            if self.paused is None:
+                return
+            gap, self.paused = max(0, now - self.paused), None
+            sh = lambda p: (p[0] + gap,) + tuple(p[1:])
+            if self.start:
+                self.start, self.last = sh(self.start), sh(self.last)
+                self.history = [sh(h) for h in self.history]
+                self.trail = [sh(h) for h in self.trail]
+            self.first = None                            # (a reading from before the stop doesn't count as agreeing)
 
     def reset(self):
         with self.lock:
@@ -384,6 +405,8 @@ class ExpTracker:
         """Feed a reading; True if it was accepted (it changed something)."""
         now = time.time() if now is None else now
         with self.lock:
+            if self.paused is not None:                  # (a last reading arriving just after Stop)
+                return False
             return self._add(r['exp'], r['pct'], r.get('level'), now)
 
     def _add(self, exp, pct, level, now):
@@ -463,6 +486,8 @@ class ExpTracker:
         """What the window shows, or None before the first readings."""
         now = time.time() if now is None else now
         with self.lock:
+            if self.paused is not None:
+                now = min(now, self.paused)
             if self.last is None:
                 return None
             t0, g0 = self.history[0]

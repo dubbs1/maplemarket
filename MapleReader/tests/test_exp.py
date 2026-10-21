@@ -167,6 +167,18 @@ def hours_and_days():
     check((s['hour'], s['prev_hour'], s['best_hour']) == (18000, 15000, 18000),
           f'last hour {s["hour"]}, the hour before {s["prev_hour"]}, best hour {s["best_hour"]}')
     check(sum(gains) == s['gained'] == 39000, f'every gain goes to the day\'s total: {sum(gains)}')
+    end = 3 + 150 * 60
+    t.pause(now=end)
+    later = t.summary(now=end + 2 * 3600)
+    check((later['per_hour'], later['minutes'], later['slots'], later['hour']) == (s['per_hour'], s['minutes'], s['slots'], s['hour'])
+          and not t.add(r(x + 500), now=end + 60), f'Stop: the numbers stay as they were two hours later ({later["per_hour"]}/h, '
+          f'{later["minutes"]} min), and readings wait')
+    t.resume(now=end + 2 * 3600)
+    for i in range(1, 11):
+        t.add(r(x + i * 300), now=end + 2 * 3600 + i * 60)
+    s2 = t.summary(now=end + 2 * 3600 + 600)
+    check(s2['minutes'] == s['minutes'] + 10 and s2['slots'][-1] == 3000 and s2['hour'] == 18000 and s2['per_hour'] == 18000,
+          f'Start again: the stopped time is left out ({s2["minutes"]} min, last 10 min {s2["slots"][-1]}, {s2["per_hour"]}/h)')
     path = os.path.join(tempfile.mkdtemp(prefix='maplereader_expdays_'), 'scans', 'exp_days.json')
     d = E.ExpDays(path)
     day = 86400
