@@ -113,7 +113,7 @@ async def main():
                 await pg.click('[data-ps=low]'); await pg.wait_for_timeout(300)
                 first = (await pg.inner_text('#list [data-open] >> nth=0')).splitlines()[0]
                 ok(f'A12c Cheapest first ({first})', first == 'Adamantium Ore')
-                await pg.fill('#q', 'ore'); await pg.wait_for_timeout(300)
+                await pg.fill('#gs', 'ore'); await pg.wait_for_timeout(300)
                 ok('A12d search narrows the prices (the three ores)', await pg.locator('#list [data-open]').count() == 3)
                 await pg.click('#list [data-open] >> nth=1'); await pg.wait_for_timeout(300)
                 pn = await pg.inner_text('#ipanel')
@@ -148,7 +148,7 @@ async def main():
                 await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
                 ok('A15e Esc goes back from an item', await pg.locator('#app img.ic.lg').count() == 0)
                 await pg.click('[data-nav=more]'); await pg.keyboard.press('/'); await pg.wait_for_timeout(300)
-                ok('A15f "/" jumps to the Prices search', await pg.evaluate("document.activeElement.id") == 'q')
+                ok('A15f "/" jumps to the search box', await pg.evaluate("document.activeElement.id") in ('gs', 'q'))
                 await pg.click('[data-nav=more]'); await pg.click('[data-go=deals]'); await pg.wait_for_timeout(300)
                 ok('A15c More opens alerts and deals, with a way back', await pg.locator('#at').count() == 1 and
                    await pg.get_attribute('[data-nav=more]', 'aria-current') == 'page')

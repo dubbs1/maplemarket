@@ -13,7 +13,7 @@ L.push(`Scroll for Gloves for ATT 60% | 1800000 | Scroll Corner | 6 | 8 | sold |
 A.importScan(L.join('\n'));
 w.document.querySelector('[data-nav=home]').click();
 const home=$('#app').textContent;
-ok('C1 Home: a big search, today\'s numbers, just listed and the alerts',!!$('[data-tosearch]')&&/Seen today/.test(home)&&/Just listed/.test(home)&&
+ok('C1 Home: a big search, today\'s numbers, just listed and the alerts',!!$('[data-tosearch]')&&/Saved today/.test(home)&&/Just listed/.test(home)&&
  /Ilbi Throwing-Stars/.test($('#home .feed').textContent)&&/No alerts yet/.test(home));
 const chip=$$('#trend .chip').find(c=>/Ilbi/.test(c.textContent));
 ok('C2 the trend strip: Ilbi is 20% under its usual price',!!chip&&/▼ 20%/.test(chip.textContent)&&!$$('#trend .chip').some(c=>/Power Elixir/.test(c.textContent)));

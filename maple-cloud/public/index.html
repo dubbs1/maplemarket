@@ -1,16 +1,16 @@
-<title>Maple Classic Market</title>
+<title>Maple Market</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
 <style>
 /* Layout: one work column for a trader at the Free Market — sticky tab bar, listings kept as a ruled ledger, prices in tabular figures */
 :root{
-  --bg:#edf2f6;--card:#ffffff;--sf:#f3f6f9;--tx:#18283a;--mu:#5d6e80;--bd:#d6dfe8;
-  --ac:#a46606;--acbg:#fbf0d9;--sky:#2b72b0;--skybg:#e2edf8;--onsky:#ffffff;--ok:#1d7a43;--bad:#b42a1f;
-  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
-  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace}
+  --bg:#f4f5f7;--card:#ffffff;--sf:#f9fafb;--tx:#111827;--mu:#5f6b7a;--bd:#e5e7eb;
+  --ac:#2563eb;--acbg:#dbeafe;--sky:#2563eb;--skybg:#dbeafe;--onsky:#ffffff;--ok:#15803d;--bad:#b91c1c;
+  --display:Inter,ui-sans-serif,system-ui,sans-serif;
+  --body:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"Cascadia Mono",Consolas,monospace}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e1822;--card:#15212d;--sf:#1a2836;--tx:#e3ebf3;
   --mu:#91a3b5;--bd:#253646;--ac:#f0b54a;--acbg:#352812;--sky:#6db2ec;--skybg:#14283b;--onsky:#0e1822;--ok:#5fcf8d;
   --bad:#f08a80;color-scheme:dark}}
@@ -20,7 +20,7 @@ html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 var(--body)}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
 main{max-width:720px;margin:0 auto;padding-block:18px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-h1,h2,h3{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1,h2,h3{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:-.015em}
 h1{font-size:22px;line-height:1.15}h2{font-size:17px}
 .num{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums;margin:0}
 .top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
@@ -312,8 +312,8 @@ html.app main{max-width:1320px}
 /* the EXP tab: its own page, drawn dark */
 :root[data-view=exp]{--bg:#0e1822;--card:#15212d;--sf:#1a2836;--tx:#e3ebf3;--mu:#91a3b5;--bd:#253646;--ac:#f0b54a;--acbg:#352812;
   --sky:#6db2ec;--skybg:#14283b;--onsky:#0e1822;--ok:#5fcf8d;--bad:#f08a80;color-scheme:dark}
-.xband{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:flex-end;justify-content:space-between}
-.xband .big{font-family:var(--mono);font-size:32px;color:var(--ac);line-height:1.15}.xband .big small{font-size:14px;color:var(--mu)}
+.xband{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:center;justify-content:space-between}
+.xband .big{font-family:var(--mono);font-size:40px;color:var(--ac);line-height:1.1}.xband .big small{font-size:14px;color:var(--mu)}
 .xvs{font-size:13px;font-weight:600}
 .xspark{display:flex;align-items:flex-end;gap:3px;height:44px;width:140px}
 .xspark i,.xchart i{flex:1;border-radius:2px;background:color-mix(in srgb,var(--ac) 32%,transparent);min-height:2px}
@@ -330,14 +330,80 @@ html.app main{max-width:1320px}
 .xlog td{padding:8px;border-bottom:1px solid var(--bd);white-space:nowrap}.xlog tr.now td{color:var(--ac)}
 .xlog td button{min-height:32px;padding:2px 10px;font-size:13px;margin-left:4px}.xlog td input{width:170px;min-height:32px}
 .xlon{display:flex;align-items:center;gap:8px;font-size:14px;white-space:nowrap}.xlon input{width:18px;height:18px;min-height:0;margin:0;padding:0;flex:none}.xidle{color:var(--ac);font-weight:600}
+/* ===== The app and the group market: one header with the search and your status, underline tabs, calm cards ===== */
+html.app .top{margin:0;padding:12px 0;gap:16px;align-items:center}
+html.app .brand h1{font-size:17px}html.app .brand p{display:none}
+#gsf{flex:1;display:flex;align-items:center;gap:10px;min-width:0;background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:0 14px;height:44px;color:var(--mu)}
+#gsf:focus-within{border-color:var(--sky);box-shadow:0 0 0 3px var(--skybg)}
+#gsf input{flex:1;min-width:0;border:0;background:transparent;min-height:0;padding:0;font-size:15px}#gsf input:focus-visible{outline:none}
+#gsf kbd{font:12px var(--mono);color:var(--mu);border:1px solid var(--bd);border-radius:6px;padding:1px 7px;background:var(--card)}
+html.app #gsf{display:flex}#gsf[hidden]{display:none!important}
+html.app .lchip{padding:8px 14px;font-weight:600;color:var(--mu)}html.app .lchip.on{background:color-mix(in srgb,var(--ok) 10%,var(--card));border-color:color-mix(in srgb,var(--ok) 40%,var(--bd));color:var(--ok)}
+html.app .lchip.off{background:color-mix(in srgb,var(--bad) 8%,var(--card));color:var(--bad)}
+html.app #theme{min-height:36px;padding:4px 12px;font-size:13px;color:var(--mu)}
+html.app nav{background:none;border:0;border-bottom:1px solid var(--bd);border-radius:0;padding:0;gap:2px;margin:0 0 20px;top:0}
+html.app nav button{flex:0 0 auto;border-radius:0;border-bottom:2px solid transparent;padding:10px 14px;margin-bottom:-1px;color:var(--mu)}
+html.app nav button:hover{background:none;color:var(--tx)}
+html.app nav button[aria-current=page]{background:none;color:var(--tx);border-bottom-color:var(--sky);font-weight:600}
+html.app nav button[data-nav=more]{margin-left:auto}
+html.app .foot{display:none}
+html.app .card{border-radius:14px;margin-bottom:16px}
+html.app .tile{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px 16px}
+html.app .tile .v{font-size:26px}
+html.app .feed{border-radius:14px}
+html.app .fr{padding:11px 16px;grid-template-columns:40px minmax(0,1fr) auto}html.app .fr .ic,html.app .fr .ph{width:40px;height:40px;border-radius:10px}
+html.app .fresh{color:var(--ok);font-weight:600}
+html.app .seg button{min-height:30px;padding:3px 11px;border-radius:9px}
+/* the MapleReader window is one size: the header and tabs stay put, each view scrolls inside */
+html.desk,html.desk body{height:100%;overflow:hidden}
+html.desk main{height:100vh;box-sizing:border-box;display:flex;flex-direction:column;padding-block:0 0;max-width:none;padding-inline:24px}
+html.desk nav{flex:none}html.desk .top{flex:none}
+html.desk #app{flex:1;min-height:0;overflow:auto;padding-bottom:16px}
+html.desk #app.narrow{margin-inline:auto}
+/* Home: three tiles, then just listed beside trending and alerts */
+.hgrid.home3{grid-template-columns:minmax(0,7fr) minmax(0,5fr);margin-top:16px}
+@media(max-width:860px){.hgrid.home3{grid-template-columns:minmax(0,1fr)}}
+.hgrid .col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.hgrid section{min-width:0}
+html.app .hgrid .row{min-height:32px}
+.tiles.today{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media(max-width:700px){.tiles.today{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile .v.txt{font-family:var(--display);font-size:19px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile .v small{font-size:14px;font-weight:500;color:var(--mu);font-family:var(--body)}
+html.app .bigs{display:none}
+@media(max-width:640px){html.app .bigs{display:none}}
+/* Trending as rows (a chip is one row: the item and how far its cheapest is from usual) */
+.movers.rows{flex-direction:column;gap:0;background:var(--card);border:1px solid var(--bd);border-radius:14px;overflow:hidden}
+.movers.rows .chip{border:0;border-top:1px solid var(--bd);border-radius:0;padding:8px 14px;min-height:46px;gap:12px;background:none;justify-content:space-between}
+.movers.rows .chip:first-child{border-top:0}.movers.rows .chip:hover{background:var(--sf)}
+.movers.rows .chip>span{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:1;min-width:0}
+.movers.rows .chip b{max-width:none;font-size:14px;font-weight:600}.movers.rows .chip .num{font-size:14px;font-weight:600}
+@media(max-width:640px){.movers.rows{flex-wrap:nowrap;overflow:visible;margin:0;padding:0}.movers.rows .chip{flex:none}}
+/* Prices: a list of rows on the left, the item on the right */
+html.app .bigl,html.app .bigq{display:none}
+html.app .pgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
+@media(min-width:900px){html.app .pgrid{grid-template-columns:400px minmax(0,1fr)}html.app #ipanel{position:sticky;top:0}}
+html.app .cards{display:flex;flex-direction:column;gap:10px}
+html.app .pc{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"nm k" "mu num";column-gap:14px;row-gap:2px;align-items:center;padding:12px 14px;border-width:1px}
+html.app .pc[aria-pressed=true]{border:2px solid var(--sky);padding:11px 13px}
+html.app .pc>.nm{grid-area:nm;margin:0}html.app .pc>.k{grid-area:k;text-align:right}html.app .pc>.num{grid-area:num;text-align:right;font-size:17px}
+html.app .pc>.mu{grid-area:mu;padding-left:50px}
+html.app .pc .ic,html.app .pc .ph{width:40px;height:40px;border-radius:10px}
+html.app #ipanel{padding:20px 22px}html.app #ipanel .nm h2{font-size:21px}
+html.app #ipanel .tile,html.app #lpanel .tile{background:var(--sf);border:0;border-radius:12px;padding:12px 14px}
+html.app #ipanel .tile .v,html.app #lpanel .tile .v{font-size:20px}
 /* phones: the tabs along the bottom, within reach of a thumb */
-@media(max-width:640px){html.app nav{position:fixed;top:auto;bottom:0;left:0;right:0;margin:0;border-radius:0;border-width:1px 0 0;
-  padding:4px 4px calc(6px + env(safe-area-inset-bottom,0px));z-index:20}html.app main{padding-bottom:90px}
-  html.app nav button{min-height:48px;font-size:13px}
+@media(max-width:640px){html.app nav{position:fixed;top:auto;bottom:0;left:0;right:0;margin:0;border-radius:0;border:1px solid var(--bd);border-width:1px 0 0;background:var(--card);
+  padding:4px 4px calc(6px + env(safe-area-inset-bottom,0px));z-index:20;gap:2px}html.app main{padding-bottom:90px}
+  html.app nav button{flex:1 1 0;min-height:48px;font-size:12px;padding:6px 4px;border-bottom:0;border-radius:10px;margin:0}
+  html.app nav button[aria-current=page]{background:var(--skybg);color:var(--sky)}html.app nav button[data-nav=more]{margin-left:0}
+  html.app .top{flex-wrap:wrap;gap:10px}html.app .brand{order:0}html.app .hr{order:1;margin-left:auto}#gsf{order:2;flex-basis:100%;height:46px}
+  html.app #theme{display:none}html.app .lchip{padding:5px 9px;font-size:11px;gap:5px}html.app .brand h1{font-size:15px}html.app .brand svg{width:26px;height:26px}
+  .tiles.today>.tile:last-child{grid-column:1/-1}.tile .v.txt{white-space:normal}.tile .v small{display:block;margin-top:2px}
   html.app #live{bottom:calc(72px + env(safe-area-inset-bottom,0px))}}
 </style>
 <main>
-<header class="top"><div class="brand"><svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15" fill="var(--ac)"/><circle cx="17" cy="17" r="10.5" fill="none" stroke="var(--acbg)" stroke-width="2"/><text x="17" y="21.5" text-anchor="middle" font-family="var(--mono)" font-size="12" font-weight="700" fill="var(--acbg)">m</text></svg><div><h1>Maple Classic Market</h1><p>Free Market prices from your own shop scans</p></div></div><div class="hr"><span id="chip" class="lchip" hidden></span><button id="theme" aria-label="Switch light or dark theme">Theme</button></div></header>
+<header class="top"><div class="brand"><svg width="30" height="30" viewBox="0 0 28 28" aria-hidden="true"><rect x="2" y="2" width="24" height="24" rx="7" fill="var(--ac)"/><path d="M8 18 L12 10 L15 15 L18 9 L21 18" fill="none" stroke="var(--onsky)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><h1>Maple Market</h1><p>Free Market prices from your own shop scans</p></div></div><form id="gsf" role="search" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="gs" type="search" placeholder="Search any item" aria-label="Search any item" autocomplete="off"><kbd>/</kbd></form><div class="hr"><span id="chip" class="lchip" hidden></span><button id="theme" aria-label="Switch light or dark theme">Theme</button></div></header>
 <div class="note"><span><b>Mockup.</b> Sample data mixed with your imports, saved in this browser only.</span><button id="reset">Reset</button></div>
 <nav aria-label="Sections"><button data-nav="scan" hidden>Scanner</button><button data-nav="market">Market</button><button data-nav="mine">Mine</button><button data-nav="browse">Items</button><button data-nav="deals">Deals</button><button data-nav="sources">Sources</button></nav>
 <div id="app" tabindex="-1"></div><p id="live" class="mu" role="status" aria-live="polite"></p><p class="foot">Fan project, not affiliated with Nexon. Item names can be imported from the MapleClassic Wiki (CC BY-SA) with credit. Other price sites are linked, never copied.</p>
@@ -659,7 +725,7 @@ function saveSoon() {
   if (saveTimer) return;
   saveTimer = setTimeout(() => {
     saveTimer = 0;
-    if (!saveRoom()) say("This browser's storage is full: new listings can't be kept. Clear old data with Reload all.");
+    if (!saveRoom()) say("Storage is full: new listings can't be kept. Press Reload all.");
   }, 5000);
 }
 addEventListener("pagehide", () => {
@@ -1636,8 +1702,8 @@ function priceRow(p) {
     `<span class="k">${p.low != null ? "Cheapest now" : "Usual price"}</span><span class="num">${v == null ? "–" : fmt(v)}</span>` +
     `<span class="mu">${p.n ? `${p.n} for sale` : "none for sale now"} · ${seenTxt(p.seen)}</span></button>`;
 }
-const EMPTY_SCAN = MODE === "shared" ? "Nothing yet. Listings appear here as friends scan." :
-  "Nothing scanned yet. Go to <b>Scan</b>, press <b>Start watching</b>, then open shops in the Free Market.";
+const EMPTY_SCAN = MODE === "shared" ? "Nothing yet." :
+  "Nothing scanned yet. Press <b>Start watching</b> on the Scan tab, then open shops.";
 function drawPriceList() {
   const P = priceRows(),
     was = pick;
@@ -1657,15 +1723,17 @@ function drawPanel(force) {
   bindItem(pick);
 }
 function drawPrices() {
-  $("#app").innerHTML = trendHtml() +
+  $("#app").innerHTML =
     `<label class="bigl" for="q">How much is it?</label><div class="bigq"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" ` +
     `stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>` +
     `<input id="q" type="search" placeholder="Type an item, for example scroll   (press / to jump here)"></div>` +
     `<div class="bar"><span class="mu" id="pcount"></span>${segBtns("ps", psort, [["new", "Newest"], ["low", "Cheapest"], ["az", "A–Z"]])}</div>` +
     `<div class="pgrid"><div class="cards" id="list"></div><section class="card" id="ipanel" aria-label="Item details" hidden></section></div>`;
   $("#q").value = q;
+  if ($("#gs")) $("#gs").value = q;
   $("#q").oninput = e => {
     q = e.target.value;
+    if ($("#gs")) $("#gs").value = q;
     drawPriceList();
   };
   drawPriceList();
@@ -1736,7 +1804,7 @@ function simpleRows(L = listingRows()) {
       `${lcat ? " in " + esc(lcat) : ""}${lst === "sold" ? " among sold listings" : ""} in the last 3 days.` : EMPTY_SCAN}</div>`) + older;
 }
 function drawListings() {
-  $("#app").innerHTML = trendHtml() +
+  $("#app").innerHTML =
     `<div class="lgrid" id="lgrid"><nav class="rail" id="rail" aria-label="Kinds of item"></nav><div style="min-width:0"><div class="lbar">` +
     `<input id="ms" type="search" placeholder="Find an item or shop   (press / to jump here)" aria-label="Find an item or shop">` +
     `${segBtns("lst", lst, [["sale", "For sale"], ["sold", "Sold"], ["all", "All"]])}</div>` +
@@ -1757,7 +1825,7 @@ function drawLPanel(force) {
   const el = $("#lpanel");
   if (!el) return;
   el.classList.toggle("none", !lpick);
-  if (!lpick) return void (el.innerHTML = '<p class="hint">Click a listing to see its prices, its history and every shop it was seen in.</p>');
+  if (!lpick) return void (el.innerHTML = '<p class="hint">Click a listing to see its item.</p>');
   if (!force && el.contains(document.activeElement) && document.activeElement !== el) return;
   el.innerHTML = itemHtml(lpick);
   bindItem(lpick);
@@ -1811,12 +1879,12 @@ function itemHtml(id) {
       d >= 5 ? `<p class="good pu">${d}% above the usual ${fmt(s.usual)}</p>` : `<p class="good">About the usual price (${fmt(s.usual)})</p>`) +
     alertCard(it, low == null ? s.usual : low) + histHtml(id) +
     `<h3 class="ins-h">Where to buy</h3>${W.length || past.length ? `<div class="feed">${W.map(o => wrow(o, "sale")).join("")}` +
-      `${past.map(o => wrow(o, o.st)).join("")}</div>` : '<div class="card mu">Nobody has it for sale today, as far as your scans show.</div>'}` +
-    (W.length || !past.length ? "" : '<p class="mu">Nobody has it for sale today, as far as your scans show.</p>') +
+      `${past.map(o => wrow(o, o.st)).join("")}</div>` : '<div class="card mu">None for sale now.</div>'}` +
+    (W.length || !past.length ? "" : '<p class="mu">None for sale now.</p>') +
     `<details class="card" style="margin-top:12px"><summary>Best times to buy</summary>${scanCard(id) ||
       '<p class="mu">Not enough scans yet.</p>'}</details>` +
-    `<p class="mu">Also check this item on <a href="https://meowdb.com/msclassic/free-market" target="_blank" rel="noopener">MeowDB</a> and ` +
-    `<a href="https://meso.watch" target="_blank" rel="noopener">MesoWatch</a> (links only; nothing is copied).</p>`;
+    `<p class="mu">Also on <a href="https://meowdb.com/msclassic/free-market" target="_blank" rel="noopener">MeowDB</a> and ` +
+    `<a href="https://meso.watch" target="_blank" rel="noopener">MesoWatch</a></p>`;
 }
 // Price history: the median price (line) and how many listings were seen (bars), per day (7 days) or per 3 days (30)
 function histHtml(id) {
@@ -1832,7 +1900,7 @@ function histHtml(id) {
     seg = segBtns("hd", String(hdays), [["7", "7 days"], ["30", "30 days"]]) + segBtns("hk", hkind, [["bars", "Bars"], ["line", "Lines"]]) +
       segBtns("hs", hlog ? "log" : "lin", [["lin", "Normal"], ["log", "Log scale"]]);
   if (pts.length < 2)
-    return `<div class="card hist"><div class="row"><b>Price history</b>${seg}</div><p class="mu">Not enough scans yet. It fills in as you scan.</p></div>`;
+    return `<div class="card hist"><div class="row"><b>Price history</b>${seg}</div><p class="mu">Not enough scans yet.</p></div>`;
   const B = Array.from({ length: nb }, () => []);
   pts.forEach(x => B[Math.min(nb - 1, Math.floor((x.t - t0) / (step * DAY)))].push(x.p));
   const line = hkind === "line",
@@ -1891,11 +1959,11 @@ function trendHtml() {
   const m = mood == null ? "" : Math.abs(mood) < 2 ? '<span class="mood">Prices are about usual today</span>' :
     `<span class="mood ${mood < 0 ? "pd" : "pu"}"><span class="num">${mood < 0 ? "▼" : "▲"} ${Math.abs(Math.round(mood))}%</span>` +
     `prices ${mood < 0 ? "lower" : "higher"} than usual today</span>`;
-  return `<section class="trend" id="trend" aria-label="Trending today"><div class="th"><h2>Trending today</h2>${m}` +
-    `<span class="mu">cheapest now, against the usual price</span></div>` +
-    (top.length ? `<div class="movers">${top.map(x => `<button class="chip" data-mv="${x.id}">${pic(x.it.name)}<span><b>${esc(x.it.name)}</b>` +
-      `<span class="num ${x.pct < 0 ? "pd" : "pu"}">${x.pct < 0 ? "▼" : "▲"} ${Math.abs(x.pct)}% · ${fmt(x.low)}</span></span></button>`).join("")}</div>` : "") +
-    `</section>`;
+  return `<section class="trend" id="trend" aria-label="Trending today"><div class="row"><h2>Trending today</h2>` +
+    `<span class="mu">vs usual</span></div>` +
+    (top.length ? `<div class="movers rows">${top.slice(0, 6).map(x => `<button class="chip" data-mv="${x.id}">${pic(x.it.name)}<span><b>${esc(x.it.name)}</b>` +
+      `<span class="num ${x.pct < 0 ? "pd" : "pu"}">${x.pct < 0 ? "▼" : "▲"} ${Math.abs(x.pct)}%</span></span></button>`).join("")}</div>` : "") +
+    (m ? `<div style="margin-top:8px">${m}</div>` : "") + `</section>`;
 }
 // Home: a big search, today's numbers, what was just listed, and your price alerts
 const SEARCH_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ` +
@@ -1915,17 +1983,24 @@ function drawHome() {
         `<div class="s">${esc(l.store)} · FM ${l.room || "?"}${l.ch ? " · CH " + l.ch : ""}</div></div><div class="p"><div class="num">${fmt(l.price)}</div>` +
         `<div class="mu">${nw ? '<span class="fresh">just listed</span>' : "listed " + ago(now - l.t)}</div></div></button>`;
     };
-  $("#app").innerHTML = trendHtml() +
+  const { top, mood } = movers(),
+    best = top.filter(x => x.pct < 0)[0],
+    moodTxt = mood == null ? ["No trend yet", "after a few days of scans"] : Math.abs(mood) < 2 ? ["Prices about usual", "within 2% of usual"] :
+      [`Prices ${mood < 0 ? "lower" : "higher"} than usual`, `${Math.abs(Math.round(mood))}% ${mood < 0 ? "under" : "over"} usual`];
+  $("#app").innerHTML =
     `<div id="home"><button class="bigs" data-tosearch="1">${SEARCH_SVG}How much is it? Search an item</button>` +
-    `<div class="tiles t3" style="max-width:640px">${tile("Seen today", fmt(today.length), "listings")}` +
-    `${tile("Shops", fmt(shops), "looked at today")}${tile("New", fmt(fresh), "in the last hour")}</div>` +
-    `<div class="hgrid"><section><div class="row"><h2>Just listed</h2><button class="chg" data-tonav="market">See all ›</button></div>` +
+    `<div class="tiles today">${tile("Saved today", `${fmt(today.length)} <small>listings · ${fmt(shops)} shop${shops === 1 ? "" : "s"}</small>`, `${fmt(fresh)} new in the last hour`)}` +
+    (best ? `<div class="tile"><div class="k">Best deal right now</div><div class="v txt">${esc(best.it.name)}</div>` +
+      `<div class="mu"><span class="num">${fmt(best.low)}</span> · <span class="pd">${-best.pct}% under usual</span></div></div>` :
+      tile("Best deal right now", "<small>none yet</small>", "nothing well under usual yet")) +
+    `<div class="tile"><div class="k">Market mood</div><div class="v txt">${moodTxt[0]}</div><div class="mu">${moodTxt[1]}</div></div></div>` +
+    `<div class="hgrid home3"><section><div class="row"><h2>Just listed</h2><button class="chg" data-tonav="market">All listings ›</button></div>` +
     `<div class="feed">${L.length ? L.map(row).join("") : `<div class="empty">${EMPTY_SCAN}</div>`}</div></section>` +
-    `<section><div class="row"><h2>Your price alerts</h2></div>${alertsHtml()}</section></div></div>`;
+    `<div class="col">${trendHtml()}<section><div class="row"><h2>Your price alerts</h2></div>${alertsHtml()}</section></div></div></div>`;
 }
 function alertsHtml() {
   if (!S.alerts.length)
-    return `<div class="card mu">No alerts yet. Open an item and press <b>Tell me when it's this price or less</b>.</div>`;
+    return `<div class="card mu">No alerts yet. Set one from an item.</div>`;
   const live = forSale(analyze().rows);
   return `<div class="feed">${S.alerts.map(a => {
     const k = norm(a.term).split(/\s+/).filter(Boolean), // every word of the alert, anywhere in the name: the
@@ -1981,10 +2056,10 @@ function drawExpPage(force) {
       }
       return `<div class="xchart" role="img" aria-label="${lab}">${v.map(n => `<i style="height:${Math.max(2, f(n) * 100).toFixed(0)}%"></i>`).join("")}</div>`;
     },
-    status = !on ? "EXP recording is stopped. Press Start to record it (no need to watch shops)." : !x
-      ? st.exp_found ? "Reading your EXP…" : "Looking for the EXP line at the bottom of the game window. Keep it on screen (not covered)."
-      : x.idle ? "Paused: no EXP for a minute, so this time doesn't count. It carries on at your next EXP gain."
-      : x.lost ? `Lost ${fmt(x.lost)} EXP from dying this session.` : "Recording. Keep the EXP line at the bottom of the game window on screen.";
+    status = !on ? "Not recording. Press Start." : !x
+      ? st.exp_found ? "Reading your EXP…" : "Looking for the EXP line. Keep the status bar visible."
+      : x.idle ? "Paused: no EXP for a minute. This time doesn't count."
+      : x.lost ? `Lost ${fmt(x.lost)} EXP from dying this session.` : "Recording.";
   let vs = "";
   if (x && x.hour != null && x.prev_hour) {
     const p = Math.round((x.hour / x.prev_hour - 1) * 100);
@@ -1999,7 +2074,7 @@ function drawExpPage(force) {
         `<div class="ax">${D.map(d => `<span>${D.indexOf(d) === D.length - 1 ? "Today" : dayName(d)}</span>`).join("")}</div>`
       : sl.length ? `<div class="row"><b>EXP every 10 minutes</b><span class="num gold">+${fmt(sl.reduce((a, b) => a + b, 0))}</span></div>` +
         bars(sl, "EXP gained in each 10 minutes of this session") + `<div class="ax"><span>${sl.length * 10} min ago</span><span>now</span></div>`
-        : '<p class="mu">Starts with your first reading.</p>',
+        : '<p class="mu">No readings yet.</p>',
     html = `<section class="card xband" aria-label="Your EXP trend"><div><div class="k mu">Your trend</div>` +
       `<div class="big">${x && x.per_hour != null ? fmt(x.per_hour) : "…"}<small> EXP/h</small></div>${vs}` +
       (x ? `<div class="mu">Last 5 min ${x.last5 != null ? fmt(x.last5) + "/h" : "…"} · ${x.pct_per_hour != null ? x.pct_per_hour + "%" : "…"} per hour` +
@@ -2048,8 +2123,8 @@ function expLogHtml(st, x) {
         ? `<input id="xrn" maxlength="40" value="${esc(e.name || e.map || "")}" aria-label="A name for this line"><button data-xl="save" data-id="${e.id}">Save</button>`
         : `<button data-xl="rename" data-id="${e.id}">Rename</button><button data-xl="delete" data-id="${e.id}">Delete</button>`) + `</td></tr>`;
   return `<section class="card xlog" aria-label="EXP log"><div class="row"><b>EXP log</b><label class="xlon"><input type="checkbox" data-xl="on"` +
-    `${logOn ? " checked" : ""}> Log my runs</label></div><p class="mu">A new line starts at each level-up, on a new map, or after 30 minutes ` +
-    `without EXP. The map and party come from the minimap and the party window, mesos from the Item window (open it now and then).</p>` +
+    `${logOn ? " checked" : ""}> Log my runs</label></div><p class="mu">One line per hunt: a new line at a level-up, a new map, or 30 minutes ` +
+    `without EXP.</p>` +
     (r || L.length ? `<div class="tw"><table><thead><tr><th>Date</th><th>Map</th><th>Lv</th><th>Party</th><th>Time</th><th>EXP/h</th><th>Mesos/h</th><th></th></tr></thead>` +
       `<tbody>${r ? row(r, true) : ""}${L.map(e => row(e)).join("")}</tbody></table></div>` : '<p class="mu">Nothing logged yet.</p>') + `</section>`;
 }
@@ -2082,7 +2157,7 @@ function cClick(e) {
     view = "browse";
     cur = null;
     draw(false);
-    $("#q").focus();
+    searchBox().focus();
   } else if (d.tonav) {
     view = d.tonav;
     cur = null;
@@ -2148,17 +2223,17 @@ function drawMore() {
     se = st.settings || {},
     sh = st.share || {},
     go = (v, t, d) => `<button class="card oc" data-go="${v}"><b>${t}</b><span class="mu">${d}</span><span class="k">Open ›</span></button>`,
-    theme = optCard("odk", "Dark theme", "Easier on the eyes at night.", isDark());
+    theme = optCard("odk", "Dark theme", "", isDark());
   $("#app").innerHTML = (HASAPP ? `<h2 class="oh2">Settings</h2><div class="ocards">` +
-    optCard("oa", "Start when MapleReader opens", "Starts watching your screen as soon as the app opens.", se.auto_start !== false) +
-    optCard("oq", "Chime when saved", "A soft chime each time a shop is saved, so you know you can move on.", !se.quiet) +
-    optCard("ox", "Record my EXP", "On its own, whether or not shops are being watched (also Start/Stop on the Scan tab's EXP card).",
+    optCard("oa", "Start when MapleReader opens", "Watch shops as soon as the app opens.", se.auto_start !== false) +
+    optCard("oq", "Chime when saved", "A soft chime each time a shop is saved.", !se.quiet) +
+    optCard("ox", "Record my EXP", "Also Start/Stop on the Scan tab.",
       se.exp !== false) + theme +
     `<div class="card oc"><label for="ov"><b>Chime volume</b></label><p class="mu">How loud the saved chime is.</p>` +
     `<input type="range" id="ov" min="0.02" max="0.4" step="0.01" value="${se.volume || 0.08}"></div>` +
-    `<div class="card oc"><label for="om"><b>Game screen</b></label><p class="mu">Which screen the game is on, if you have more than one.</p>` +
+    `<div class="card oc"><label for="om"><b>Game screen</b></label><p class="mu">If the game is on another screen.</p>` +
     `<select id="om">${[1, 2, 3].map(n => `<option value="${n}"${+se.monitor === n ? " selected" : ""}>Screen ${n}</option>`).join("")}</select></div>` +
-    `<div class="card oc"><b>Your scans</b><p class="mu">Check a saved screenshot, or open the folder your scans are kept in.</p>` +
+    `<div class="card oc"><b>Your scans</b><p class="mu">Test a screenshot, or open the scans folder.</p>` +
     `<div class="btns"><label class="bt">Test a screenshot<input type="file" id="opic" accept="image/*"></label><button id="oscans">Open scans folder</button></div></div>` +
     `<div class="card oc"><b>Updates</b><p class="mu" id="updline">Updates</p><p class="mu" id="eng"></p>` +
     `<button id="updcheck" style="align-self:flex-start">Check now</button></div>` +
@@ -2172,9 +2247,9 @@ function drawMore() {
       `href="${esc(sh.server || "#")}">Open group market</a></div></div></div>` : "") + `</div>`
     : `<div class="ocards">${theme}</div>`) +
     `<h2 class="oh2">More</h2><div class="ocards">` +
-    go("deals", "Alerts and deals", "Get told when an item you want shows up under your price.") +
-    go("mine", "My shop", "Keep track of what you are selling yourself.") +
-    go("sources", "Where prices come from", "Other Maple price sites. Linked, never copied.") + `</div>` +
+    go("deals", "Alerts and deals", "Price alerts and best deals.") +
+    go("mine", "My shop", "What you are selling.") +
+    go("sources", "Where prices come from", "Other price sites (links only).") + `</div>` +
     (MODE === "shared" ? "" : importCard());
   $("#odk").onchange = e => setTheme(e.target.checked);
   if (HASAPP) bindSettings();
@@ -2363,12 +2438,12 @@ document.addEventListener("keydown", e => {
   const typing = /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || "");
   if (e.key === "/" && !typing && !e.ctrlKey && !e.metaKey) {
     e.preventDefault();
-    if (!$("#q, #ms")) {
+    if (!searchBox()) {
       view = "browse";
       cur = null;
       draw(false);
     }
-    $("#q, #ms").focus();
+    searchBox().focus();
   } else if (e.key === "Escape" && cur && !typing) {
     cur = null;
     draw();
@@ -2482,8 +2557,8 @@ function liveChip() {
     (!liveOk
       ? "MapleReader closed"
       : st && st.watching
-        ? `Scanning${st.channel ? ` · CH ${st.channel}` : ""}${st.room ? ` · FM ${st.room}` : ""}`
-        : "Ready · not scanning") +
+        ? `Watching${st.channel ? ` · CH ${st.channel}` : ""}${st.room ? ` · Room ${st.room}` : ""}`
+        : "Ready · not watching") +
     (FRIENDS && FRIENDS.scanning ? ` · ${FRIENDS.scanning} friend${FRIENDS.scanning > 1 ? "s" : ""} scanning` : "");
 }
 function liveBanner() {
@@ -2494,10 +2569,10 @@ function liveBanner() {
     when = liveLast ? ago(Date.now() - liveLast) : "none yet",
     dot = liveOk ? '<span class="lv on">●</span>' : '<span class="lv off">●</span>',
     what = !liveOk
-      ? "MapleReader is not running. Start it to keep listings coming in."
+      ? "MapleReader is not running."
       : st && st.watching
         ? `Watching${st.channel ? ` · ch ${st.channel}` : ""}${st.room ? ` · FM ${st.room}` : ""} · ${st.total} saved this session`
-        : "Connected. Press Start watching in MapleReader to scan.";
+        : "Connected. Press Start watching.";
   n.innerHTML =
     `<span>${dot} <b>Live from MapleReader.</b> ${esc(what)} <span class="mu">Last new listing: ${esc(when)}.</span></span>` +
     `<button id="reset" title="Clear this page's data and reload everything from all_scans.txt">Reload all</button>`;
@@ -2552,7 +2627,7 @@ function puller(path, offKey, isMain) {
             beep();
           }
         }
-        if (res.full) say("This browser's storage is full: new listings can't be kept. Clear old data with Reload all.");
+        if (res.full) say("Storage is full: new listings can't be kept. Press Reload all.");
       }
       off = j.next;
       put(off);
@@ -2569,8 +2644,22 @@ let FRIENDS = null;
 const MAIN = puller("/api/rows", OFFK, true),
   FEED2 = MODE === "local" ? puller("/api/shared/rows", KEY + ":friendsoff", false) : null;
 const livePull = MAIN.pull;
+// The search box to jump to: the header's (the app and the group market), else the one on the Prices or Listings page
+const searchBox = () => ($("#gs") && $("#gs").offsetParent ? $("#gs") : $("#q, #ms"));
 if (LIVE) {
   document.documentElement.classList.add("app");
+  if (MODE === "local") document.documentElement.classList.add("desk"); // (the MapleReader window: one size, views scroll inside)
+  $("#gsf").hidden = false;
+  $("#gsf").onsubmit = e => e.preventDefault();
+  $("#gs").oninput = () => {
+    // typing in the header searches the Prices tab, whatever tab was open; the box keeps the focus
+    q = $("#gs").value;
+    if (view !== "browse" || cur) {
+      view = "browse";
+      cur = null;
+      draw(false);
+    } else drawPriceList();
+  };
   const fav = document.createElement("link");
   fav.rel = "icon";
   fav.href = "/favicon.ico";
@@ -2640,10 +2729,10 @@ async function appPull(first) {
   setTimeout(appPull, 1000);
 }
 const STATUS = {
-  looking: ["on", "Watching your screen. Open a shop in the Free Market."],
+  looking: ["on", "Watching. Open a shop."],
   reading: ["on", "Reading a shop…"],
-  waiting: ["wait", "Shop seen, but I don't know your channel yet. Open the Change Channel window once, or press Change next to Channel."],
-  stopped: ["", "Not scanning. Press Start when you are in the Free Market."]
+  waiting: ["wait", "Shop seen, channel unknown. Open the Change Channel window once, or press Change."],
+  stopped: ["", "Not scanning. Press Start."]
 };
 function drawScan() {
   const st = APP.st || {},
@@ -2674,7 +2763,7 @@ function drawScan() {
     if (APP.busy) return;
     if (APP.st && !APP.st.tesseract) {               // nothing can be read without it: offer to install it
       const r = await api("/api/install-tesseract");
-      return say(r.ok ? "Installing Tesseract in a separate window. Click Yes if Windows asks." : r.error || "Could not start the installer.");
+      return say(r.ok ? "Installing Tesseract. Click Yes if Windows asks." : r.error || "Could not start the installer.");
     }
     APP.busy = true;
     const on = APP.st && APP.st.watching,
@@ -2771,7 +2860,7 @@ function updOpts(st) {
   drawUpdLine(st.update || {});
   const sh = st.share || {},
     shText = !sh.enabled
-      ? ["", "Off. Your scans stay on this PC."]
+      ? ["", "Off."]
       : sh.state === "ok"
         ? ["on", `Sharing${sh.who ? " as " + sh.who : ""} · ${(sh.sent || 0).toLocaleString()} sent` +
             (sh.last_ok ? ` · checked ${ago(Date.now() - sh.last_ok * 1000).replace("1 min ago", "just now")}` : "")]
@@ -2804,7 +2893,7 @@ function drawFeed() {
             `<span class="when">${fresh ? (x.sold ? "just now" : "just listed") : ago(now - x.t * 1000)}</span></div></div></div>`;
         })
         .join("")
-    : `<div class="empty">Nothing saved yet. Press Start, then open shops in the Free Market. Each listing appears here with its picture.</div>`;
+    : `<div class="empty">Nothing saved yet. Press Start, then open shops.</div>`;
 }
 // The EXP card: level, EXP per hour, gained, time to the next level (numbers from ExpTracker.summary in exp.py)
 function drawExp(x, on, found) {
@@ -2827,9 +2916,9 @@ function drawExp(x, on, found) {
   t.hidden = !x;
   $("#expn").hidden = !!x && on && !x.lost;        // (only when there's something to say: keeps the card short)
   $("#expn").textContent = !on
-    ? (x ? "EXP recording is stopped. " : "") + "Press Start to record your EXP (no need to watch shops)."
+    ? (x ? "EXP recording is stopped. " : "") + "Press Start to record EXP."
     : x ? (x.lost ? `Lost ${fmt(x.lost)} EXP (from dying).` : "")
-      : found ? "Reading your EXP…" : "Looking for the EXP line at the bottom of the game window. Keep it on screen (not covered).";
+      : found ? "Reading your EXP…" : "Looking for the EXP line. Keep the status bar visible.";
 }
 // A newer MapleReader: a card at the top of Scan (only when there's something to do) and a line in Settings
 function drawUpdate(u, lost) {
@@ -2841,7 +2930,7 @@ function drawUpdate(u, lost) {
   card.hidden = lost || !(u.state === "available" || busy);
   const html = busy
     ? `<b>Updating to ${v}…</b><p class="mu" style="margin:4px 0 0">${u.state === "downloading" ? "Downloading the new version." :
-      "Installing. MapleReader closes and opens again by itself in about a minute."}</p>`
+      "Installing. MapleReader restarts by itself."}</p>`
     : u.state === "available"
       ? `<div class="row" style="margin:0"><span><b>A new version is ready</b><br><span class="mu">MapleReader ${v}` +
         `${u.error ? ` · <span class="dn">${esc(u.error)}</span>` : ""}</span></span>` +
@@ -2870,9 +2959,9 @@ function updScan(feedChanged, lost) {
   $("#go").textContent = !st.tesseract && !lost ? "Install Tesseract (the text reader)" : on ? "Stop" : "Start watching";
   $("#go").className = "go" + (on ? " stop" : "");
   const [cls, text] = lost
-    ? ["bad", "MapleReader has closed. Start it again to keep scanning."]
+    ? ["bad", "MapleReader has closed."]
     : !st.tesseract
-      ? ["bad", "MapleReader needs Tesseract to read shops. Press the button above to install it (about a minute)."]
+      ? ["bad", "Tesseract is needed to read shops. Press the button above to install it."]
       : STATUS[on ? st.status : "stopped"] || STATUS.looking;
   $("#sst").className = "st " + cls;
   $("#sst span").textContent = text;
@@ -2881,8 +2970,8 @@ function updScan(feedChanged, lost) {
   $("#steps").hidden = (st.total || 0) > 0 || lost;
   $("#steps").innerHTML = [
     [on, "Press <b>Start watching</b>."],
-    [!!st.channel, "Open the <b>Change Channel</b> window once, so I know your channel."],
-    [(st.total || 0) > 0, "Open any shop in the Free Market. Its listings are saved by themselves."]
+    [!!st.channel, "Open the <b>Change Channel</b> window once."],
+    [(st.total || 0) > 0, "Open any shop. Its listings are saved."]
   ].map(([d, t]) => `<li class="${d ? "done" : ""}"><span>${t}</span></li>`).join("");
   $("#vch").textContent = st.channel || "—";
   $("#vrm").textContent = st.room || "—";

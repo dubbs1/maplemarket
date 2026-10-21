@@ -9,6 +9,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import time
 import urllib.request
 import webbrowser
@@ -22,6 +23,7 @@ BROWSERS = [r'%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe',
             r'%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe',
             r'%LocalAppData%\Google\Chrome\Application\chrome.exe']
 QUIET_FOR = 90                     # no word from the window this long (seconds) = it was closed
+WINDOW_TITLE = 'Maple Market'      # the page's <title>: how the app window is found to lock its size
 
 
 def _profile_dir():
@@ -60,6 +62,40 @@ def open_window(url):
     return None
 
 
+def _lock_window(title, w=1240, h=860, wait=25):
+    """Windows: once the app window is up, take away its resize border and Maximise button and set its size, so the
+    page (drawn for exactly this window) never has to squeeze or stretch. Quietly does nothing if it can't."""
+    if sys.platform != 'win32':
+        return
+    try:
+        import ctypes
+        import ctypes.wintypes as wt
+        u = ctypes.windll.user32
+        GWL_STYLE, WS_THICKFRAME, WS_MAXIMIZEBOX = -16, 0x00040000, 0x00010000
+        SWP_NOMOVE, SWP_NOZORDER, SWP_FRAMECHANGED = 0x2, 0x4, 0x20
+        found = []
+
+        @ctypes.WINFUNCTYPE(ctypes.c_bool, wt.HWND, wt.LPARAM)
+        def each(hwnd, _):
+            n = u.GetWindowTextLengthW(hwnd)
+            if n and u.IsWindowVisible(hwnd):
+                buf = ctypes.create_unicode_buffer(n + 1)
+                u.GetWindowTextW(hwnd, buf, n + 1)
+                if buf.value.startswith(title):
+                    found.append(hwnd)
+            return True
+        end = time.time() + wait
+        while time.time() < end and not found:
+            time.sleep(0.5)
+            u.EnumWindows(each, 0)
+        for hwnd in found[:1]:
+            style = u.GetWindowLongW(hwnd, GWL_STYLE)
+            u.SetWindowLongW(hwnd, GWL_STYLE, style & ~(WS_THICKFRAME | WS_MAXIMIZEBOX))
+            u.SetWindowPos(hwnd, 0, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED)
+    except Exception:
+        pass
+
+
 def _running_app(port=8765):
     """Is a MapleReader app already serving? Then just open another window onto it."""
     try:
@@ -94,6 +130,7 @@ def run():
         return
     ctl.autostart()
     proc, opened = open_window(url), time.time()
+    threading.Thread(target=_lock_window, args=(WINDOW_TITLE,), daemon=True).start()   # one size, not resizable
     try:
         while True:
             time.sleep(1)

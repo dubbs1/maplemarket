@@ -181,6 +181,8 @@ The app is one window with these tabs (on a phone they sit along the bottom):
 | Tab | What it's for |
 |---|---|
 | **Scan** | The **Start watching** button, your channel and room, and every listing as it's saved, with its picture |
+
+Above the tabs, on every tab: the **search box** (type an item's name from anywhere; press `/` to jump to it) and your status ("Watching · CH 10 · Room 2"). The window is one size and can't be resized or maximised: everything is laid out to fit it.
 | **Home** | A big search, today's numbers, what was just listed, and your price alerts ("Price hit" when one is for sale at your price) |
 | **Prices** | One card per item you've scanned: the cheapest price on sale now. Click one to see its details beside the cards |
 | **Listings** | Every shop listing. Pick a kind of item on the left (guessed from the name: Scrolls, Stars and arrows, Potions and food, Ores and crystals, Other), **For sale**, **Sold** or **All**, and **Newest**, **Best deal** (furthest under its usual price) or **Cheapest**. Click a listing to see its item beside the list. Two identical copies in one shop show once, as "×2" |
