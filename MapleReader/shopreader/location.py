@@ -173,11 +173,27 @@ class RoomWatcher:
     """Remembers where the minimap is and re-reads that small spot every few seconds."""
     def __init__(self, keep_picture=True):
         self.room, self.box, self.last_read, self.last_search = None, None, 0, 0
-        self.misses, self.last_slow = 0, 0
+        self.misses, self.last_slow, self.last_title = 0, 0, 0
+        self.by_title = False                      # the room came from the minimap's title: keep reading it that way
         self.saved = not keep_picture              # True = don't write scans/room_check.png
+
+    def _title_room(self, img):
+        m = re.search(r'Free Market <(\d{1,2})>', read_map(img) or '')
+        return int(m.group(1)) if m and 1 <= int(m.group(1)) <= 40 else None
 
     def update(self, img, lines=None, force=False):
         now = time.time()
+        if self.by_title:                              # (bigger minimap text than the usual boxes read: the owner's)
+            if force or now - self.last_title > ROOM_REREAD * 3:
+                self.last_title = now
+                r = self._title_room(img)
+                if r:
+                    self.room, self.misses = r, 0
+                else:
+                    self.misses += 1
+                    if self.misses >= ROOM_MISSES:     # minimap gone or moved: search again, both ways
+                        self.by_title, self.misses = False, 0
+            return self.room
         if self.box and (force or now - self.last_read > ROOM_REREAD):   # rooms only change through a portal
             self.last_read = now
             r = _room_in(img, self.box)
@@ -203,6 +219,12 @@ class RoomWatcher:
                 if r:
                     self.room, self.box, self.last_read = r, box, now
                     break
+            else:
+                if force or now - self.last_title > ROOM_SEARCH * 2:   # the other way: the minimap's whole title,
+                    self.last_title = now                              # read like the EXP log's map name
+                    r = self._title_room(img)
+                    if r:
+                        self.room, self.by_title = r, True
         if not self.box and not self.saved and os.path.isdir('scans'):
             self.saved = True                          # keep one picture of the top-left corner, for fixing
             img.crop((0, 0, img.width // 3, img.height // 4)).save(os.path.join('scans', 'room_check.png'))

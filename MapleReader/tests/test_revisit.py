@@ -122,6 +122,72 @@ def whole():
     check(not t.whole, 'shopS.png with its 5th listing unread: not whole (that slot is not empty)')
 
 
+def room_typed():
+    print('The minimap can\'t be read: shops wait a little for the room, typed by hand:')
+    import test_session as TS
+    from shopreader import scanner
+    from PIL import ImageDraw
+
+    def run(type_at, wait):
+        pics = []
+        for im in TS.frames():
+            im = im.copy()
+            ImageDraw.Draw(im).rectangle((0, 0, im.width // 4, im.height // 4), fill=(0, 0, 0))   # no minimap
+            pics.append(im)
+        n = [0]
+
+        class Shot:
+            def __init__(s, img):
+                s.size, s.bgra = img.size, img.convert('RGBA').tobytes('raw', 'BGRA')
+
+        class Screen:
+            monitors = [{}, {}]
+            def grab(s, mon):
+                n[0] += 1
+                if n[0] == type_at:
+                    sc.set_room(2)                   # typed on the Scan tab, part-way through
+                if not pics:
+                    sc.stop()
+                    return Shot(Image.new('RGB', (64, 64)))
+                return Shot(pics.pop(0))
+        sys.modules['mss'] = types.SimpleNamespace(MSS=Screen)
+        scanner.ROOM_WAIT = wait
+        scanner.beep = lambda v: None
+
+        class Ev(scanner.Events):
+            def message(self, text): pass
+            def saved(self, rows, room, ch, total): pass
+        os.makedirs('roomtest', exist_ok=True)
+        old = os.getcwd()
+        os.chdir(tempfile.mkdtemp(dir='roomtest'))
+        try:
+            sc = scanner.Scanner(events=Ev(), interval=0)
+            sc.run()
+            return sorted({ln.split(' | ')[3] for ln in lines()}), sc.saver.total
+        finally:
+            os.chdir(old)
+    scanner.time = types.SimpleNamespace(sleep=lambda s: None, time=__import__('time').time)
+    rooms, total = run(type_at=12, wait=60)
+    check(rooms == ['2'] and total == 29, f'typed part-way: every listing saved in room 2 ({rooms}, {total} saved), none as "?"')
+    rooms, total = run(type_at=10 ** 6, wait=0.2)
+    check(rooms == ['0'] and total > 0, f'never typed: after a short wait they are saved anyway, room unknown ({rooms}, {total} saved)')
+    scanner.ROOM_WAIT = 20
+
+
+def room_windowed():
+    print('Your minimap (the game in a window, October 21): read by its title when the usual boxes can\'t:')
+    from shopreader import location as L
+    from shopreader.ocr import find_tesseract
+    find_tesseract()
+    corner = Image.open(os.path.join(FX, 'room_windowed.png')).convert('RGB')   # the app's room_check.png, in room 2
+    screen = Image.open(os.path.join(FX, 'desk_live.png')).convert('RGB')
+    screen.paste(corner, (0, 0))
+    for name, img in (('room_check.png', corner), ('in a 2560x1440 screen', screen)):
+        w = L.RoomWatcher(keep_picture=False)
+        check(w.update(img, [], force=True) == 2 and w.by_title, f'{name}: room {w.room} (by the title: {w.by_title})')
+    check(w.update(screen, []) == 2, 'and it keeps reading it that way')
+
+
 def screen_fails():
     print('The screen can\'t be read for a moment (PC locked, a Windows Yes/No prompt):')
     import test_session as TS
@@ -161,6 +227,8 @@ if __name__ == '__main__':
     session_twice()
     gone()
     whole()
+    room_typed()
+    room_windowed()
     screen_fails()
     print()
     print('REVISIT CHECK PASSED' if not fails else f'REVISIT CHECK: {len(fails)} FAILED')
