@@ -174,6 +174,20 @@ def room_typed():
     scanner.ROOM_WAIT = 20
 
 
+def room_windowed():
+    print('Your minimap (the game in a window, October 21): read by its title when the usual boxes can\'t:')
+    from shopreader import location as L
+    from shopreader.ocr import find_tesseract
+    find_tesseract()
+    corner = Image.open(os.path.join(FX, 'room_windowed.png')).convert('RGB')   # the app's room_check.png, in room 2
+    screen = Image.open(os.path.join(FX, 'desk_live.png')).convert('RGB')
+    screen.paste(corner, (0, 0))
+    for name, img in (('room_check.png', corner), ('in a 2560x1440 screen', screen)):
+        w = L.RoomWatcher(keep_picture=False)
+        check(w.update(img, [], force=True) == 2 and w.by_title, f'{name}: room {w.room} (by the title: {w.by_title})')
+    check(w.update(screen, []) == 2, 'and it keeps reading it that way')
+
+
 def screen_fails():
     print('The screen can\'t be read for a moment (PC locked, a Windows Yes/No prompt):')
     import test_session as TS
@@ -214,6 +228,7 @@ if __name__ == '__main__':
     gone()
     whole()
     room_typed()
+    room_windowed()
     screen_fails()
     print()
     print('REVISIT CHECK PASSED' if not fails else f'REVISIT CHECK: {len(fails)} FAILED')
