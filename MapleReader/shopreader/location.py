@@ -85,7 +85,7 @@ def _map_fix(line):
     fm = re.search(r'Free Market <\d{1,2}>', line)
     if fm:
         return fm.group(0)                           # (the market's own name, without stray bits in front)
-    return line if len(re.findall(r'[A-Za-z]', line)) >= 4 else None
+    return line if len(re.findall(r'[A-Za-z]', line)) >= 4 and re.search(r'[A-Za-z]{3,}', line) and not re.search(r'[?=|]', line) else None
 
 
 def read_map(img):
@@ -96,14 +96,15 @@ def read_map(img):
         box = (max(0, int(bx0 - 18 * hb)), by0 + int(2 * hb), min(img.width, int(bx1 + 0.8 * hb)), by0 + int(5.9 * hb))
         red = img.crop(box).split()[0]
         votes = {}
-        for th, sc in ((200, 4), (200, 3), (208, 4), (195, 3)):
+        for th, sc in ((th, sc) for th in (185, 190, 195, 200) for sc in (2, 3, 4)):   # (12 reads: ~1 s every 20 s)
             g = red.point(lambda v, th=th: 0 if v > th else 255).resize((red.width * sc, red.height * sc), Image.LANCZOS)
             lines = [_map_fix(x) for x in engine.text(ImageOps.expand(g, border=12, fill=255), config='--psm 6').splitlines()]
             lines = [x for x in lines if x]
             if lines:
                 votes[lines[-1]] = votes.get(lines[-1], 0) + 1
-        if votes:
-            return max(votes, key=lambda k: (votes[k], len(k)))
+        best = max(votes, key=lambda k: (votes[k], len(k))) if votes else None
+        if best and votes[best] >= 3:                    # a real name reads the same again and again; junk doesn't
+            return best
     return None
 
 

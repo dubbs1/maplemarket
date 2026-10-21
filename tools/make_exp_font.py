@@ -22,6 +22,9 @@ SOURCES = [
     ('desk_live.png', BAR), ('s711.png', BAR),
     # the owner's status bar at level 38 (October 20, 2026): brings the 5 and the level tiles' 8
     ('status38.png', [('hp', '1325/1325'), ('mp', '1060/1089'), ('exp', '36,420'), ('pct', '15.14%'), ('level', '38')]),
+    # the owner's Item window screenshot at level 39 (October 21, 2026): brings the level tiles' 9 (only the level:
+    # it came through an image upload, slightly blurred, so its small digits would muddy the crisp ones)
+    ('kerning_inv.png', [('level', '39')]),
 ]
 # A digit no picture shows yet, drawn by hand from the others' strokes (the top of 7, the left of 6, the bottom of
 # 3). Used only until a real one is cut from a picture.
