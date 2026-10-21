@@ -7,9 +7,9 @@ const p=n=>String(n).padStart(2,'0'),iso=t=>{const x=new Date(t);return '@'+x.ge
 const H=36e5,now=Date.now();
 A.importScan([`Long Sword | 5000 | Old Shop | 2 | 4 | c1 | ${iso(now-120*H)}`,`Long Sword | 5000 | Old Shop | 2 | 4 | c1 | ${iso(now-H)}`,
  `Rusty Axe | 100 | Gone Shop | 3 | 4 | c1 | ${iso(now-100*H)}`,`Fresh Hat | 900 | New Shop | 1 | 4 | c1 | ${iso(now-60e3)}`].join('\n'));
-ok('S1 tabs: Prices, Listings, Options (no Scan without the app)',[...w.document.querySelectorAll('nav button:not([hidden])')].map(b=>b.textContent).join()==='Prices,Listings,Options');
-const opened=$('[data-nav=browse]').getAttribute('aria-current')==='page';$('[data-nav=browse]').click();
-ok('S2 opens on Prices, one row per item',opened&&w.document.querySelectorAll('#list [data-open]').length===3);
+ok('S1 tabs: Home, Prices, Listings, Options (no Scan or EXP without the app)',[...w.document.querySelectorAll('nav button:not([hidden])')].map(b=>b.textContent).join()==='Home,Prices,Listings,Options');
+const opened=$('[data-nav=home]').getAttribute('aria-current')==='page';$('[data-nav=browse]').click();
+ok('S2 opens on Home; Prices has one row per item',opened&&w.document.querySelectorAll('#list [data-open]').length===3);
 $('[data-nav=market]').click();const txt=$('#mb').textContent;
 ok('S3 a listing seen again today is not "may be gone"',/Long Sword/.test(txt)&&!/may be gone/.test(txt)&&/seen 1 h ago/.test(txt));
 ok('S4 a listing nobody has seen for 4 days is hidden, with a button to show it',!/Rusty Axe/.test(txt)&&/Show 1 older listing/.test(txt));

@@ -15,7 +15,7 @@ from collections import deque
 
 from . import __version__, engine
 from .config import APP_DIR, UPDATE_EVERY, VOLUME
-from .exp import ExpTracker
+from .exp import ExpDays, ExpTracker
 from .icons import slug
 from .location import RoomWatcher, read_channel
 from .names import load_items
@@ -73,7 +73,8 @@ class Controller:
         self.engine = engine.mode() if self.tesseract else 'none'
         self._tess_check = 0                         # when we last looked for a newly installed Tesseract
         self.scanner = None
-        self.exp = ExpTracker()                      # kept across stop/start: Reset clears it
+        self.exp_days = ExpDays(os.path.join('scans', 'exp_days.json'))   # EXP gained each day (kept by Reset)
+        self.exp = ExpTracker(on_gain=self.exp_days.add)   # kept across stop/start: Reset clears it
         self.exp_runner = None                       # records EXP on its own, apart from the shop scanner
         self.seq = 0
         self.events = deque(maxlen=400)              # saved rows and notes, newest last
@@ -200,7 +201,8 @@ class Controller:
             self.last_seen = time.time()
             settings = {k: v for k, v in self.settings.items() if k != 'share_key'}   # the key never leaves the app
             return dict(self.state, version=__version__, engine=self.engine, tesseract=self.tesseract, update=self.update_info,
-                        settings=settings, share=self.share_status(), exp=self.exp.summary(), exp_on=bool(self.exp_runner),
+                        settings=settings, share=self.share_status(), exp=self.exp.summary(), exp_days=self.exp_days.last(7),
+                        exp_on=bool(self.exp_runner),
                         exp_found=bool(self.exp_runner and self.exp_runner.found), seq=self.seq,
                         events=[e for e in self.events if e['seq'] > since])
 
@@ -370,6 +372,7 @@ class Controller:
 
     def shutdown(self):
         self.exp_stop()
+        self.exp_days.flush()
         if self.sharer:
             self.sharer.stop()
         if self.scanner:
