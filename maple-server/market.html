@@ -326,6 +326,11 @@ html.app main{max-width:1320px}
 .xchart{display:flex;align-items:flex-end;gap:6px;height:150px;margin:10px 0 6px}
 .xchart i{border-radius:5px 5px 2px 2px}
 .xctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.xlog{margin-top:16px}.xlog .tw{overflow-x:auto}.xlog table{width:100%;border-collapse:collapse;font-size:14px}
+.xlog th{text-align:left;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mu);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--bd)}
+.xlog td{padding:8px;border-bottom:1px solid var(--bd);white-space:nowrap}.xlog tr.now td{color:var(--ac)}
+.xlog td button{min-height:32px;padding:2px 10px;font-size:13px;margin-left:4px}.xlog td input{width:170px;min-height:32px}
+.xlon{display:flex;align-items:center;gap:8px;font-size:14px;white-space:nowrap}.xlon input{width:18px;height:18px;min-height:0;margin:0;padding:0;flex:none}.xidle{color:var(--ac);font-weight:600}
 /* phones: the tabs along the bottom, within reach of a thumb */
 @media(max-width:640px){html.app nav{position:fixed;top:auto;bottom:0;left:0;right:0;margin:0;border-radius:0;border-width:1px 0 0;
   padding:4px 4px calc(6px + env(safe-area-inset-bottom,0px));z-index:20}html.app main{padding-bottom:90px}
@@ -792,6 +797,51 @@ function hashT(t) {
   for (const c of String(t).trim()) h = (h * 31 + c.charCodeAt(0)) | 0;
   return h;
 }
+// Names as MapleReader fixes them today (names.py: fix_w and fix_name, without the items.txt step). Older scans
+// and friends' older readers keep misreads ("Ink-and-vVYash", "-¥Wash"), so one item showed up as several.
+const fixW = s =>
+  String(s).replace(/(?<![A-Za-z0-9])(?!W[a-z])(?:[VvWwYy¥]{2}[VWY¥]|[VvWwYy¥]{2}|\\\/\\\/)(?=[a-z])/g, "W");
+const SMALL = new Set(["of", "for", "the", "a", "an", "and", "to", "in", "on", "with"]);
+function fixName(n) {
+  n = fixW(fixW(String(n || "").trim()).replace(/^[^A-Za-z0-9]+/, "").replace(/\bl(?=[a-z])/g, "I"))
+    .replace(/VV/g, "W").replace(/Scrolk|Scro11/g, "Scroll").replace(/\b[BH]i[uU]e\b|\bbIUe\b/g, "Blue")
+    .replace(/\bV[Ww]?(?=h)/g, "W").replace(/\bVand\b/g, "Wand").replace(/\b[YV]W/g, "W").replace(/\b[YV][YV](?=[a-z])/g, "W");
+  return n.split(/\s+/).filter(Boolean)
+    .map((w, i) => (w !== w.toUpperCase() && w === w.toLowerCase() && (i === 0 || !SMALL.has(w)) ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ");
+}
+// Items saved before a fix: rename them, or fold them into the item they really are (their listings follow)
+function tidyNames() {
+  const by = new Map(),
+    map = {};
+  let n = 0;
+  ITEMS.forEach(it => {
+    const f = S.custom.includes(it) ? fixName(it.name) || it.name : it.name,
+      k = f.toLowerCase(),
+      to = by.get(k);
+    if (to && S.custom.includes(it)) map[it.id] = to.id;
+    else {
+      if (f !== it.name) (it.name = f), n++;
+      if (!to) by.set(k, it);
+    }
+  });
+  if (!n && !Object.keys(map).length) return;
+  const gone = it => it.id in map;
+  S.custom = S.custom.filter(it => !gone(it));
+  ITEMS.splice(0, ITEMS.length, ...ITEMS.filter(it => !gone(it)));
+  S.scans.forEach(sc => sc.rows.forEach(r => (r.item = map[r.item] || r.item)));
+  S.listings.forEach(l => (l.item = map[l.item] || l.item));
+  Object.entries(map).forEach(([a, b]) => {
+    S.sg[b] = (S.sg[b] || []).concat(S.sg[a] || []);
+    delete S.sg[a];
+    if (S.watch[a] && !S.watch[b]) S.watch[b] = S.watch[a];
+    delete S.watch[a];
+  });
+  ITEM_IDX = null;
+  AC = null;
+  S.rev = (S.rev || 0) + 1;
+  save();
+}
 function parseScanRows(text) {
   const rows = [];
   let skipped = 0;
@@ -814,7 +864,7 @@ function parseScanRows(text) {
         skipped++;
         return;
       }
-      const r = addItem(p[0], "Other", true);
+      const r = addItem(fixName(p[0]) || p[0], "Other", true);
       if (!r) {
         skipped++;
         return;
@@ -824,7 +874,7 @@ function parseScanRows(text) {
         price: pr,
         qty: Math.min(999, Math.max(1, +qt || 1)),
         pos: ps ? +ps.slice(1) : null,
-        shop: p[2].slice(0, 60),
+        shop: fixW(p[2]).slice(0, 60),
         room: rm,
         ch,
         st,
@@ -1855,6 +1905,7 @@ function drawRail() {
 }
 // The EXP tab: its own page (drawn dark), with the trend on top and the charts
 function drawExpPage(force) {
+  if (!force && (document.activeElement || {}).id === "xrn") return; // (someone is typing a name in the EXP log)
   const el = $("#app"),
     st = APP.st || {},
     x = st.exp,
@@ -1869,6 +1920,7 @@ function drawExpPage(force) {
     },
     status = !on ? "EXP recording is stopped. Press Start to record it (no need to watch shops)." : !x
       ? st.exp_found ? "Reading your EXP…" : "Looking for the EXP line at the bottom of the game window. Keep it on screen (not covered)."
+      : x.idle ? "Paused: no EXP for a minute, so this time doesn't count. It carries on at your next EXP gain."
       : x.lost ? `Lost ${fmt(x.lost)} EXP from dying this session.` : "Recording. Keep the EXP line at the bottom of the game window on screen.";
   let vs = "";
   if (x && x.hour != null && x.prev_hour) {
@@ -1886,7 +1938,9 @@ function drawExpPage(force) {
         bars(sl, "EXP gained in each 10 minutes of this session") + `<div class="ax"><span>${sl.length * 10} min ago</span><span>now</span></div>`
         : '<p class="mu">Starts with your first reading.</p>',
     html = `<section class="card xband" aria-label="Your EXP trend"><div><div class="k mu">Your trend</div>` +
-      `<div class="big">${x && x.per_hour != null ? fmt(x.per_hour) : "…"}<small> EXP/h</small></div>${vs}</div>` +
+      `<div class="big">${x && x.per_hour != null ? fmt(x.per_hour) : "…"}<small> EXP/h</small></div>${vs}` +
+      (x ? `<div class="mu">Last 5 min ${x.last5 != null ? fmt(x.last5) + "/h" : "…"} · ${x.pct_per_hour != null ? x.pct_per_hour + "%" : "…"} per hour` +
+        `${x.idle ? ' · <span class="xidle">paused (no EXP)</span>' : ""}</div>` : "") + `</div>` +
       (sl.length > 1 ? `<div class="xspark" aria-hidden="true">${sl.map(n => `<i style="height:${Math.max(4, (n / Math.max(1, ...sl)) * 100).toFixed(0)}%"></i>`)
         .join("")}</div>` : "") +
       `<div class="tiles t3">${fig("Today", fmt(today), "EXP gained")}` +
@@ -1902,17 +1956,52 @@ function drawExpPage(force) {
         : `<div class="card"><b>No EXP reading yet</b><p class="mu" style="margin:4px 0 0">${status}</p></div>`) +
       `<div class="xctl"><button data-x="go">${on ? "Stop recording" : "Start recording"}</button><button data-x="reset">Reset</button>` +
       `${x ? `<span class="mu">${status}</span>` : ""}</div></div>` +
-      `<div>${segBtns("xr", xr, [["session", "This session"], ["week", "Last 7 days"]])}<div class="card" style="margin-top:8px">${chart}</div></div></div>`;
+      `<div>${segBtns("xr", xr, [["session", "This session"], ["week", "Last 7 days"]])}<div class="card" style="margin-top:8px">${chart}</div></div></div>` +
+      expLogHtml(st, x);
   if (force || el.dataset.html !== html) {
     el.innerHTML = html;
     el.dataset.html = html;
+    if (xren && $("#xrn")) $("#xrn").focus();
   }
+}
+// The EXP log: one line per run (a map and a level, until a level-up, a new map or 30 minutes without EXP)
+let xren = null; // the EXP log line being renamed
+function expLogHtml(st, x) {
+  const L = st.exp_log || [],
+    r = x && x.run && x.run.minutes >= 1 ? x.run : null,
+    logOn = (st.settings || {}).exp_log !== false,
+    dt = t => new Date(t * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    hm = m => (m < 60 ? m + " min" : `${Math.floor(m / 60)} h ${m % 60} min`),
+    row = (e, now) => `<tr${now ? ' class="now"' : ""}><td>${now ? "Now" : dt(e.date)}</td><td>${esc(e.name || e.map || "—")}</td>` +
+      `<td class="num">${e.level || "—"}</td><td class="num">${hm(e.minutes)}</td>` +
+      `<td class="num">${e.per_hour == null ? "…" : fmt(e.per_hour)}</td><td class="num">${e.mesos_per_hour == null ? "—" : fmt(e.mesos_per_hour)}</td><td>` +
+      (now ? "" : xren === e.id
+        ? `<input id="xrn" maxlength="40" value="${esc(e.name || e.map || "")}" aria-label="A name for this line"><button data-xl="save" data-id="${e.id}">Save</button>`
+        : `<button data-xl="rename" data-id="${e.id}">Rename</button><button data-xl="delete" data-id="${e.id}">Delete</button>`) + `</td></tr>`;
+  return `<section class="card xlog" aria-label="EXP log"><div class="row"><b>EXP log</b><label class="xlon"><input type="checkbox" data-xl="on"` +
+    `${logOn ? " checked" : ""}> Log my runs</label></div><p class="mu">A new line starts at each level-up, on a new map, or after 30 minutes ` +
+    `without EXP. Mesos and the map's name come once MapleReader can read them.</p>` +
+    (r || L.length ? `<div class="tw"><table><thead><tr><th>Date</th><th>Map</th><th>Lv</th><th>Time</th><th>EXP/h</th><th>Mesos/h</th><th></th></tr></thead>` +
+      `<tbody>${r ? row(r, true) : ""}${L.map(e => row(e)).join("")}</tbody></table></div>` : '<p class="mu">Nothing logged yet.</p>') + `</section>`;
 }
 // The new buttons (Home, trends, Listings' filters, the history's 7/30 days, the EXP tab): true when handled
 function cClick(e) {
-  const b = e.target.closest("[data-mv],[data-tosearch],[data-tonav],[data-lst],[data-lc],[data-hd],[data-x],[data-xr]");
+  const b = e.target.closest("[data-mv],[data-tosearch],[data-tonav],[data-lst],[data-lc],[data-hd],[data-x],[data-xr],[data-xl]");
   if (!b) return false;
   const d = b.dataset;
+  if (d.xl) {
+    const done = r => r.ok || say(r.error || "Could not change the EXP log."); // (the next look at the app redraws it)
+    if (d.xl === "on") api("/api/set", { exp_log: b.checked }).then(r => r.ok || say(r.error || "Could not change that."));
+    else if (d.xl === "rename") {
+      xren = d.id;
+      drawExpPage(true);
+    } else if (d.xl === "save") {
+      api("/api/exp-log", { action: "rename", id: d.id, name: $("#xrn").value }).then(done);
+      xren = null;
+      drawExpPage(true);
+    } else if (d.xl === "delete") api("/api/exp-log", { action: "delete", id: d.id }).then(done);
+    return true;
+  }
   if (d.mv) {
     view = "browse";
     cur = null;
@@ -2264,6 +2353,7 @@ try {
 } catch (e) {}
 S = load();
 ITEMS.push(...S.custom);
+tidyNames();
 draw(false);
 
 /* ===== Live from MapleReader ===== When the app serves this page, new scan rows arrive every 2 s. */

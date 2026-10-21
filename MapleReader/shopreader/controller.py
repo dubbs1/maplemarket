@@ -15,7 +15,7 @@ from collections import deque
 
 from . import __version__, engine
 from .config import APP_DIR, UPDATE_EVERY, VOLUME
-from .exp import ExpDays, ExpTracker
+from .exp import ExpDays, ExpLog, ExpTracker
 from .icons import slug
 from .location import RoomWatcher, read_channel
 from .names import load_items
@@ -74,7 +74,8 @@ class Controller:
         self._tess_check = 0                         # when we last looked for a newly installed Tesseract
         self.scanner = None
         self.exp_days = ExpDays(os.path.join('scans', 'exp_days.json'))   # EXP gained each day (kept by Reset)
-        self.exp = ExpTracker(on_gain=self.exp_days.add)   # kept across stop/start: Reset clears it
+        self.exp_log = ExpLog(os.path.join('scans', 'exp_log.json'))     # one line per hunting run (the EXP tab's log)
+        self.exp = ExpTracker(on_gain=self.exp_days.add, on_run=self._log_run)   # kept across stop/start: Reset clears it
         self.exp_runner = None                       # records EXP on its own, apart from the shop scanner
         self.seq = 0
         self.events = deque(maxlen=400)              # saved rows and notes, newest last
@@ -105,6 +106,7 @@ class Controller:
         s.setdefault('share_server', share.DEFAULT_SERVER)
         s.setdefault('share_key', '')
         s.setdefault('auto_start', True)             # start watching as soon as the app opens
+        s.setdefault('exp_log', True)                # keep the EXP log (the EXP tab's "Log my runs" switch)
         s.setdefault('exp', True)                    # record EXP (on its own, whether or not shops are watched)
         return s
 
@@ -201,7 +203,7 @@ class Controller:
             self.last_seen = time.time()
             settings = {k: v for k, v in self.settings.items() if k != 'share_key'}   # the key never leaves the app
             return dict(self.state, version=__version__, engine=self.engine, tesseract=self.tesseract, update=self.update_info,
-                        settings=settings, share=self.share_status(), exp=self.exp.summary(), exp_days=self.exp_days.last(7),
+                        settings=settings, share=self.share_status(), exp=self.exp.summary(), exp_days=self.exp_days.last(7), exp_log=self.exp_log.list(),
                         exp_on=bool(self.exp_runner),
                         exp_found=bool(self.exp_runner and self.exp_runner.found), seq=self.seq,
                         events=[e for e in self.events if e['seq'] > since])
@@ -259,6 +261,16 @@ class Controller:
         self.exp.pause()                                 # the numbers stay as they were, not sinking while stopped
         return {'ok': True}
 
+    def _log_run(self, e):
+        if self.settings.get('exp_log', True):
+            self.exp_log.add(e)
+
+    def exp_log_edit(self, d):
+        """The EXP log's Rename and Delete buttons."""
+        ok = self.exp_log.rename(str(d.get('id')), d.get('name')) if d.get('action') == 'rename' else \
+            self.exp_log.delete(str(d.get('id'))) if d.get('action') == 'delete' else False
+        return {'ok': ok} if ok else {'ok': False, 'error': 'That line is not in the EXP log any more.'}
+
     def exp_reset(self):
         self.exp.reset()
         self.note('EXP tracking restarted.')
@@ -298,7 +310,7 @@ class Controller:
             if self.scanner:
                 self.scanner.set_room(rm)
             self.note(f'Room set to {rm}.')
-        for k, conv in (('volume', float), ('quiet', bool), ('monitor', int), ('auto_start', bool), ('exp', bool)):
+        for k, conv in (('volume', float), ('quiet', bool), ('monitor', int), ('auto_start', bool), ('exp', bool), ('exp_log', bool)):
             if k in d:
                 self.settings[k] = conv(d[k])
         if 'exp' in d:
@@ -374,6 +386,7 @@ class Controller:
 
     def shutdown(self):
         self.exp_stop()
+        self.exp.end_run()                           # (the run so far goes into the EXP log)
         self.exp_days.flush()
         if self.sharer:
             self.sharer.stop()

@@ -61,4 +61,6 @@ UPDATE_EVERY = 6 * 3600        # look for a new version this often while the app
 
 # --- EXP tracker ---
 EXP_EVERY = 3                  # re-read the EXP line this often (seconds)
+EXP_IDLE = 60                  # no EXP for this long (seconds): the EXP clock stops until the next gain
+EXP_RUN_GAP = 30 * 60          # no EXP for this long: the EXP log starts a new entry
 EXP_SEARCH_EVERY = 5           # look for the status bar this often while it is not found (colour only: fast)

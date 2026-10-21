@@ -18,15 +18,16 @@ def real_name(nm):
 
 
 def fix_w(text):
-    """A capital W read as two marks at the start of a word: "Vvhite", "Yvhite", "Ywhite", "VVand", "yyatch",
-    "Y¥atch", "¥¥atch" -> "White", "Wand", "Watch". No word starts with these pairs, and a single V or Y
-    ("Vest", "Yeti") is left alone."""
-    return re.sub(r'(?<![A-Za-z0-9])(?:[VYy¥][VvWwYy¥]|\\/\\/)(?=[a-z])', 'W', text)
+    """A capital W read as two or three marks at the start of a word (also after a hyphen): "Vvhite", "Yvhite",
+    "Ywhite", "VVand", "yyatch", "Y¥atch", "¥¥atch", "Ink-and-vVYash", "-WYash", "-v¥Vash" -> "White", "Wand",
+    "Watch", "Ink-and-Wash". No word starts with these, a real W followed by a small letter ("Wyvern") is kept,
+    and a single V or Y ("Vest", "Yeti") is left alone. The market page has the same rule (fixName), for old scans."""
+    return re.sub(r'(?<![A-Za-z0-9])(?!W[a-z])(?:[VvWwYy¥]{2}[VWY¥]|[VvWwYy¥]{2}|\\/\\/)(?=[a-z])', 'W', text)
 
 
 def fix_name(name, items):
     """Clean up common OCR mistakes in an item name."""
-    name = re.sub(r'^[^A-Za-z0-9]+', '', name)       # stray symbols in front, e.g. "¥wand"
+    name = re.sub(r'^[^A-Za-z0-9]+', '', fix_w(name))  # stray symbols in front, e.g. "#Wand" (a W read as "¥¥" fixed first)
     name = re.sub(r'\bl(?=[a-z])', 'I', name)          # OCR reads a capital I as l: "lron" -> "Iron"
     name = fix_w(name).replace('VV', 'W').replace('Scrolk', 'Scroll').replace('Scro11', 'Scroll')
     name = re.sub(r'\b[BH]i[uU]e\b|\bbIUe\b', 'Blue', name)   # the l of "Blue" read as i ("Biue", "Hiue", "bIUe")
