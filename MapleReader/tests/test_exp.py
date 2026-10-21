@@ -238,6 +238,31 @@ def breaks_and_log():
     check(log.delete(first['id']) and len(E.ExpLog(path).list()) == 2 and not log.delete('nope'), 'and deleted')
 
 
+def map_and_party():
+    print('The map\'s name and the party, for the EXP log:')
+    from shopreader import location as L
+    hunt = load('hunt_party.png')                            # your screenshot: a party of 4 in a party quest
+    check(L.read_map(hunt) == '1st Accompaniment <1st Stage>', f'hunt_party.png: the map is {L.read_map(hunt)!r}')
+    check(L.party_size(hunt) == 4, f'hunt_party.png: a party of {L.party_size(hunt)} (MYK3, RuneKnight, Natsumi, Cashern)')
+    for name in ('live_shop.png', 'desk_live.png', 's711.png', 'ch2.png', 'shopS.png'):
+        img = load(name)
+        check(L.read_map(img) == 'Free Market <1>' and L.party_size(img) is None,
+              f'{name}: {L.read_map(img)!r}, no party (the red skill icons are not one)')
+    t = E.ExpTracker(on_run=lambda e: runs.append(e))
+    runs = []
+    need = 240500
+    r = lambda x: {'exp': x, 'pct': round(x * 100 / need, 2), 'level': 38}
+    t.add(r(50000), now=0)
+    t.add(r(50000), now=3)
+    t.set_map('1st Accompaniment <1st Stage>', now=3)
+    t.set_party(4)
+    for i in range(1, 6):
+        t.add(r(50000 + i * 500), now=3 + i * 60)
+    t.set_map('Free Market <1>', now=400)
+    check(len(runs) == 1 and runs[0]['map'] == '1st Accompaniment <1st Stage>' and runs[0]['party'] == 4,
+          f'the EXP log line keeps the map and the party ({runs and runs[0]})')
+
+
 def loop():
     print('EXP is recorded on its own (no shop watching needed):')
     pics = [load('live_shop.png')] * 4
@@ -292,6 +317,7 @@ if __name__ == '__main__':
     tracker()
     hours_and_days()
     breaks_and_log()
+    map_and_party()
     loop()
     print()
     print('EXP tracker: all checks passed.' if not fails else f'EXP tracker: {len(fails)} FAILED')
