@@ -1,6 +1,6 @@
 """Checks the live market server: serves the page, hands out only new complete rows, starts over when
 all_scans.txt is replaced, and refuses requests that don't come from this PC's own address."""
-import json, os, sys, tempfile, urllib.error, urllib.request
+import json, os, sys, tempfile, urllib.error, urllib.parse, urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 work = tempfile.mkdtemp(prefix='maplereader_market_')
@@ -21,7 +21,15 @@ def get(url, host=None):
 def main():
     os.makedirs(os.path.join(work, 'scans'))
     path = M.all_scans_path()
-    srv = M.MarketServer(lambda: {'watching': True, 'total': 2}, ports=TEST_PORTS)
+    from shopreader.mobpics import MobPics
+    from PIL import Image
+
+    class Ctl:                                          # just enough of the app for the routes used here
+        mobpics = MobPics(os.path.join(work, 'scans', 'mobs'))
+        settings = {}
+        status_line = staticmethod(lambda: {'watching': True, 'total': 2})
+    Ctl.mobpics.keep(22, Image.new('RGB', (8, 8), (200, 40, 40)))
+    srv = M.MarketServer(lambda: {'watching': True, 'total': 2}, controller=Ctl(), ports=TEST_PORTS)
     url = srv.start()
     fails = []
 
@@ -39,7 +47,7 @@ def main():
         f.write('Bunny Ears | 62999 | Shop | 1 | 10 | @2026-10-19T15:31:08\nIce Wa')
     r = rows(0)
     ok('only complete lines are sent', r['text'].count('\n') == 1 and 'Ice' not in r['text'])
-    ok('status comes along', r['status'] == {'watching': True, 'total': 2})
+    ok('status comes along', r['status'] == {'watching': True, 'total': 2, 'app': True})
     with open(path, 'a', encoding='utf-8') as f:
         f.write('nd | 12500 | Shop | 1 | 10 | @2026-10-19T15:31:09\n')
     r2 = rows(r['next'])
@@ -54,6 +62,18 @@ def main():
         ok('other addresses are refused', False)
     except urllib.error.HTTPError as e:
         ok('other addresses are refused', e.code == 403)
+    with urllib.request.urlopen(url + 'api/mobpic/22.png', timeout=5) as r:
+        ok('a mob picture is served', r.status == 200 and r.read()[:4] == b'\x89PNG')
+    for name in ('23', '22x', '..'):                  # none, letters, a path: all 404
+        try:
+            get(url + 'api/mobpic/' + urllib.parse.quote(name) + '.png')
+            ok('mobpic ' + repr(name) + ' is 404', False)
+        except urllib.error.HTTPError as e:
+            ok('mobpic ' + repr(name) + ' is 404', e.code == 404)
+    import socket                                       # a raw '²' byte: a digit to str.isdigit, not to int()
+    with socket.create_connection(('127.0.0.1', int(url.rsplit(':', 1)[1].strip('/'))), timeout=5) as sk:
+        sk.sendall(b'GET /api/mobpic/\xb2.png HTTP/1.1\r\nHost: ' + url[7:-1].encode() + b'\r\n\r\n')
+        ok("mobpic '\u00b2' is 404, not a dropped connection", sk.recv(64).startswith(b'HTTP/1.0 404'))
     second = M.MarketServer(ports=TEST_PORTS)
     ok('a second copy uses the running market', second.start() == url and second.shared)
     srv.stop()

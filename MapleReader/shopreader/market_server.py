@@ -143,7 +143,7 @@ class _Handler(BaseHTTPRequestHandler):
             return self._send(404, 'Not found', 'text/plain')
         if u.path.startswith('/api/mobpic/') and u.path.endswith('.png') and c is not None:
             name = os.path.basename(u.path)[:-4]
-            if name.isdigit():
+            if name.isascii() and name.isdigit():    # '²' is a digit too, but int() refuses it
                 try:
                     with open(c.mobpics.path(int(name)), 'rb') as f:
                         return self._send(200, f.read(), 'image/png', 'max-age=60')
