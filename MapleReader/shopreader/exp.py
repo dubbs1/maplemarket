@@ -434,6 +434,7 @@ class ExpTracker:
         that is a multiple of one, or the sum of two, is those kills. (In a party the EXP is shared by damage dealt:
         the amounts are steady while your partner hunts elsewhere, and vary when you share mobs; the page folds
         amounts seen once into "other gains".)"""
+        self.last_kills = []                         # (what this rise was taken as: the mob-picture catcher asks)
         known = sorted((a for a, n in self.amounts.items() if n >= 2), reverse=True)
         if d in known:
             return self._kill(d, 1)
@@ -447,6 +448,7 @@ class ExpTracker:
         self._kill(d, 1)
 
     def _kill(self, a, n):
+        self.last_kills.append((a, n))
         self.amounts[a] = self.amounts.get(a, 0) + n
         if self.run:
             self.run['kills'][a] = self.run['kills'].get(a, 0) + n
@@ -550,6 +552,7 @@ class ExpTracker:
             self.need_prev = None                       # the level before's (a loose check while the new one is unknown)
             self.meso_low = None                        # a lower meso amount seen once: real (spent) only if seen again
             self.amounts = {}                           # EXP per kill -> kills this session
+            self.last_kills = []                        # the latest rise as kills: [(EXP, n)]
             self.hp = None                              # (HP now, full HP) last read
             self.taken = self.hits = self.big = 0       # damage taken, hits taken, the biggest hit
             self.history = []                           # (t, total gained) for the per-hour rate
