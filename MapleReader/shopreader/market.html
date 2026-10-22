@@ -317,7 +317,9 @@ html.app main{max-width:1320px}
 .xctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
 .xlog{margin-top:16px}.xlog .tw,.xmobs .tw{overflow-x:auto}.xlog table,.xmobs table{width:100%;border-collapse:collapse;font-size:14px}
 .xlog th,.xmobs th{text-align:left;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mu);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--bd)}
-.xlog td,.xmobs td{padding:8px;border-bottom:1px solid var(--bd);white-space:nowrap}.xlog tr.now td{color:var(--ac)}
+.xlog td,.xmobs td{padding:8px;border-bottom:1px solid var(--bd);white-space:nowrap}
+.xmobs td.mob{display:flex;align-items:center;gap:8px}.xmobs img.mp{height:40px;max-width:72px;object-fit:contain;cursor:pointer;border-radius:4px;background:#0003}
+.xmobs input.mn{width:180px;min-height:32px}.xmobs td.mob button{min-height:32px;padding:2px 10px;font-size:13px}.xlog tr.now td{color:var(--ac)}
 .xlog td button{min-height:32px;padding:2px 10px;font-size:13px;margin-left:4px}.xlog td input{width:170px;min-height:32px}
 .xlon{display:flex;align-items:center;gap:8px;font-size:14px;white-space:nowrap}.xlon input{width:18px;height:18px;min-height:0;margin:0;padding:0;flex:none}.xidle{color:var(--ac);font-weight:600}
 /* ===== The app and the group market: one header with the search and your status, underline tabs, calm cards ===== */
@@ -1991,7 +1993,8 @@ function drawRail() {
 }
 // The EXP tab: its own page (drawn dark), with the trend on top and the charts
 function drawExpPage(force) {
-  if (!force && (document.activeElement || {}).id === "xrn") return; // (someone is typing a name in the EXP log)
+  const ae = document.activeElement || {};
+  if (!force && (ae.id === "xrn" || (ae.classList && ae.classList.contains("mn")))) return; // (typing a name: don't wipe it)
   const el = $("#app"),
     st = APP.st || {},
     x = st.exp,
@@ -2077,15 +2080,18 @@ function mobsHtml(x) {
     all = (r && r.kills) || [],
     K = all.filter(k => k.name || k.n > 1),
     other = all.filter(k => !(k.name || k.n > 1)).reduce((a, k) => a + k.n, 0), // amounts seen once: shared mobs, quests
-    row = k => `<tr><td>${k.name ? esc(k.name) : `<span class="mu">${fmt(k.exp)} EXP each</span>`}</td><td class="num">${fmt(k.n)}</td>` +
-      `<td class="num mu">${k.exp ? fmt(k.exp) : "—"}</td></tr>`;
+    pic = k => (k.pic ? `<img class="mp" src="/api/mobpic/${k.exp}.png" alt="" title="Cut from your screen when it died. Wrong? Click to drop it." ` +
+      `data-mnx="${k.exp}">` : ""),
+    row = k => `<tr><td class="mob">${pic(k)}${k.name ? esc(k.name) : `<input class="mn" data-mn="${k.exp}" maxlength="40" ` +
+      `placeholder="${fmt(k.exp)} EXP each: name it" aria-label="Name this mob"><button data-mns="${k.exp}">Save</button>`}</td>` +
+      `<td class="num">${fmt(k.n)}</td><td class="num mu">${k.exp ? fmt(k.exp) : "—"}</td></tr>`;
   return `<section class="card xmobs" style="margin-top:16px" aria-label="Mobs killed"><div class="row"><b>Mobs ${r === x ? "this session" : "this hunt"}</b>` +
     `<span class="num">${all.length ? fmt(all.reduce((a, k) => a + k.n, 0)) + " kills" : ""}</span></div>` +
     (all.length ? `<div class="tw"><table><thead><tr><th>Mob</th><th>Kills</th><th>EXP each</th></tr></thead><tbody>${K.map(row).join("")}` +
       `${other ? `<tr><td class="mu">Other gains (shared mobs, quests)</td><td class="num">${fmt(other)}</td><td class="num mu">—</td></tr>` : ""}` +
       `</tbody></table></div>` +
-      (K.some(k => !k.name) ? `<p class="mu">Mobs are told apart by the EXP one kill gives. To name them, list the mobs you hunt in ` +
-        `<b>mobs.txt</b> in the MapleReader folder (one per line: name | level | HP | EXP).</p>` : "")
+      (K.some(k => !k.name) ? `<p class="mu">Mobs are told apart by the EXP one kill gives. Type a name once and it's kept ` +
+        `(in <b>mobs.txt</b> in the MapleReader folder). A picture appears after a clear kill: the camera still, one mob gone.</p>` : "")
       : `<p class="mu">Kills show here as your EXP goes up: each gain is a kill, told apart by the EXP it gave.</p>`) + `</section>`;
 }
 // The EXP log: one line per run (a map and a level, until a level-up, a new map or 30 minutes without EXP)
@@ -2114,7 +2120,7 @@ function expLogHtml(st, x) {
 }
 // The new buttons (Home, trends, Listings' filters, the history's 7/30 days, the EXP tab): true when handled
 function cClick(e) {
-  const b = e.target.closest("[data-mv],[data-tonav],[data-lst],[data-lc],[data-hd],[data-hk],[data-hs],[data-x],[data-xr],[data-xk],[data-xs],[data-xl]");
+  const b = e.target.closest("[data-mv],[data-tonav],[data-lst],[data-lc],[data-hd],[data-hk],[data-hs],[data-x],[data-xr],[data-xk],[data-xs],[data-xl],[data-mns],[data-mnx]");
   if (!b) return false;
   const d = b.dataset;
   if (d.xl) {
@@ -2129,6 +2135,11 @@ function cClick(e) {
       drawExpPage(true);
     } else if (d.xl === "delete") api("/api/exp-log", { action: "delete", id: d.id }).then(done);
     return true;
+  } else if (d.mns !== undefined || d.mnx !== undefined) {
+    const exp = +(d.mns !== undefined ? d.mns : d.mnx),
+      body = d.mns !== undefined ? { exp, name: ($(`[data-mn="${exp}"]`) || {}).value || "" } : { exp, action: "forget" };
+    if (d.mnx !== undefined && !confirm("Drop this picture? The next clear kill brings a new one.")) return true;
+    api("/api/mob-name", body).then(r => (r.ok ? drawExpPage(true) : say(r.error || "Could not save that.")));
   }
   if (d.mv) {
     view = "browse";
@@ -2208,6 +2219,8 @@ function drawMore() {
     optCard("oq", "Chime when saved", "A soft chime each time a shop is saved.", !se.quiet) +
     optCard("ox", "Record my EXP", "Also Start/Stop on the Scan tab.",
       se.exp !== false) + theme +
+    optCard("ofp", "Save fight pictures", "For tuning mob pictures: the screenshots around each kill go to scans\\fight (30 kills kept). Off at the next start.",
+      !!se.fight_pics) +
     `<div class="card oc"><label for="ov"><b>Chime volume</b></label><p class="mu">How loud the saved chime is.</p>` +
     `<input type="range" id="ov" min="0.02" max="0.4" step="0.01" value="${se.volume || 0.08}"></div>` +
     `<div class="card oc"><label for="om"><b>Game screen</b></label><p class="mu">If the game is on another screen.</p>` +
@@ -2795,6 +2808,7 @@ function bindSettings() {
   $("#oq").onchange = e => api("/api/set", { quiet: !e.target.checked });
   $("#oa").onchange = e => api("/api/set", { auto_start: e.target.checked });
   $("#ox").onchange = e => api("/api/set", { exp: e.target.checked });
+  if ($("#ofp")) $("#ofp").onchange = e => api("/api/set", { fight_pics: e.target.checked });
   $("#ov").onchange = e => api("/api/set", { volume: +e.target.value });
   $("#om").onchange = e => api("/api/set", { monitor: +e.target.value });
   $("#oscans").onclick = () => api("/api/open-scans");

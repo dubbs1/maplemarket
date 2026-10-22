@@ -94,7 +94,7 @@ class _Handler(BaseHTTPRequestHandler):
                    '/api/set': lambda: c.update(d), '/api/open-scans': c.open_scans,
                    '/api/install-tesseract': c.install_tesseract, '/api/update': c.install_update,
                    '/api/update-check': lambda: c.check_update(wait=True), '/api/exp-reset': c.exp_reset,
-                   '/api/exp-log': lambda: c.exp_log_edit(d)}.get(path)
+                   '/api/exp-log': lambda: c.exp_log_edit(d), '/api/mob-name': lambda: c.mob_name(d)}.get(path)
             if not act:
                 return self._send(404, 'Not found', 'text/plain')
             return self._json(act())
@@ -139,6 +139,15 @@ class _Handler(BaseHTTPRequestHandler):
                         f.write(png)
                     return self._send(200, png, 'image/png', 'max-age=600')
                 except Exception:
+                    pass
+            return self._send(404, 'Not found', 'text/plain')
+        if u.path.startswith('/api/mobpic/') and u.path.endswith('.png') and c is not None:
+            name = os.path.basename(u.path)[:-4]
+            if name.isdigit():
+                try:
+                    with open(c.mobpics.path(int(name)), 'rb') as f:
+                        return self._send(200, f.read(), 'image/png', 'max-age=60')
+                except OSError:
                     pass
             return self._send(404, 'Not found', 'text/plain')
         if u.path == '/favicon.ico':

@@ -17,6 +17,7 @@ from . import __version__, engine
 from .config import APP_DIR, PLACE_KEEP, UPDATE_EVERY, VOLUME
 from .exp import ExpDays, ExpLog, ExpTracker
 from .mobs import Mobs
+from .mobpics import MobPics
 from .icons import slug
 from .location import RoomWatcher, read_channel
 from .names import load_items
@@ -81,6 +82,7 @@ class Controller:
         self.exp_log = ExpLog(os.path.join('scans', 'exp_log.json'))     # one line per hunting run (the EXP tab's log)
         self.mobs = Mobs(os.path.join(APP_DIR, 'mobs.txt'))   # names for the kills counted (a list the owner keeps)
         self.mobs.ensure()
+        self.mobpics = MobPics(os.path.join(APP_DIR, 'scans', 'mobs'), os.path.join(APP_DIR, 'scans', 'fight'))   # a picture of each mob killed
         self.exp = ExpTracker(on_gain=self.exp_days.add, on_run=self._log_run, namer=self.mobs.name)   # kept across stop/start: Reset clears it
         self.exp_runner = None                       # records EXP on its own, apart from the shop scanner
         self.seq = 0
@@ -116,6 +118,7 @@ class Controller:
         s.setdefault('share_key', '')
         s.setdefault('auto_start', True)             # start watching as soon as the app opens
         s.setdefault('exp_log', True)                # keep the EXP log (the EXP tab's "Log my runs" switch)
+        s['fight_pics'] = False                      # save whole screenshots around each kill (for tuning): off at every start
         s.setdefault('exp', True)                    # record EXP (on its own, whether or not shops are watched)
         return s
 
@@ -220,7 +223,7 @@ class Controller:
             self.last_seen = time.time()
             settings = {k: v for k, v in self.settings.items() if k != 'share_key'}   # the key never leaves the app
             return dict(self.state, version=__version__, engine=self.engine, tesseract=self.tesseract, update=self.update_info,
-                        settings=settings, share=self.share_status(), exp=self.exp.summary(), exp_days=self.exp_days.last(7), exp_log=self.exp_log.list(),
+                        settings=settings, share=self.share_status(), exp=self._with_pics(self.exp.summary()), exp_days=self.exp_days.last(7), exp_log=self.exp_log.list(),
                         exp_on=bool(self.exp_runner),
                         exp_found=bool(self.exp_runner and self.exp_runner.found), seq=self.seq,
                         events=[e for e in self.events if e['seq'] > since])
@@ -254,11 +257,20 @@ class Controller:
         return {'ok': True}
 
     # --- EXP: recorded apart from shops, with its own Start/Stop (the `exp` setting) ---
+    def _with_pics(self, x):
+        """The EXP summary with `pic` on each mob (is there a picture of it in scans/mobs?)."""
+        if x:
+            for ks in (x.get('kills') or [], (x.get('run') or {}).get('kills') or []):
+                for k in ks:
+                    k['pic'] = k['exp'] in self.mobpics.have
+        return x
+
     def exp_start(self):
         with self._start_lock:
             if self.exp_runner:
                 return {'ok': True}
-            r = self.exp_runner = ExpRunner(self.exp, monitor=int(self.settings['monitor']), events=_Feed(self))
+            r = self.exp_runner = ExpRunner(self.exp, monitor=int(self.settings['monitor']), events=_Feed(self), mobpics=self.mobpics,
+                                            fight=lambda: bool(self.settings.get('fight_pics')))
             self.exp.resume()                            # (the time it was stopped doesn't count)
 
         def run():
@@ -282,6 +294,26 @@ class Controller:
     def _log_run(self, e):
         if self.settings.get('exp_log', True):
             self.exp_log.add(e)
+
+    def mob_name(self, d):
+        """The EXP tab's "Name this mob" box: the name goes into mobs.txt (replacing a line with the same EXP), or
+        action "forget" drops a wrong picture so the next clear kill brings a new one."""
+        exp = int(d.get('exp'))
+        if d.get('action') == 'forget':
+            self.mobpics.forget(exp)
+            return {'ok': True}
+        name = ' '.join(str(d.get('name', '')).split())
+        if not 1 <= len(name) <= 40 or '|' in name or not 0 < exp < 100_000_000:
+            return {'ok': False, 'error': 'A name is 1 to 40 letters, without |.'}
+        self.mobs.ensure()
+        with open(self.mobs.path, encoding='utf-8-sig') as f:
+            lines = f.read().splitlines()
+        from .mobs import parse_mobs
+        keep = [ln for ln in lines if exp not in parse_mobs(ln) or ln.lstrip().startswith('#')]
+        with open(self.mobs.path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(keep + [f'{name} | {exp}']) + '\n')
+        self.mobs.checked = 0                        # (read again at once)
+        return {'ok': True}
 
     def exp_log_edit(self, d):
         """The EXP log's Rename and Delete buttons."""
@@ -330,7 +362,7 @@ class Controller:
             self.note(f'Room set to {rm}.')
         if 'channel' in d or 'room' in d:
             self.remember_place()
-        for k, conv in (('volume', float), ('quiet', bool), ('monitor', int), ('auto_start', bool), ('exp', bool), ('exp_log', bool)):
+        for k, conv in (('volume', float), ('quiet', bool), ('monitor', int), ('auto_start', bool), ('exp', bool), ('exp_log', bool), ('fight_pics', bool)):
             if k in d:
                 self.settings[k] = conv(d[k])
         if 'exp' in d:

@@ -173,7 +173,7 @@ async def main():
                 for i, m in enumerate(('The Land of Wild Boar II', 'Ant Tunnel I')):
                     ctl.exp_log.add({'date': time.time() - 3600 * (i + 1), 'minutes': 45, 'gained': 40000, 'per_hour': 53333, 'level': 37, 'map': m, 'party': 4 - i * 3})
                 await pg.wait_for_timeout(1500)
-                ok('A15l the EXP log lists past runs, with the party', await pg.locator('.xlog tbody tr').count() == 2 and 'Ant Tunnel I' in await pg.inner_text('.xlog')
+                ok('A15l the EXP log lists past runs, with the party', await pg.locator('.xlog tbody tr:not(.now)').count() == 2 and 'Ant Tunnel I' in await pg.inner_text('.xlog')
                    and 'dmg taken' in (await pg.inner_text('.xlog')).lower()
                    and '4 in party' in await pg.inner_text('.xlog'))
                 await pg.click('.xlog [data-xl=rename] >> nth=0'); await pg.fill('#xrn', 'Boars with Sam'); await pg.wait_for_timeout(1500)
@@ -181,9 +181,15 @@ async def main():
                 await pg.click('.xlog [data-xl=save]'); await pg.wait_for_timeout(1500)
                 ok('A15n Rename keeps the new name', ctl.exp_log.list()[0].get('name') == 'Boars with Sam' and 'Boars with Sam' in await pg.inner_text('.xlog'))
                 await pg.click('.xlog [data-xl=delete] >> nth=1'); await pg.wait_for_timeout(1500)
-                ok('A15o Delete removes a line', len(ctl.exp_log.list()) == 1 and await pg.locator('.xlog tbody tr').count() == 1)
+                ok('A15o Delete removes a line', len(ctl.exp_log.list()) == 1 and await pg.locator('.xlog tbody tr:not(.now)').count() == 1)
                 await pg.click('.xlog [data-xl=on]'); await pg.wait_for_timeout(1000)
                 ok('A15p "Log my runs" can be turned off', ctl.settings['exp_log'] is False)
+                r = await pg.evaluate("() => fetch('/api/mob-name', {method: 'POST', headers: {'X-MapleReader': '1', 'Content-Type': 'application/json'}, "
+                                      "body: JSON.stringify({exp: 22, name: 'Evil Eye'})}).then(r => r.json())")
+                ok('A15q naming a mob from the page goes into mobs.txt', r.get('ok') and ctl.mobs.name(22) == 'Evil Eye'
+                   and 'Evil Eye | 22' in open(os.path.join(work, 'mobs.txt'), encoding='utf-8').read())
+                r = await pg.evaluate("() => fetch('/api/mobpic/22.png').then(r => r.status)")
+                ok('A15r no picture of it yet: 404, not an error', r == 404)
                 await pg.click('.xlog [data-xl=on]'); await pg.wait_for_timeout(800)
                 await pg.screenshot(path=OUT + '_exp.png', full_page=True)
                 await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(800)

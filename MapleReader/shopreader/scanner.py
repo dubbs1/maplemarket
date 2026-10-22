@@ -9,7 +9,7 @@ import os
 import re
 import threading
 import time
-from collections import Counter
+from collections import Counter, deque
 from datetime import datetime
 from PIL import Image, ImageOps, ImageChops
 from .config import (CHANGED_LIST, CHANGED_SHOP, EXP_LOOK_EVERY, FORGET_AFTER, INTERVAL, PIXEL_CHANGE, ROOM_WAIT, THUMB,
@@ -199,12 +199,38 @@ class Saver:
 class ExpRunner:
     """Records EXP on its own: reads the status bar's EXP line every few seconds, whether or not shops are being
     watched (out hunting, say). Its own screenshots, about one a second (cheap next to the shop reading)."""
-    def __init__(self, tracker, monitor=1, events=None, every=1.0):
+    FRAMES = 4                                         # screenshots kept (the last few seconds) for the mob pictures
+
+    def __init__(self, tracker, monitor=1, events=None, every=1.0, mobpics=None, fight=None):
         self.tracker, self.monitor, self.every = tracker, monitor, every
         self.events = events or Events()
         self.watcher = ExpWatcher()
         self._stop = threading.Event()
         self.looked, self.seen_map = 0, None          # the map's name must be read the same twice before it counts
+        self.mobpics, self.fight = mobpics, fight     # mobpics.MobPics (a picture of each mob killed); fight() = save whole pictures?
+        self.frames = deque(maxlen=self.FRAMES)       # (time, screenshot), newest last
+        self.pending = []                             # kills waiting for their "after" pictures: {'exp', 'before', 't', 'after'}
+
+    def saw(self, img, now):
+        """A new screenshot: a kill just seen gets its "before" picture (2 s back), and earlier kills their "after"
+        ones (2 and 3 s on); with both, the mob's picture is cut out if the kill was clear (mobpics.catch)."""
+        self.frames.append((now, img))
+        t = self.tracker
+        if t.last_kills and t.gain_t == now and len(t.last_kills) == 1 and t.last_kills[0][1] == 1 and self.mobpics:
+            old = [f for f in self.frames if now - f[0] >= 1.8]
+            if old:
+                self.pending = (self.pending + [{'exp': t.last_kills[0][0], 'before': old[-1][1], 't': now, 'after': None}])[-3:]
+        done = []
+        for p in self.pending:
+            if p['after'] is None and now - p['t'] >= 1.8:
+                p['after'] = img
+            elif p['after'] is not None and now - p['t'] >= 2.8:
+                frames = (p['before'], p['after'], img)
+                self.mobpics.look(p['exp'], frames)
+                if self.fight and self.fight():
+                    self.mobpics.save_fight(p['exp'], frames)
+                done.append(p)
+        self.pending = [p for p in self.pending if p not in done]
 
     def look(self, img):
         """Every EXP_LOOK_EVERY s: the map's name (minimap title) and the party (its window's HP bars), for the EXP log."""
@@ -266,8 +292,10 @@ class ExpRunner:
                         self.looked = time.time()
                         self.look(img)
                     reading = self.watcher.update(img)
-                    if reading and self.tracker.add(reading):
+                    now = time.time()
+                    if reading and self.tracker.add(reading, now=now):
                         self.events.exp(self.tracker.summary())
+                    self.saw(img, now)
                 except Exception:
                     pause = time.time() + 30          # a reading that went wrong: never stop for good
         finally:
