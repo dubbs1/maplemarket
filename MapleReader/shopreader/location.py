@@ -70,6 +70,14 @@ def world_buttons(img):
 
 
 # ---------- the map's name (the minimap's title) and the party (its window's HP bars), for the EXP log ----------
+# the minimap title's FIRST line (the area: never a map's name). When the second line can't be read, the first
+# must not become the EXP log's map ("Dungeon" for The Cave of Evil Eye)
+REGIONS = {'victoria road', 'dungeon', 'hidden street', 'ossyria', 'maple island', 'el nath mts', 'el nath mts.', 'orbis',
+           'ludus lake', 'ludibrium', 'aqua road', 'minar forest', 'leafre', 'mu lung', 'herb town', 'nihal desert', 'ariant',
+           'magatia', 'ellin forest', 'masteria', 'zipangu', 'mushroom shrine', 'florina beach', 'world tour', 'omega sector',
+           'korean folk town', 'temple of time', 'singapore', 'malaysia', 'thailand', 'china', 'taiwan', 'nautilus', 'ereve', 'rien'}
+
+
 def _map_fix(line):
     words = re.sub(r'(^|[\s<(])[iIl|]st\b', r'\g<1>1st', line).split()
     while words and not re.match(r'([A-Z0-9][A-Za-z0-9\'-]+|<\d)', words[0]):   # bits of the map's picture read as text
@@ -80,6 +88,9 @@ def _map_fix(line):
     fm = re.search(r'Free Market <\d{1,2}>', line)
     if fm:
         return fm.group(0)                           # (the market's own name, without stray bits in front)
+    line = re.sub(r'\b[iIl|1]{1,4}$', lambda m: 'I' * len(m.group(0)), line)   # "Evil Eye ill" -> "Evil Eye III"
+    if line.lower().rstrip('.') in REGIONS:
+        return None
     return line if len(re.findall(r'[A-Za-z]', line)) >= 4 and re.search(r'[A-Za-z]{3,}', line) and not re.search(r'[?=|]', line) else None
 
 

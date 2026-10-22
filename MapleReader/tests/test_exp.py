@@ -5,7 +5,8 @@
 2. The same bar shrunk or grown (0.75x to 1.9x, two ways of resizing) is read right or skipped, never wrong.
 3. A picture without a status bar finds none.
 4. The tracker: starts when two readings agree, adds up gains, drops a misread, counts a death's loss and a level-up,
-   works out EXP per hour and the time to the next level.
+   works out EXP per hour and the time to the next level; counts kills from the EXP jumps (named from mobs.txt) and
+   damage taken from the HP numbers.
 5. EXP is recorded on its own, apart from the shop scanner (pretend screenshots, as in test_session.py).
 """
 import os, sys, types
@@ -154,6 +155,56 @@ def tracker():
     check(t.summary() is None, 'Reset clears it')
 
 
+def kills_and_damage():
+    print('Kills and damage taken:')
+    for name, want in (('status38_lowmp.png', (1146, 1325)), ('status38.png', (1325, 1325)), ('live_shop.png', (1303, 1303))):
+        img = load(name)
+        check(E.read_hp(img, E.find_bar(img)) == want, f'{name}: HP {want[0]} of {want[1]}')
+    w = E.ExpWatcher()
+    check(w.update(load('status38_lowmp.png'), now=1000)['hp'] == (1146, 1325), 'a reading carries the HP')
+    from shopreader.mobs import parse_mobs, Mobs
+    table = parse_mobs('# notes\nSnail | 1 | 8 | 3\nBlue Snail\t2\t15\t4\nStump | 1,200\nno number\nMano | 3\nOrange Mushroom|15\n')
+    check(table == {3: ['Snail', 'Mano'], 4: ['Blue Snail'], 1200: ['Stump'], 15: ['Orange Mushroom']}, f'mobs.txt read: {table}')
+    import tempfile
+    d = tempfile.mkdtemp()
+    m = Mobs(os.path.join(d, 'mobs.txt'))
+    check(m.name(3) is None, 'no mobs.txt: no names')
+    m.ensure()
+    with open(m.path, 'a', encoding='utf-8') as f:
+        f.write('Wild Boar | 30 | 500 | 30\nFire Boar | 45\n')
+    m.checked = 0
+    check(m.name(30) == 'Wild Boar' and m.name(45) == 'Fire Boar' and m.name(31) is None, 'names from the file (read again after a change)')
+    t = E.ExpTracker(namer={30: 'Wild Boar', 45: 'Fire Boar'}.get)
+    need = 216580
+    r = lambda x, hp: {'exp': x, 'pct': round(x * 100 / need, 2), 'level': 37, 'hp': hp}
+    t.add(r(93499, (1325, 1325)), now=0)
+    t.add(r(93499, (1325, 1325)), now=3)
+    x, n = 93499, 3
+    for gain, hp in ((30, (1146, 1325)), (30, (900, 1325)), (60, (1325, 1325)), (45, (1325, 1325)), (45, (1200, 1325)), (75, (1200, 1325)),
+                     (500, (1200, 1325)), (90, (1200, 1340))):
+        x, n = x + gain, n + 3
+        t.add(r(x, hp), now=n)
+    s = t.summary(now=n)
+    kills = [(k['name'], k['n']) for k in s['kills']]
+    check(kills == [('Wild Boar', 5), ('Fire Boar', 5), (None, 1)] and s['kills_total'] == 11,
+          f'kills from the EXP jumps (60 = two boars, 75 = one of each, 90 = the fewest kills: two fire boars; 500 unknown): {kills}')
+    check(s['taken'] == 550 and s['hits'] == 3 and s['big'] == 246 and s['hp'] == (1200, 1340),
+          f'damage taken from HP drops (a full HP that changed is not a hit): {s["taken"]} in {s["hits"]} hits, biggest {s["big"]}')
+    check(s['run']['kills_total'] == 11 and s['run']['taken'] == 550, 'the run carries them too')
+    t.set_party(2)
+    t.add(r(x + 37, (1200, 1340)), now=n + 3)                 # a shared mob: an amount of its own
+    check([k for k in t.summary(now=n + 3)['kills'] if k['exp'] == 37][0]['n'] == 1, 'in a party a shared kill is a gain of its own')
+    runs = []
+    t2 = E.ExpTracker(on_run=runs.append)
+    t2.add(r(1000, (100, 100)), now=0)
+    t2.add(r(1000, (100, 100)), now=3)
+    t2.add(r(1020, (60, 100)), now=60)
+    t2.add(r(1040, (60, 100)), now=120)
+    t2.end_run(now=120)
+    check(runs and runs[0]['kills_total'] == 2 and runs[0]['kills'] == [{'exp': 20, 'n': 2, 'name': None}] and runs[0]['taken'] == 40 and runs[0]['hits'] == 1,
+          f'the EXP log line has the kills and damage: {runs and runs[0]}')
+
+
 def hours_and_days():
     print('The EXP page: 10-minute slots, the last hour against the one before, the best hour, each day\'s total:')
     import tempfile
@@ -252,6 +303,8 @@ def map_and_party():
     check(L.read_map(hunt) == '1st Accompaniment <1st Stage>', f'hunt_party.png: the map is {L.read_map(hunt)!r}')
     check(L.read_map(load('kerning_inv.png')) == 'Kerning City', f"kerning_inv.png: {L.read_map(load('kerning_inv.png'))!r} (once read 'Kerming')")
     check(L.read_map(load('live_ch.png')) is None, 'live_ch.png (a window over the minimap): no name rather than a wrong one')
+    check(L._map_fix('The Cave of Evil Eye ill') == 'The Cave of Evil Eye III' and L._map_fix('Dungeon') is None and L._map_fix('Hidden Street') is None
+          and L._map_fix('Kerning City') == 'Kerning City', 'the title\'s first line alone (Dungeon) is no map; "ill" is III')
     check(L.party_size(hunt) == 4, f'hunt_party.png: a party of {L.party_size(hunt)} (MYK3, RuneKnight, Natsumi, Cashern)')
     for name in ('live_shop.png', 'desk_live.png', 's711.png', 'ch2.png', 'shopS.png'):
         img = load(name)
@@ -355,6 +408,7 @@ if __name__ == '__main__':
     sizes()
     low_bars()
     tracker()
+    kills_and_damage()
     hours_and_days()
     breaks_and_log()
     map_and_party()

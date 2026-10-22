@@ -25,7 +25,7 @@ That's it. The app opens by itself and starts watching.
 | **Home** | Search any item, today's numbers, just listed, your price alerts |
 | **Prices** | Every item you've seen: cheapest now, usual price, price history |
 | **Listings** | Every listing, with the shop, room and channel to find it |
-| **EXP** | EXP per hour, time to level, mesos per hour, a log of your hunts |
+| **EXP** | EXP per hour, time to level, mesos per hour, kills by mob, damage taken, a log of your hunts |
 | **Options** | Sound, dark theme, sharing with friends |
 
 The step-by-step guide, with pictures of what you should see, is in [the Guide](MapleReader/GUIDE.md).

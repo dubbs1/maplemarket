@@ -305,6 +305,15 @@ def read_exp(img, bar):
     return (int(num), p) if p < 100 else None
 
 
+def read_hp(img, bar):
+    """(HP now, full HP) from the status bar's "HP [ 1146 / 1325 ]", or None if it can't be read cleanly."""
+    t = _text(img, bar, 'hp')
+    m = t and re.fullmatch(r'(\d{1,7})/(\d{1,7})', t)
+    if not m or int(m[1]) > int(m[2]) or int(m[2]) < 1:
+        return None
+    return int(m[1]), int(m[2])
+
+
 def read_level(img, bar):
     """The level (white digits on orange tiles), or None."""
     t = _text(img, bar, 'level')
@@ -341,7 +350,7 @@ class ExpWatcher:
                 self.bar = find_bar(img) or self.bar     # (low MP, say: the old place is still right)
             return None
         self.misses = 0
-        return {'exp': got[0], 'pct': got[1], 'level': read_level(img, self.bar)}
+        return {'exp': got[0], 'pct': got[1], 'level': read_level(img, self.bar), 'hp': read_hp(img, self.bar)}
 
 
 def _fmt_eta(seconds):
@@ -359,10 +368,13 @@ class ExpTracker:
     RECENT = 10 * 60                                     # "per hour" from the last 10 minutes
     SLOT, SLOTS = 10 * 60, 12                            # the EXP page's chart: 10-minute slots, the last 2 hours
 
-    def __init__(self, on_gain=None, on_run=None):
+    KILL_MAX = 6                                         # kills of one mob that may hide in one reading (3 s)
+
+    def __init__(self, on_gain=None, on_run=None, namer=None):
         self.lock = threading.Lock()
         self.on_gain = on_gain                           # called with each gain (n, time): the daily totals
         self.on_run = on_run                             # called with each finished run (a line for the EXP log)
+        self.namer = namer                               # the mob that gives this much EXP (mobs.txt), or None
         self.map = None                                  # the map you're on, when known (for the EXP log)
         self.paused = None                               # when recording was stopped: the clock stands still
         self.reset()
@@ -409,10 +421,50 @@ class ExpTracker:
         if mins >= 1 and got > 0 and self.on_run:
             self.on_run({'date': r['wall'], 'minutes': round(mins), 'gained': got, 'per_hour': round(got / mins * 60),
                          'level': r['level'], 'map': r['map'], 'party': r['party'], 'mesos': r['mg'] if r['mt0'] is not None else None,
-                         'mesos_per_hour': self._mph(r['mg'], r['mt0'], r['mt1'])})
+                         'mesos_per_hour': self._mph(r['mg'], r['mt0'], r['mt1']), 'kills': self._kill_list(r['kills']),
+                         'kills_total': sum(r['kills'].values()), 'taken': r['taken'], 'hits': r['hits']})
 
     def _open_run(self, t, wall, gained, level):
-        self.run = {'t0': t, 'wall': wall, 'g0': gained, 'level': level, 'map': self.map, 'party': None, 'mg': 0, 'mt0': None, 'mt1': None}
+        self.run = {'t0': t, 'wall': wall, 'g0': gained, 'level': level, 'map': self.map, 'party': None, 'mg': 0, 'mt0': None, 'mt1': None,
+                    'kills': {}, 'taken': 0, 'hits': 0}
+
+    # ---- kills: every EXP gain is one kill or several (the amount a mob gives never changes) ----
+    def _kills(self, d):
+        """`d` EXP came in since the last reading: which kills were they? An amount seen twice is a mob's EXP; a gain
+        that is a multiple of one, or the sum of two, is those kills. (In a party the EXP is shared by damage dealt:
+        the amounts are steady while your partner hunts elsewhere, and vary when you share mobs; the page folds
+        amounts seen once into "other gains".)"""
+        known = sorted((a for a, n in self.amounts.items() if n >= 2), reverse=True)
+        if d in known:
+            return self._kill(d, 1)
+        for a in known:
+            if d % a == 0 and d // a <= self.KILL_MAX:
+                return self._kill(a, d // a)
+        for a in known:
+            if d - a in known and d - a >= a:
+                self._kill(a, 1)
+                return self._kill(d - a, 1)
+        self._kill(d, 1)
+
+    def _kill(self, a, n):
+        self.amounts[a] = self.amounts.get(a, 0) + n
+        if self.run:
+            self.run['kills'][a] = self.run['kills'].get(a, 0) + n
+
+    def _kill_list(self, kills):
+        """[{exp, n, name}], most killed first (name None when the amount isn't in mobs.txt)."""
+        out = [{'exp': a, 'n': n, 'name': self.namer(a) if self.namer else None} for a, n in kills.items()]
+        return sorted(out, key=lambda k: -k['n'])
+
+    def _hp(self, cur, full):
+        """The HP numbers read: every drop since the last reading is damage taken (potions in between hide some)."""
+        prev, self.hp = self.hp, (cur, full)
+        if prev and prev[1] == full and cur < prev[0]:   # (a different full HP: a level-up, or a misread: not a hit)
+            d = prev[0] - cur
+            self.taken, self.hits, self.big = self.taken + d, self.hits + 1, max(self.big, d)
+            if self.run:
+                self.run['taken'] += d
+                self.run['hits'] += 1
 
     def end_run(self, now=None):
         """Log the current run now (Reset, closing the app)."""
@@ -497,6 +549,9 @@ class ExpTracker:
             self.need = None                            # EXP the current level needs (exp / pct)
             self.need_prev = None                       # the level before's (a loose check while the new one is unknown)
             self.meso_low = None                        # a lower meso amount seen once: real (spent) only if seen again
+            self.amounts = {}                           # EXP per kill -> kills this session
+            self.hp = None                              # (HP now, full HP) last read
+            self.taken = self.hits = self.big = 0       # damage taken, hits taken, the biggest hit
             self.history = []                           # (t, total gained) for the per-hour rate
             self.trail = []                             # (t, total gained) about once a minute, the whole session
 
@@ -520,7 +575,10 @@ class ExpTracker:
         with self.lock:
             if self.paused is not None:                  # (a last reading arriving just after Stop)
                 return False
-            return self._add(r['exp'], r['pct'], r.get('level'), now)
+            ok = self._add(r['exp'], r['pct'], r.get('level'), now)
+            if r.get('hp') and self.start:
+                self._hp(*r['hp'])
+            return ok
 
     def _add(self, exp, pct, level, now):
         need = self._need_of(exp, pct)
@@ -569,6 +627,7 @@ class ExpTracker:
         else:
             self.lost += exp0 - exp                     # EXP lost (from dying)
         if self.gained > g0:
+            self._kills(self.gained - g0)
             idle = now - self.gain_t
             if idle > EXP_IDLE:                          # back after a break: the time without EXP doesn't count
                 if idle > EXP_RUN_GAP:                   # (a long one starts a new EXP log entry)
@@ -633,6 +692,7 @@ class ExpTracker:
             r = self.run
             run = r and {'minutes': round((now - r['t0']) / 60), 'gained': self.gained - r['g0'], 'map': r['map'], 'level': level,
                          'party': r['party'], 'mesos_per_hour': self._mph(r['mg'], r['mt0'], r['mt1']),
+                         'kills': self._kill_list(r['kills']), 'kills_total': sum(r['kills'].values()), 'taken': r['taken'], 'hits': r['hits'],
                          'per_hour': round((self.gained - r['g0']) / (now - r['t0']) * 3600) if now - r['t0'] >= 60 else None}
             return {'slots': slots, 'hour': hour, 'prev_hour': prev, 'best_hour': best, 'run': run, 'mesos': self.mesos,
                     'mesos_gained': self.meso_gain if self.mt0 is not None else None, 'mesos_per_hour': self._mph(self.meso_gain, self.mt0, self.mt1),
@@ -640,6 +700,8 @@ class ExpTracker:
                     'idle': self.paused is None and real - self.gain_t > EXP_IDLE, 'stopped': self.paused is not None,
                     'level': level, 'exp': exp, 'pct': pct, 'need': need, 'left': left,
                     'gained': self.gained, 'lost': self.lost, 'levels': self.levels,
+                    'kills': self._kill_list(self.amounts), 'kills_total': sum(self.amounts.values()),
+                    'taken': self.taken, 'hits': self.hits, 'big': self.big, 'hp': self.hp,
                     'per_hour': round(per_hour) if per_hour is not None else None,
                     'pct_per_hour': round(per_hour / self.need * 100, 2) if per_hour is not None and self.need else None,
                     'eta': round(eta) if eta is not None else None, 'eta_text': _fmt_eta(eta),
