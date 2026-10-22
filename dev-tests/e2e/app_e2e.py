@@ -160,6 +160,8 @@ async def main():
                 ok('A15i the EXP tab: its own page, drawn dark, with the trend on top', await pg.locator('.xband').count() == 1 and
                    'EXP/h' in xp and 'Stop recording' in xp and await pg.evaluate("getComputedStyle(document.body).backgroundColor") == 'rgb(14, 24, 34)'
                    and ('level-ups' in xp.lower() or 'No EXP reading yet' in xp))
+                ok('A15i2 ...with the mobs killed and the damage taken', await pg.locator('.xmobs').count() == 1 and 'mobs this' in xp.lower() and
+                   ('damage taken' in xp.lower() or 'No EXP reading yet' in xp))
                 await pg.click('[data-xr=week]'); await pg.wait_for_timeout(300)
                 ok('A15j ...and its last 7 days', 'EXP per day' in await pg.inner_text('#app') and await pg.locator('.xchart i').count() == 7)
                 await pg.click('[data-xk=line]'); await pg.wait_for_timeout(300)
@@ -172,6 +174,7 @@ async def main():
                     ctl.exp_log.add({'date': time.time() - 3600 * (i + 1), 'minutes': 45, 'gained': 40000, 'per_hour': 53333, 'level': 37, 'map': m, 'party': 4 - i * 3})
                 await pg.wait_for_timeout(1500)
                 ok('A15l the EXP log lists past runs, with the party', await pg.locator('.xlog tbody tr').count() == 2 and 'Ant Tunnel I' in await pg.inner_text('.xlog')
+                   and 'dmg taken' in (await pg.inner_text('.xlog')).lower()
                    and '4 in party' in await pg.inner_text('.xlog'))
                 await pg.click('.xlog [data-xl=rename] >> nth=0'); await pg.fill('#xrn', 'Boars with Sam'); await pg.wait_for_timeout(1500)
                 ok('A15m typing a name is not wiped by the page refreshing', await pg.input_value('#xrn') == 'Boars with Sam')

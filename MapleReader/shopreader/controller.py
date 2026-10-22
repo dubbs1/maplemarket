@@ -16,6 +16,7 @@ from collections import deque
 from . import __version__, engine
 from .config import APP_DIR, PLACE_KEEP, UPDATE_EVERY, VOLUME
 from .exp import ExpDays, ExpLog, ExpTracker
+from .mobs import Mobs
 from .icons import slug
 from .location import RoomWatcher, read_channel
 from .names import load_items
@@ -78,7 +79,9 @@ class Controller:
         self.scanner = None
         self.exp_days = ExpDays(os.path.join('scans', 'exp_days.json'))   # EXP gained each day (kept by Reset)
         self.exp_log = ExpLog(os.path.join('scans', 'exp_log.json'))     # one line per hunting run (the EXP tab's log)
-        self.exp = ExpTracker(on_gain=self.exp_days.add, on_run=self._log_run)   # kept across stop/start: Reset clears it
+        self.mobs = Mobs(os.path.join(APP_DIR, 'mobs.txt'))   # names for the kills counted (a list the owner keeps)
+        self.mobs.ensure()
+        self.exp = ExpTracker(on_gain=self.exp_days.add, on_run=self._log_run, namer=self.mobs.name)   # kept across stop/start: Reset clears it
         self.exp_runner = None                       # records EXP on its own, apart from the shop scanner
         self.seq = 0
         self.events = deque(maxlen=400)              # saved rows and notes, newest last
