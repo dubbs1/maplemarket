@@ -128,9 +128,9 @@ jobs:
           # an update the way the app does it: MapleReader is running (window and all), the app's own install script
           # waits for it to close, runs the setup quietly with a log, and MapleReader comes back; the scans stay
           New-Item -ItemType Directory -Force "$app\scans", "$app\updates" | Out-Null; Set-Content "$app\scans\all_scans.txt" "kept"
-          Copy-Item "out\MapleReader-Setup-$v.exe" "$app\updates\"
           $run = Start-Process "$app\MapleReader.exe" -PassThru
           Start-Sleep 10
+          Copy-Item "out\MapleReader-Setup-$v.exe" "$app\updates\"     # after the start: the app drops old setup files as it starts
           $env:PYTHONPATH = "$pwd\MapleReader"
           python -c "from shopreader import update; update.start_install(r'$app\updates\MapleReader-Setup-$v.exe', pid=$($run.Id), app_exe=r'$app\MapleReader.exe')"
           Start-Sleep 5
