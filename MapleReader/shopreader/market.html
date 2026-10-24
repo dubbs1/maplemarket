@@ -2229,7 +2229,7 @@ function drawMore() {
   $("#app").innerHTML = (HASAPP ? `<h2 class="oh2">Settings</h2><div class="ocards">` +
     optCard("oa", "Start when MapleReader opens", "Watch shops as soon as the app opens.", se.auto_start !== false) +
     optCard("oq", "Chime when saved", "A soft chime each time a shop is saved.", !se.quiet) +
-    optCard("ox", "Record my EXP", "Also Start/Stop on the Scan tab.", se.exp !== false) +
+    optCard("ox", "Record my EXP", "Start/Stop is on the EXP tab too.", se.exp !== false) +
     optCard("ofp", "Save fight pictures", "For tuning mob pictures: the screenshots around each kill go to scans\\fight (30 kills kept). Off at the next start.",
       !!se.fight_pics) +
     `<div class="card oc"><label for="ov"><b>Chime volume</b></label><p class="mu">How loud the saved chime is.</p>` +
@@ -2717,12 +2717,7 @@ function drawScan() {
     `</div></div>` +
     `<div class="scan"><div>` +
     `<div class="card"><button class="go" id="go"></button><p class="st" id="sst"><i></i><span></span></p><ol class="steps" id="steps"></ol></div>` +
-    // the EXP tracker: reads the EXP line at the bottom of the game window while watching
-    // EXP is recorded on its own (its own Start/Stop), whether or not shops are being watched
-    `<div class="card" id="expc"><div class="row"><p class="sec" style="margin:0">Your EXP</p><span class="hr">` +
-    `<button id="expgo" class="chg"></button><button id="expreset" class="chg">Reset</button>` +
-    `<button class="chg" data-tonav="exp">More ›</button></span></div><div id="expt"></div><p class="mu" id="expn" style="margin:6px 0 0">` +
-    `</p></div>` +
+    // (EXP is recorded on its own, with its own Start/Stop: all of it lives on the EXP tab)
     `</div><div><div class="card msgs"><p class="sec">Messages</p><ul class="notes" id="notes"></ul></div>` +
     `<div class="feedh"><h2>Saved this session</h2><span class="mu" id="fcount"></span></div><div class="feed" id="feed"></div></div></div>`;
   $("#go").onclick = async () => {
@@ -2762,14 +2757,6 @@ function drawScan() {
     b.textContent = f.hidden ? "Change" : "Cancel";
     if (!f.hidden) $("#i" + b.dataset.chg).focus();
   }));
-  $("#expreset").onclick = async () => {
-    await api("/api/exp-reset");
-    say("EXP tracking starts again from now");
-  };
-  $("#expgo").onclick = async () => {
-    const r = await api("/api/set", { exp: !(APP.st && APP.st.exp_on) });
-    if (!r.ok) say(r.error || "Could not change EXP recording.");
-  };
   $("#upd").onclick = async e => {
     const b = e.target.closest("button");
     if (!b) return;
@@ -2832,30 +2819,6 @@ function drawFeed() {
     : `<div class="empty">Nothing saved yet. Press Start, then open shops.</div>`;
 }
 // The EXP card: level, EXP per hour, gained, time to the next level (numbers from ExpTracker.summary in exp.py)
-function drawExp(x, on, found) {
-  const go = $("#expgo");
-  if (go) {
-    go.textContent = on ? "Stop" : "Start";
-    go.setAttribute("aria-label", on ? "Stop recording EXP" : "Start recording EXP");
-  }
-  const t = $("#expt");
-  if (!t) return;
-  // compact: the level and a bar on one line, then three small figures side by side
-  const fig = (k, v, sub, cls) => `<div><div class="k">${k}</div><div class="num${cls ? " " + cls : ""}">${v}</div><div class="mu">${sub}</div></div>`;
-  const html = !x ? "" :
-    `<div class="xh"><span class="xl">Lv. ${x.level || "—"}</span><span class="mu">${x.pct.toFixed(2)}% · ${fmt(x.exp)} EXP</span></div>` +
-    `<div class="xbar" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, x.pct))}%"></i></div><div class="xs">` +
-    fig("Per hour", x.per_hour == null ? "…" : fmt(x.per_hour), x.pct_per_hour == null ? "after a minute" : `${x.pct_per_hour}%/h`, "gold") +
-    fig("Gained", fmt(x.gained), `in ${x.minutes} min${x.levels ? ` · ${x.levels} up` : ""}`) +
-    fig("Next level", x.eta_text || "—", x.left == null ? "" : `${fmt(x.left)} to go`) + `</div>`;
-  if (t.dataset.html !== html) t.innerHTML = t.dataset.html = html;
-  t.hidden = !x;
-  $("#expn").hidden = !!x && on && !x.lost;        // (only when there's something to say: keeps the card short)
-  $("#expn").textContent = !on
-    ? (x ? "EXP recording is stopped. " : "") + "Press Start to record EXP."
-    : x ? (x.lost ? `Lost ${fmt(x.lost)} EXP (from dying).` : "")
-      : found ? "Reading your EXP…" : "Looking for the EXP line. Keep the status bar visible.";
-}
 // A newer MapleReader: a card at the top of Scan (only when there's something to do) and a line in Settings
 function drawUpdate(u, lost) {
   drawUpdLine(u);
@@ -2914,7 +2877,6 @@ function updScan(feedChanged, lost) {
   $("#vtot").textContent = st.total || 0;
   $("#vrun").textContent = on && st.started ? `this session · ${Math.max(0, Math.floor(Date.now() / 6e4 - st.started / 60))} min` : "this session";
   $("#vshop").textContent = on && st.shop ? st.shop : "—";
-  drawExp(st.exp, !lost && st.exp_on, st.exp_found);
   $("#vrows").textContent = on && st.shop ? `${st.shop_rows} listing${st.shop_rows === 1 ? "" : "s"} read · scroll with the wheel for more` : "";
   updOpts(st);
   $("#notes").innerHTML = APP.notes.length
