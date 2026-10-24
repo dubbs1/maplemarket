@@ -23,7 +23,6 @@ from .names import load_items
 from .ocr import find_tesseract
 from .rows import parse_frame
 from .scanner import Events, ExpRunner, Scanner
-from . import share
 from . import update as updater
 
 SETTINGS = os.path.join(APP_DIR, 'settings.json')
@@ -92,8 +91,6 @@ class Controller:
         if time.time() - place.get('t', 0) < PLACE_KEEP:
             self.state.update(channel=place.get('channel', 0), room=place.get('room', 0))
         self.last_seen = time.time()                 # when the window last asked for news
-        self.sharer = None
-        self._share_restart()
         # updates: only the installed app (MapleReader.exe) can install one; the zip version is told where to get it
         self.frozen = bool(getattr(sys, 'frozen', False))
         self.update_info = {'state': 'checking'}
@@ -112,9 +109,6 @@ class Controller:
         s.setdefault('volume', VOLUME)
         s.setdefault('quiet', False)
         s.setdefault('monitor', 1)
-        s.setdefault('share_on', False)
-        s.setdefault('share_server', share.DEFAULT_SERVER)
-        s.setdefault('share_key', '')
         s.setdefault('auto_start', True)             # start watching as soon as the app opens
         s.setdefault('exp_log', True)                # keep the EXP log (the EXP tab's "Log my runs" switch)
         s['fight_pics'] = False                      # save whole screenshots around each kill (for tuning): off at every start
@@ -126,7 +120,7 @@ class Controller:
             with self._settings_lock:                # two changes at once must not write over each other
                 with open(SETTINGS + '.tmp', 'w', encoding='utf-8') as f:
                     json.dump(self.settings, f, indent=1)
-                os.replace(SETTINGS + '.tmp', SETTINGS)   # never half a file (the share key lives here)
+                os.replace(SETTINGS + '.tmp', SETTINGS)   # never half a file
         except OSError:
             pass
 
@@ -137,22 +131,6 @@ class Controller:
         if 1 <= ch <= 40 or 1 <= rm <= 40:
             self.settings['last_place'] = dict(channel=ch if 1 <= ch <= 40 else 0, room=rm if 1 <= rm <= 40 else 0, t=time.time())
             self._save()
-
-    # --- sharing with friends ---
-    def _share_restart(self):
-        if self.sharer:
-            self.sharer.stop()
-            self.sharer = None
-        s = self.settings
-        if s.get('share_on') and s.get('share_key'):
-            self.sharer = share.Sharer(s['share_server'], s['share_key'])
-
-    def share_status(self):
-        s = self.settings
-        st = dict(self.sharer.status) if self.sharer else dict(on=False, state='off' if s.get('share_on') is False else 'needs-key')
-        k = s.get('share_key', '')
-        st.update(server=s.get('share_server'), key_hint=('••••' + k[-4:]) if k else '', enabled=bool(s.get('share_on')))
-        return st
 
     # --- shared state ---
     def set(self, **kw):
@@ -256,9 +234,9 @@ class Controller:
             threading.Thread(target=self._look_for_tesseract, daemon=True).start()
         with self.lock:
             self.last_seen = time.time()
-            settings = {k: v for k, v in self.settings.items() if k != 'share_key'}   # the key never leaves the app
+            settings = dict(self.settings)
             return dict(self.state, version=__version__, engine=self.engine, tesseract=self.tesseract, update=self.update_info,
-                        settings=settings, share=self.share_status(), exp=self._with_pics(self.exp.summary()), exp_days=self.exp_days.last(7), exp_log=self.exp_log.list(),
+                        settings=settings, exp=self._with_pics(self.exp.summary()), exp_days=self.exp_days.last(7), exp_log=self.exp_log.list(),
                         exp_on=bool(self.exp_runner),
                         exp_found=bool(self.exp_runner and self.exp_runner.found), seq=self.seq,
                         events=[e for e in self.events if e['seq'] > since])
@@ -411,18 +389,6 @@ class Controller:
             self.scanner.set_sound(volume=self.settings['volume'], quiet=self.settings['quiet'])
         if 'monitor' in d and self.scanner:
             self.note('The new screen is used next time you press Start.')
-        if any(k in d for k in ('share_on', 'share_server', 'share_key')):
-            if 'share_server' in d:
-                self.settings['share_server'] = share._clean_server(d['share_server']) or share.DEFAULT_SERVER
-            if 'share_key' in d and str(d['share_key']).strip():
-                self.settings['share_key'] = str(d['share_key']).strip()
-            if 'share_on' in d:
-                self.settings['share_on'] = bool(d['share_on'])
-            if self.settings['share_on'] and not self.settings.get('share_key'):
-                self._save()
-                return {'ok': False, 'error': 'Type the key you were given first.'}
-            self._share_restart()
-            self.note('Sharing with friends is on.' if self.settings['share_on'] else 'Sharing with friends is off.')
         self._save()
         return {'ok': True}
 
@@ -462,21 +428,10 @@ class Controller:
         s = self.state
         return dict(watching=s['watching'], channel=s['channel'], room=s['room'], total=s['total'], shop=s['shop'])
 
-    def shared_rows(self, start):
-        """Friends' listings for the Market tab, read from the group's market."""
-        if not self.settings.get('share_on'):
-            return {'configured': False}
-        try:
-            return share.fetch_rows(self.settings['share_server'], start)
-        except Exception as e:
-            return {'text': '', 'next': start, 'more': False, 'reset': False, 'error': str(e)}
-
     def shutdown(self):
         self.exp_stop()
         self.exp.end_run()                           # (the run so far goes into the EXP log)
         self.exp_days.flush()
-        if self.sharer:
-            self.sharer.stop()
         if self.scanner:
             self.scanner.stop()
         self.remember_place()

@@ -9,7 +9,6 @@ import os
 import shutil
 
 KEEP = ('settings.json', 'items.txt')            # files next to the app
-SKIP_IN_SCANS = ('share_state.json',)            # where sharing got to belongs to that copy only
 
 
 def candidates(env=None):
@@ -53,8 +52,6 @@ def bring_over(src, dst):
         rel = os.path.relpath(root, s_scans)
         os.makedirs(os.path.join(d_scans, rel), exist_ok=True)
         for f in files:
-            if rel == '.' and f in SKIP_IN_SCANS:
-                continue
             if rel == '.' and f == 'all_scans.txt':
                 continue                                # copied last (below): its being here means "done"
             target = os.path.join(d_scans, rel, f)

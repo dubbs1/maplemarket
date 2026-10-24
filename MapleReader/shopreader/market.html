@@ -2,59 +2,69 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-/* Layout: one work column for a trader at the Free Market — sticky tab bar, listings kept as a ruled ledger, prices in tabular figures */
+/* Maple Market look: warm maple palette (day and night), rounded game-panel cards, pill tabs, glossy orange actions, prices in tabular figures.
+   Every colour is a token on :root; the night set is under prefers-color-scheme and data-theme=dark. Original artwork only (no Nexon assets). */
 :root{
-  --bg:#f4f5f7;--card:#ffffff;--sf:#f9fafb;--tx:#111827;--mu:#5f6b7a;--bd:#e5e7eb;
-  --ac:#2563eb;--acbg:#dbeafe;--sky:#2563eb;--skybg:#dbeafe;--onsky:#ffffff;--ok:#15803d;--bad:#b91c1c;
-  --display:Inter,ui-sans-serif,system-ui,sans-serif;
-  --body:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --bg:#f8efe0;--card:#fffdf8;--sf:#f5ead7;--tx:#3a2a1a;--mu:#8a7055;--bd:#eadbc3;
+  --ac:#f08a24;--acbg:#fde8cf;--sky:#b9591a;--skybg:#fbe6cf;--onsky:#ffffff;--ok:#3f9a3a;--bad:#d2473a;
+  --gold:#d99a1e;--leaf:#4fa349;--glow:rgba(240,138,36,.18);--shadow:0 1px 2px rgba(74,45,15,.06),0 10px 24px -16px rgba(74,45,15,.35);
+  --display:Nunito,ui-rounded,ui-sans-serif,system-ui,sans-serif;
+  --body:Nunito,system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,"Cascadia Mono",Consolas,monospace}
-@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e1822;--card:#15212d;--sf:#1a2836;--tx:#e3ebf3;
-  --mu:#91a3b5;--bd:#253646;--ac:#f0b54a;--acbg:#352812;--sky:#6db2ec;--skybg:#14283b;--onsky:#0e1822;--ok:#5fcf8d;
-  --bad:#f08a80;color-scheme:dark}}
-:root[data-theme=dark]{--bg:#0e1822;--card:#15212d;--sf:#1a2836;--tx:#e3ebf3;--mu:#91a3b5;--bd:#253646;--ac:#f0b54a;
-  --acbg:#352812;--sky:#6db2ec;--skybg:#14283b;--onsky:#0e1822;--ok:#5fcf8d;--bad:#f08a80;color-scheme:dark}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#171a24;--card:#20243a;--sf:#282d44;--tx:#f3e9d8;--mu:#a99b88;--bd:#343a52;
+  --ac:#f59a37;--acbg:#3b2a16;--sky:#f3b35f;--skybg:#3a2d1b;--onsky:#1d1308;--ok:#7ccb6e;--bad:#f2847a;--gold:#f2c35a;--leaf:#7ccb6e;
+  --glow:rgba(245,154,55,.22);--shadow:0 1px 2px rgba(0,0,0,.25),0 10px 24px -14px rgba(0,0,0,.6);color-scheme:dark}}
+:root[data-theme=dark]{--bg:#171a24;--card:#20243a;--sf:#282d44;--tx:#f3e9d8;--mu:#a99b88;--bd:#343a52;--ac:#f59a37;--acbg:#3b2a16;
+  --sky:#f3b35f;--skybg:#3a2d1b;--onsky:#1d1308;--ok:#7ccb6e;--bad:#f2847a;--gold:#f2c35a;--leaf:#7ccb6e;--glow:rgba(245,154,55,.22);
+  --shadow:0 1px 2px rgba(0,0,0,.25),0 10px 24px -14px rgba(0,0,0,.6);color-scheme:dark}
 html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
-body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 var(--body)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 var(--body);
+  background-image:radial-gradient(900px 360px at 12% -8%,var(--glow),transparent 70%),radial-gradient(700px 300px at 100% 0,color-mix(in srgb,var(--leaf) 10%,transparent),transparent 70%);
+  background-attachment:fixed}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
 main{max-width:720px;margin:0 auto;padding-block:18px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-h1,h2,h3{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:-.015em}
+h1,h2,h3{font-family:var(--display);font-weight:800;margin:0;text-wrap:balance;letter-spacing:-.01em}
 h1{font-size:22px;line-height:1.15}h2{font-size:17px}
 .num{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums;margin:0}
 .top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
 .brand{display:flex;align-items:center;gap:10px;min-width:0}
-.brand svg{flex:none}
+.brand svg{flex:none;filter:drop-shadow(0 2px 3px rgba(74,45,15,.18))}
 .brand p{margin:2px 0 0;color:var(--mu);font-size:13px}
-.note{background:var(--acbg);color:var(--tx);border-radius:8px;padding:6px 6px 6px 12px;font-size:13px;display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:12px}
-.note b{color:var(--ac)}
+.note{background:var(--acbg);color:var(--tx);border-radius:12px;padding:6px 6px 6px 12px;font-size:13px;display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:12px}
+.note b{color:var(--sky)}
 .lv{font-size:11px;vertical-align:1px}.lv.on{color:var(--ok)}.lv.off{color:var(--bad)}
-nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:4px;margin:0 0 16px;padding:4px;background:var(--card);border:1px solid var(--bd);border-radius:12px;overflow-x:auto}
-nav button{flex:1 0 auto;border:0;background:transparent;color:var(--mu);font-weight:500;font-size:14px;padding:8px 10px;min-height:38px;border-radius:8px}
-nav button:hover{color:var(--tx);background:var(--sf)}
-nav button[aria-current=page]{background:var(--skybg);color:var(--sky);font-weight:600}
+main>nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:4px;margin:0 0 16px;padding:4px;background:var(--card);border:1px solid var(--bd);border-radius:14px;
+  overflow-x:auto;box-shadow:var(--shadow)}
+main>nav button{flex:1 0 auto;border:0;background:transparent;color:var(--mu);font-weight:700;font-size:14px;padding:8px 12px;min-height:38px;border-radius:10px}
+main>nav button:hover{color:var(--tx);background:var(--sf)}
+main>nav button[aria-current=page]{background:var(--acbg);color:var(--sky);font-weight:800}
 button,input,select,textarea{font:inherit;color:var(--tx)}
-button{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;min-height:40px;cursor:pointer}
-button:hover{border-color:var(--sky)}
-#pgo,#scgo,#log,#ago,#bulkgo{background:var(--sky);border-color:var(--sky);color:var(--onsky);font-weight:600}
-#pgo:hover,#scgo:hover,#log:hover,#ago:hover,#bulkgo:hover{filter:brightness(1.08)}
-button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
-input,select,textarea{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;min-height:40px;width:100%;box-sizing:border-box}
+button{background:var(--card);border:1px solid var(--bd);border-radius:11px;padding:8px 14px;min-height:40px;cursor:pointer;font-weight:600;box-shadow:0 1px 0 rgba(74,45,15,.05)}
+button:hover{border-color:var(--ac);background:color-mix(in srgb,var(--acbg) 45%,var(--card))}
+#pgo,#scgo,#log,#ago,#bulkgo,.go,.btn-main{background:linear-gradient(180deg,color-mix(in srgb,var(--ac) 82%,#fff) 0%,var(--ac) 55%,color-mix(in srgb,var(--ac) 88%,#000) 100%);
+  border:1px solid color-mix(in srgb,var(--ac) 70%,#000);color:#fff;font-weight:800;text-shadow:0 1px 0 rgba(0,0,0,.18);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 2px 0 color-mix(in srgb,var(--ac) 65%,#000),0 6px 14px -6px var(--ac)}
+#pgo:hover,#scgo:hover,#log:hover,#ago:hover,#bulkgo:hover,.go:hover{filter:brightness(1.05);border-color:color-mix(in srgb,var(--ac) 70%,#000);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--ac) 82%,#fff) 0%,var(--ac) 55%,color-mix(in srgb,var(--ac) 88%,#000) 100%)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+input,select,textarea{background:var(--card);border:1px solid var(--bd);border-radius:11px;padding:8px 12px;min-height:40px;width:100%;box-sizing:border-box}
+input:focus,select:focus,textarea:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--glow);outline:none}
 input::placeholder,textarea::placeholder{color:var(--mu)}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:12px}
-details.card>summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
+details.card>summary{cursor:pointer;font-weight:700;list-style:none;display:flex;justify-content:space-between;align-items:center}
 details.card>summary::-webkit-details-marker{display:none}
 details.card>summary::after{content:"+";font-family:var(--mono);color:var(--mu);font-size:18px;line-height:1}
 details.card[open]>summary::after{content:"\2212"}
 details.card[open]>summary{margin-bottom:8px}
 .row{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;margin-bottom:8px}
-button.row{padding:12px 14px;border-radius:10px}
+button.row{padding:12px 14px;border-radius:12px}
 .row>span,.row>b{min-width:0}
 .mu{color:var(--mu);font-size:13px}.up{color:var(--ok)}.dn{color:var(--bad)}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
-.m{background:var(--sf);border-radius:8px;padding:10px 12px}.m .num{font-size:21px}
-.badge{display:inline-block;background:var(--ok);color:var(--card);border-radius:5px;padding:1px 7px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;vertical-align:1px}
+.m{background:var(--sf);border-radius:12px;padding:10px 12px}.m .num{font-size:21px}
+.badge{display:inline-block;background:var(--ok);color:#fff;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;vertical-align:1px}
 .b2{background:var(--ac)!important}.b3{background:var(--mu)!important}
 .sight{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--bd);font-size:14px}
 .sight>span:last-child{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -62,42 +72,47 @@ button.row{padding:12px 14px;border-radius:10px}
 .err{color:var(--bad);font-size:13px;min-height:18px;margin:4px 0 0}
 a{color:var(--sky)}
 #app:focus{outline:none}
-.note button{min-height:30px;padding:2px 12px;font-size:12px;font-weight:600}
-#theme{min-height:34px;padding:4px 12px;font-size:13px;color:var(--mu)}
+.note button{min-height:30px;padding:2px 12px;font-size:12px;font-weight:700}
+#theme{min-height:36px;padding:4px 12px;font-size:13px;color:var(--mu);display:inline-flex;align-items:center;gap:6px;border-radius:999px}
+#theme svg{width:16px;height:16px}
+#theme .moon{display:none}:root[data-theme=dark] #theme .moon{display:inline}:root[data-theme=dark] #theme .sun{display:none}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]) #theme .moon{display:inline}:root:not([data-theme=light]) #theme .sun{display:none}}
 /* Market list: one ruled ledger instead of a stack of boxes */
-#mb{background:var(--card);border:1px solid var(--bd);border-radius:12px;overflow:hidden}
+#mb{background:var(--card);border:1px solid var(--bd);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
 #mb:empty{display:none}
 #mb>p{margin:0!important;padding:10px 14px;background:var(--sf);border-bottom:1px solid var(--bd);font-size:12px;letter-spacing:.04em;text-transform:uppercase}
 #mb>h2{margin:0!important;padding:12px 14px 8px;background:var(--sf);border-bottom:1px solid var(--bd);font-size:15px}
-#mb>.card{border:0;border-bottom:1px solid var(--bd);border-radius:0;margin:0;padding:12px 14px}
+#mb>.card{border:0;border-bottom:1px solid var(--bd);border-radius:0;margin:0;padding:12px 14px;box-shadow:none}
 #mb>.card:last-child{border-bottom:0}
 #mb>.card .row{margin:0!important}
 #mb>.card .num{font-size:17px!important}
-#mb button[data-open],#app .card>.row>button[data-open]{color:var(--tx);font-weight:600;font-size:15px}
+#mb button[data-open],#app .card>.row>button[data-open]{color:var(--tx);font-weight:700;font-size:15px}
 #mb button[data-open]:hover{color:var(--sky);text-decoration:underline}
 #mb [data-wh],#mb [data-sold],#mb [data-rm]{min-height:32px;padding:4px 10px;font-size:13px}
 .ins-sum{margin:0;font-size:15px}.ins-sum b{font-family:var(--mono);font-weight:500}
 .ins-h{font-size:15px;margin:16px 0 8px}
 .tod{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.tod-t{border:1px solid var(--bd);border-radius:8px;padding:8px 10px;background:var(--sf);min-width:0}
+.tod-t{border:1px solid var(--bd);border-radius:10px;padding:8px 10px;background:var(--sf);min-width:0}
 .tod-n{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mu)}
 .tod-t .num{font-size:15px;font-weight:600}
 .tod-t.best-buy{border:2px solid var(--ok)}.tod-t.best-sell{border:2px solid var(--ac)}.tod-t.best-buy.best-sell{border-color:var(--ok);outline:2px solid var(--ac);outline-offset:1px}
 .ins-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0 8px}
-.seg{display:flex;gap:4px}.seg button{min-height:32px;padding:4px 12px;font-size:13px;border-radius:999px}
-.seg button[aria-pressed=true]{background:var(--tx);color:var(--card);border-color:var(--tx)}
-.tbl{overflow-x:auto;border:1px solid var(--bd);border-radius:8px}
+.seg{display:inline-flex;gap:4px;padding:3px;background:var(--sf);border:1px solid var(--bd);border-radius:999px}
+.seg button{border:0;background:transparent;min-height:30px;padding:3px 12px;font-size:13px;border-radius:999px;color:var(--mu);box-shadow:none}
+.seg button:hover{background:color-mix(in srgb,var(--card) 60%,transparent);color:var(--tx)}
+.seg button[aria-pressed=true]{background:var(--card);color:var(--tx);box-shadow:0 1px 3px rgba(74,45,15,.18)}
+.tbl{overflow-x:auto;border:1px solid var(--bd);border-radius:12px}
 .tbl table{width:100%;border-collapse:collapse;font-size:14px;min-width:460px}
-.tbl th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);font-weight:600;padding:8px 10px;background:var(--sf);border-bottom:1px solid var(--bd)}
+.tbl th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);font-weight:800;padding:8px 10px;background:var(--sf);border-bottom:1px solid var(--bd)}
 .tbl td{padding:9px 10px;border-bottom:1px solid var(--bd);vertical-align:top}
 .tbl tr:last-child td{border-bottom:0}.tbl .r{text-align:right}
-.chip{display:inline-block;border-radius:5px;padding:1px 8px;font-size:12px;font-weight:600;white-space:nowrap}
-.c-sale{background:var(--skybg);color:var(--sky)}.c-sold{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}.c-gone{background:var(--sf);color:var(--mu)}
-.fresh{color:var(--ok);font-weight:600;white-space:nowrap}
+.chip{display:inline-block;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap}
+.c-sale{background:var(--acbg);color:var(--sky)}.c-sold{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}.c-gone{background:var(--sf);color:var(--mu)}
+.fresh{color:var(--ok);font-weight:700;white-space:nowrap}
 @media(max-width:480px){.tod{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .foot{margin-top:24px;font-size:12px;color:var(--mu);max-width:65ch}
-@media(max-width:480px){.grid{grid-template-columns:minmax(0,1fr)}h1{font-size:20px}nav button{padding:8px 8px;font-size:13px}}
-@media(prefers-reduced-motion:no-preference){button{transition:background .15s,border-color .15s,color .15s}}
+@media(max-width:480px){.grid{grid-template-columns:minmax(0,1fr)}h1{font-size:20px}main>nav button{padding:8px 8px;font-size:13px}}
+@media(prefers-reduced-motion:no-preference){button{transition:background .15s,border-color .15s,color .15s,transform .1s}button:active{transform:translateY(1px)}}
 /* App mode (opened from MapleReader): wider window, clean header with a live status chip, item pictures */
 html.app #app.narrow{max-width:820px}
 @media(max-width:560px){.brand p{display:none}.top{align-items:flex-start}}
@@ -108,78 +123,78 @@ html.app #app.narrow{margin-inline:auto}
 .lchip i{width:8px;height:8px;border-radius:50%;background:var(--mu);flex:none}
 .lchip.on i{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
 .lchip.on{color:var(--tx)}.lchip.off i{background:var(--bad)}
-.ic{width:34px;height:34px;border-radius:8px;object-fit:contain;image-rendering:pixelated;background:#ecebe6;border:1px solid var(--bd);flex:none;vertical-align:middle}
-.ic.lg{width:56px;height:56px;border-radius:12px}
+.ic{width:34px;height:34px;border-radius:9px;object-fit:contain;image-rendering:pixelated;background:var(--sf);border:1px solid var(--bd);flex:none;vertical-align:middle}
+.ic.lg{width:56px;height:56px;border-radius:14px}
 .nm{display:flex;align-items:center;gap:10px;min-width:0}
 .nm>button{min-width:0;overflow:hidden;text-overflow:ellipsis}
 /* Scanner tab */
 .scan{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:16px;align-items:start}
 @media(max-width:860px){.scan{grid-template-columns:minmax(0,1fr)}}
 .scan .card{margin:0 0 16px}
-.go{width:100%;min-height:54px;border-radius:12px;font-size:17px;font-weight:700;font-family:var(--display);background:var(--ac);border-color:var(--ac);color:var(--card)}
-.go:hover{filter:brightness(1.06);border-color:var(--ac)}
-.go.stop{background:var(--sf);border-color:var(--bd);color:var(--tx)}
+.go{width:100%;min-height:54px;border-radius:14px;font-size:17px;font-family:var(--display)}
+.go.stop,.go.stop:hover{background:var(--sf);border:1px solid var(--bd);color:var(--tx);text-shadow:none;box-shadow:none;filter:none}
 .st{margin:10px 0 0;font-size:14px;color:var(--mu);display:flex;align-items:center;gap:8px}
 .st i{width:9px;height:9px;border-radius:50%;background:var(--mu);flex:none}
-.st.on i{background:var(--ok)}.st.wait i{background:var(--ac)}.st.bad i{background:var(--bad)}
+.st.on i{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}.st.wait i{background:var(--ac)}.st.bad i{background:var(--bad)}
 .tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.tile{background:var(--sf);border-radius:10px;padding:10px 12px;min-width:0}
-.tile .k{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mu);font-weight:600}
+.tile{background:var(--sf);border-radius:12px;padding:10px 12px;min-width:0}
+.tile .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);font-weight:800}
 .tile .v{font-family:var(--mono);font-size:26px;font-weight:500;line-height:1.2;margin:2px 0 6px}
-.tile .v.gold{color:var(--ac)}
+.tile .v.gold{color:var(--gold)}
 .fix{display:flex;gap:6px}.fix input{min-height:34px;padding:4px 8px;font-size:13px}.fix button{min-height:34px;padding:4px 10px;font-size:13px;flex:none}
-.sec{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mu);font-weight:600;margin:0 0 10px}
+.sec{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);font-weight:800;margin:0 0 10px}
 .opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--bd)}
 .opt:first-of-type{border-top:0}
-.opt input[type=range]{width:150px;min-height:0;padding:0;border:0;background:none;accent-color:var(--ac)}
+.opt input[type=range]{width:150px;min-height:0;padding:0;border:0;background:none;accent-color:var(--ac);box-shadow:none}
 .opt select{width:auto;min-height:34px;padding:4px 8px}
-.sw{position:relative;width:42px;height:24px;flex:none}
+.sw{position:relative;width:44px;height:26px;flex:none}
 .sw input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer;min-height:0;z-index:1;width:100%;height:100%}
-.sw span{position:absolute;inset:0;border-radius:999px;background:var(--bd);transition:background .15s}
-.sw span::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--card);transition:transform .15s}
+.sw span{position:absolute;inset:0;border-radius:999px;background:var(--bd);transition:background .15s;box-shadow:inset 0 1px 2px rgba(0,0,0,.12)}
+.sw span::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
 .sw input:checked+span{background:var(--ac)}.sw input:checked+span::after{transform:translateX(18px)}
-.sw input:focus-visible+span{outline:2px solid var(--sky);outline-offset:2px}
+.sw input:focus-visible+span{outline:2px solid var(--ac);outline-offset:2px}
 .btns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
-.btns label.bt{display:flex;align-items:center;justify-content:center;border:1px solid var(--bd);border-radius:8px;min-height:40px;cursor:pointer;background:var(--card);font-size:14px}
-.btns label.bt:hover{border-color:var(--sky)}
+.btns label.bt{display:flex;align-items:center;justify-content:center;border:1px solid var(--bd);border-radius:11px;min-height:40px;cursor:pointer;background:var(--card);font-size:14px;
+  font-weight:600}
+.btns label.bt:hover{border-color:var(--ac)}
 .btns label.bt input{display:none}
-.btns button{font-size:14px}
-.btns a.bt{display:flex;align-items:center;justify-content:center;border:1px solid var(--bd);border-radius:8px;min-height:40px;
-  background:var(--card);font-size:14px;color:var(--tx);text-decoration:none}
-.btns a.bt:hover{border-color:var(--sky)}
+.btns button{font-size:14px}.shf .btns>*{font-size:13px;padding:4px 8px;text-align:center}
+.btns a.bt{display:flex;align-items:center;justify-content:center;border:1px solid var(--bd);border-radius:11px;min-height:40px;
+  background:var(--card);font-size:14px;font-weight:600;color:var(--tx);text-decoration:none}
+.btns a.bt:hover{border-color:var(--ac)}
 .shf{display:grid;gap:6px;margin-top:8px}.shf label{margin-top:4px}
 .feedh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:0 0 10px}
-.feed{background:var(--card);border:1px solid var(--bd);border-radius:12px;overflow:hidden}
+.feed{background:var(--card);border:1px solid var(--bd);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
 .fr{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--bd)}
 .fr:last-child{border-bottom:0}
-.fr .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fr .t{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fr .s{font-size:13px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fr .p{text-align:right}.fr .p .num{font-size:16px}.fr .p .mu{font-size:12px}
 .fr.sold .t,.fr.sold .num{color:var(--mu)}
-.fr.new{background:color-mix(in srgb,var(--ok) 7%,transparent)}
-.fr.new .when{color:var(--ok);font-weight:600}
-.ph{width:34px;height:34px;border-radius:8px;background:var(--sf);border:1px solid var(--bd)}
+.fr.new{background:color-mix(in srgb,var(--ok) 8%,transparent)}
+.fr.new .when{color:var(--ok);font-weight:700}
+.ph{width:34px;height:34px;border-radius:9px;background:var(--sf);border:1px solid var(--bd)}
 .empty{padding:28px 16px;text-align:center;color:var(--mu)}
 .notes{margin:0;padding:0;list-style:none;font-size:13px}
 .notes li{padding:6px 0;border-top:1px solid var(--bd);color:var(--mu);display:flex;gap:8px}
 .notes li:first-child{border-top:0}.notes li b{font-family:var(--mono);font-weight:500;flex:none}
-.notes li.warn{color:var(--ac)}.notes li.error{color:var(--bad)}
-.shopnow{font-family:var(--display);font-size:18px;font-weight:700;margin:0;overflow-wrap:anywhere}
+.notes li.warn{color:var(--sky)}.notes li.error{color:var(--bad)}
+.shopnow{font-family:var(--display);font-size:18px;font-weight:800;margin:0;overflow-wrap:anywhere}
 /* The app's simple views */
 [hidden]{display:none!important}
 .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}
-button.fr{width:100%;border:0;border-bottom:1px solid var(--bd);border-radius:0;background:none;text-align:left;min-height:0;color:var(--tx)}
+button.fr{width:100%;border:0;border-bottom:1px solid var(--bd);border-radius:0;background:none;text-align:left;min-height:0;color:var(--tx);box-shadow:none;font-weight:500}
 button.fr:hover{background:var(--sf);border-color:var(--bd)}
 button.fr:last-child{border-bottom:0}
 #mb>.card.fr{display:grid;padding:10px 14px}
-.lk{border:0;padding:0;min-height:0;background:none;text-align:left;max-width:100%;display:block}
-.lk:hover{color:var(--sky);text-decoration:underline}
+.lk{border:0;padding:0;min-height:0;background:none;text-align:left;max-width:100%;display:block;box-shadow:none}
+.lk:hover{color:var(--sky);text-decoration:underline;background:none}
 .fr.nopic{grid-template-columns:minmax(0,1fr) auto}
 .cnt{font-size:13px;color:var(--mu)}
 #live{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:20;margin:0;max-width:min(560px,calc(100vw - 32px));box-sizing:border-box;
-  background:var(--tx);color:var(--card);border-radius:10px;padding:10px 16px;font-size:14px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+  background:var(--tx);color:var(--bg);border-radius:12px;padding:10px 16px;font-size:14px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
 #live:empty{display:none}
-.more-old{display:block;width:100%;border:0;border-top:1px solid var(--bd);border-radius:0;background:var(--sf);color:var(--mu);font-size:13px}
+.more-old{display:block;width:100%;border:0;border-top:1px solid var(--bd);border-radius:0;background:var(--sf);color:var(--mu);font-size:13px;box-shadow:none}
 .back{min-height:34px;padding:4px 12px;font-size:13px;margin-bottom:12px}
 .tiles.t3{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px}
 @media(max-width:560px){.tiles.t3{grid-template-columns:minmax(0,1fr)}}
@@ -187,10 +202,10 @@ button.fr:last-child{border-bottom:0}
 .chg{min-height:28px;padding:2px 10px;font-size:12px}
 .steps{margin:12px 0 0;padding:0;list-style:none;counter-reset:s;font-size:14px}
 .steps li{counter-increment:s;display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--bd)}
-.steps li::before{content:counter(s);flex:none;width:22px;height:22px;border-radius:50%;background:var(--sf);border:1px solid var(--bd);
-  display:grid;place-items:center;font-size:12px;font-weight:600}
+.steps li::before{content:counter(s);flex:none;width:22px;height:22px;border-radius:50%;background:var(--acbg);border:1px solid color-mix(in srgb,var(--ac) 40%,var(--bd));color:var(--sky);
+  display:grid;place-items:center;font-size:12px;font-weight:800}
 .steps li.done{color:var(--mu)}
-.steps li.done::before{content:"✓";background:var(--ok);border-color:var(--ok);color:var(--card)}
+.steps li.done::before{content:"✓";background:var(--ok);border-color:var(--ok);color:#fff}
 #sets[open]>summary{margin-bottom:4px}
 /* Scan tab: fits the app window (about 860 px tall) without scrolling */
 .strip{margin-bottom:12px;padding:10px}
@@ -203,34 +218,33 @@ button.fr:last-child{border-bottom:0}
 .scan .steps{margin-top:8px;font-size:13px}.scan .steps li{padding:4px 0}
 .xh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:8px}
 .xl{font-family:var(--mono);font-size:24px;font-weight:500}
-.xbar{height:8px;border-radius:99px;background:var(--sf);overflow:hidden;margin:6px 0 10px}
-.xbar i{display:block;height:100%;background:#7fa32a;border-radius:99px}
+.xbar{height:8px;border-radius:99px;background:var(--sf);overflow:hidden;margin:6px 0 10px;box-shadow:inset 0 1px 2px rgba(0,0,0,.08)}
+.xbar i{display:block;height:100%;background:linear-gradient(90deg,var(--leaf),color-mix(in srgb,var(--leaf) 70%,#ff0));border-radius:99px}
 .xs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.xs .k{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mu);font-weight:600}
-.xs .num{font-size:16px}.xs .num.gold{color:var(--ac)}.xs .mu{font-size:12px}
+.xs .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);font-weight:800}
+.xs .num{font-size:16px}.xs .num.gold{color:var(--gold)}.xs .mu{font-size:12px}
 #notes{max-height:96px;overflow-y:auto}
 .msgs{margin-bottom:12px;padding:10px 14px}.msgs .sec{margin-bottom:4px}
 .strip .tile{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;align-items:center}
 .strip .tile>.k,.strip .tile>.fix,.strip .tile>.mu{grid-column:1/-1}
 .strip .tile>.chg{align-self:center}
-.upd{border:2px solid var(--ac)}
+.upd{border:2px solid var(--ac);background:linear-gradient(135deg,var(--acbg),var(--card) 60%)}
 /* Prices: one big search, item cards, and the chosen item's details beside them */
 .pgrid{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
 .cards{flex:2 1 420px;min-width:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
-.cards>.empty{grid-column:1/-1;background:var(--card);border:1px solid var(--bd);border-radius:12px}
-.pc{display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:14px;border-radius:12px;border:2px solid var(--bd);background:var(--card);
-  text-align:left;min-height:0;width:100%;color:var(--tx)}
-.pc[aria-pressed=true]{border-color:var(--ac)}.pc:hover{border-color:var(--sky)}
+.cards>.empty{grid-column:1/-1;background:var(--card);border:1px solid var(--bd);border-radius:16px}
+.pc{display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:14px;border-radius:14px;border:2px solid var(--bd);background:var(--card);
+  text-align:left;min-height:0;width:100%;color:var(--tx);box-shadow:var(--shadow);font-weight:500}
+.pc[aria-pressed=true]{border-color:var(--ac)}.pc:hover{border-color:var(--ac);background:var(--card)}
 .pc>span{display:block;min-width:0}.pc>.nm{display:flex;margin-bottom:6px}
-.pc .t{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pc .k,.oc .k{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mu);font-weight:600}
+.pc .t{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc .k,.oc .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);font-weight:800}
 .pc .num{font-size:22px}
 #ipanel{flex:1 1 300px;min-width:0;margin:0}
 @media(max-width:560px){.cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.pc{padding:10px}.pc .num{font-size:18px}
   }
 #ipanel .ins-h{margin-top:14px}
 #ipanel .feed .fr{padding:8px 12px}
-/* Listings as cards (Compact is the ruled list above) */
 /* Options: every setting is a card with its switch */
 .oh2{margin:4px 0 10px}
 .ocards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin-bottom:20px}
@@ -238,13 +252,14 @@ button.fr:last-child{border-bottom:0}
 .oc p{margin:0}
 .oc .oh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .oc .oh label:first-child{cursor:pointer}
-.oc input[type=range]{min-height:0;padding:0;border:0;background:none;accent-color:var(--ac)}
+.oc input[type=range]{min-height:0;padding:0;border:0;background:none;accent-color:var(--ac);box-shadow:none}
 .oc select{width:auto;align-self:flex-start}
 .oc .btns{margin-top:4px}
-button.oc{text-align:left;align-items:flex-start;min-height:0;padding:16px;border-radius:10px;color:var(--tx)}
+button.oc{text-align:left;align-items:flex-start;min-height:0;padding:16px;border-radius:16px;color:var(--tx);font-weight:500}
+button.oc:hover{background:var(--card);border-color:var(--ac)}
 button.oc .k{margin-top:auto;color:var(--sky)}
 /* Import card: the main thing you do on Market, so it comes first */
-.imp{border:2px solid var(--sky)}
+.imp{border:2px solid var(--ac)}
 .imp input[type=file]{width:100%;box-sizing:border-box}
 .imp #e5:empty{display:none}
 .imp details summary{cursor:pointer;margin-top:8px}
@@ -252,27 +267,28 @@ button.oc .k{margin-top:auto;color:var(--sky)}
 /* ===== Design C (the app and the group market): Home, trends on top, Listings by category, the EXP tab ===== */
 html.app main{max-width:1320px}
 .trend{display:flex;flex-direction:column;gap:8px;margin:0 0 14px}
-.trend h2,.hgrid h2{margin:0;font:700 17px var(--display)}
-.pd{color:var(--ok)}.pu{color:var(--ac)}
+.trend h2,.hgrid h2{margin:0;font:800 17px var(--display)}
+.pd{color:var(--ok)}.pu{color:var(--sky)}
 /* Trending: rows (the item and how far its cheapest is from usual) */
-.movers{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--bd);border-radius:14px;overflow:hidden}
-.chip{display:flex;align-items:center;gap:12px;min-height:46px;padding:8px 14px;border:0;border-top:1px solid var(--bd);border-radius:0;background:none;color:var(--tx);text-align:left;justify-content:space-between}
+.movers{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--bd);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+.chip{display:flex;align-items:center;gap:12px;min-height:46px;padding:8px 14px;border:0;border-top:1px solid var(--bd);border-radius:0;background:none;color:var(--tx);text-align:left;
+  justify-content:space-between;box-shadow:none}
 .chip:first-child{border-top:0}.chip:hover{background:var(--sf)}
 .chip>span{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:1;min-width:0}
 .chip .ic,.chip .ph{width:30px;height:30px}
-.chip b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip b{display:block;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chip .num{font-size:14px;font-weight:600}
 .hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px;align-items:start;margin-top:16px}
 .hgrid .row{margin:0 0 8px;min-height:36px}
-.tag{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:5px;white-space:nowrap;flex:none}
-.tag.sale{background:var(--skybg);color:var(--sky)}.tag.sold,.tag.gone,.tag.wait{background:var(--sf);color:var(--mu)}
-.tag.hit{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}.tag.buy{background:var(--acbg);color:var(--ac)}
+.tag{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:6px;white-space:nowrap;flex:none}
+.tag.sale{background:var(--acbg);color:var(--sky)}.tag.sold,.tag.gone,.tag.wait{background:var(--sf);color:var(--mu)}
+.tag.hit{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}.tag.buy{background:var(--acbg);color:var(--sky)}
 .tl{display:flex;align-items:center;gap:8px;min-width:0}.tl .lk{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
 .rail{display:flex;flex-direction:column;gap:6px}
 .rail button{display:flex;justify-content:space-between;gap:10px;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;
-  border:1px solid var(--bd);background:var(--card);color:var(--tx);font-weight:600;font-size:14px;flex:none;text-align:left}
-.rail button[aria-pressed=true]{background:var(--sky);border-color:var(--sky);color:var(--onsky)}
+  border:1px solid var(--bd);background:var(--card);color:var(--tx);font-weight:700;font-size:14px;flex:none;text-align:left}
+.rail button[aria-pressed=true]{background:var(--acbg);border-color:color-mix(in srgb,var(--ac) 50%,var(--bd));color:var(--sky)}
 .rail .num{font-size:12px;opacity:.75}
 .lbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.lbar #ms{flex:1 1 260px;margin:0}
 #lpanel{margin:0}#lpanel .hint{color:var(--mu);text-align:center;padding:24px 8px;margin:0}
@@ -280,74 +296,76 @@ html.app main{max-width:1320px}
   .rail,#lpanel{position:sticky;top:64px}#lpanel{max-height:calc(100vh - 80px);overflow:auto}}
 @media(max-width:999px){.rail{flex-direction:row;overflow-x:auto}#lpanel.none{display:none}}
 .rail[hidden]{display:none}
-.card.picked{border-color:var(--sky);box-shadow:0 0 0 1px var(--sky)}.num.gold{color:var(--ac)}
+.card.picked{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac),var(--shadow)}.num.gold{color:var(--gold)}
 .isub{color:var(--mu);font-size:13px;margin:-6px 0 0}
-#lpanel .tile .v,#ipanel .tile .v{font-size:19px;overflow-wrap:anywhere}#lpanel .tile,#ipanel .tile{padding:8px 10px}
-.good{font-weight:600;margin:10px 0 0}
+#lpanel .tile .v,#ipanel .tile .v{font-size:17px;overflow-wrap:anywhere}#lpanel .tile,#ipanel .tile{padding:8px 10px}
+.good{font-weight:700;margin:10px 0 0}
 .hist{margin-top:12px}.hist .row{margin:0 0 6px}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--mu);margin:0 0 4px}
-.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;background:var(--sky);vertical-align:middle;margin-right:6px}
-.legend i.b{width:10px;height:10px;background:color-mix(in srgb,var(--sky) 22%,transparent)}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;background:var(--ac);vertical-align:middle;margin-right:6px}
+.legend i.b{width:10px;height:10px;background:color-mix(in srgb,var(--ac) 22%,transparent)}
 .hist svg{display:block;width:100%;height:auto;overflow:visible}
-.hist .hb{fill:color-mix(in srgb,var(--sky) 22%,transparent)}
-.hist .hl{fill:none;stroke:var(--sky);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}.hist .hd{fill:var(--sky)}
+.hist .hb{fill:color-mix(in srgb,var(--ac) 22%,transparent)}
+.hist .hl{fill:none;stroke:var(--ac);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}.hist .hd{fill:var(--ac)}
 .hist .hx{fill:none;stroke:var(--mu);stroke-width:1.5;stroke-dasharray:4 3;stroke-linejoin:round}.legend i.x{height:0;border-top:2px dashed var(--mu);background:none}
 .hist .row{flex-wrap:wrap;gap:6px}.hist .seg{margin-left:auto}.hist .seg+.seg{margin-left:0}
 .xline{display:block;width:100%;height:150px;margin:10px 0 6px;overflow:visible}.xline polyline{fill:none;stroke:var(--ac);stroke-width:2.5;stroke-linejoin:round}
 .xline .xa{fill:color-mix(in srgb,var(--ac) 18%,transparent)}.xline circle{fill:var(--ac)}.xopts{display:flex;gap:8px;flex-wrap:wrap}
 .ax{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--mu)}
 .wr{display:grid;grid-template-columns:64px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--bd)}
-.wr:last-child{border-bottom:0}.wr .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wr:last-child{border-bottom:0}.wr .t{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wr .s,.wr .w{font-size:12px;color:var(--mu)}.wr.old{opacity:.6}
-/* the EXP tab: its own page, drawn dark */
-:root[data-view=exp]{--bg:#0e1822;--card:#15212d;--sf:#1a2836;--tx:#e3ebf3;--mu:#91a3b5;--bd:#253646;--ac:#f0b54a;--acbg:#352812;
-  --sky:#6db2ec;--skybg:#14283b;--onsky:#0e1822;--ok:#5fcf8d;--bad:#f08a80;color-scheme:dark}
+/* the EXP tab: the same theme as every other tab (it was drawn dark on its own before), gold for the big numbers */
 .xband{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:center;justify-content:space-between}
-.xband .big{font-family:var(--mono);font-size:40px;color:var(--ac);line-height:1.1}.xband .big small{font-size:14px;color:var(--mu)}
-.xvs{font-size:13px;font-weight:600}
+.xband .big{font-family:var(--mono);font-size:40px;color:var(--gold);line-height:1.1}.xband .big small{font-size:14px;color:var(--mu)}
+.xvs{font-size:13px;font-weight:700}
 .xspark{display:flex;align-items:flex-end;gap:3px;height:44px;width:140px}
 .xspark i,.xchart i{flex:1;border-radius:2px;background:color-mix(in srgb,var(--ac) 32%,transparent);min-height:2px}
 .xspark i:last-child,.xchart i:last-child{background:var(--ac)}
 .xband .tiles{flex:1 1 320px;max-width:540px}
 .xgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:start;margin-top:16px}
-.xlv{display:flex;align-items:baseline;gap:12px;margin:4px 0}.xlv b{font:700 48px/1 var(--display)}.xlv .num{font-size:22px;color:var(--ac)}
-.xgrid .xbar{height:14px}.xgrid .xbar i{background:var(--ac)}
+.xlv{display:flex;align-items:baseline;gap:12px;margin:4px 0}.xlv b{font:800 48px/1 var(--display)}.xlv .num{font-size:22px;color:var(--gold)}
+.xgrid .xbar{height:14px}
 .xchart{display:flex;align-items:flex-end;gap:6px;height:150px;margin:10px 0 6px}
 .xchart i{border-radius:5px 5px 2px 2px}
 .xctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
 .xlog{margin-top:16px}.xlog .tw,.xmobs .tw{overflow-x:auto}.xlog table,.xmobs table{width:100%;border-collapse:collapse;font-size:14px}
-.xlog th,.xmobs th{text-align:left;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mu);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--bd)}
+.xlog th,.xmobs th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);font-weight:800;padding:6px 8px;border-bottom:1px solid var(--bd)}
 .xlog td,.xmobs td{padding:8px;border-bottom:1px solid var(--bd);white-space:nowrap}
-.xmobs td.mob{display:flex;align-items:center;gap:8px}.xmobs img.mp{height:40px;max-width:72px;object-fit:contain;cursor:pointer;border-radius:4px;background:#0003}
-.xmobs input.mn{width:180px;min-height:32px}.xmobs td.mob button{min-height:32px;padding:2px 10px;font-size:13px}.xlog tr.now td{color:var(--ac)}
+.xmobs td.mob{display:flex;align-items:center;gap:8px}.xmobs img.mp{height:40px;max-width:72px;object-fit:contain;cursor:pointer;border-radius:6px;background:var(--sf)}
+.xmobs input.mn{width:180px;min-height:32px}.xmobs td.mob button{min-height:32px;padding:2px 10px;font-size:13px}.xlog tr.now td{color:var(--sky)}
 .xlog td button{min-height:32px;padding:2px 10px;font-size:13px;margin-left:4px}.xlog td input{width:170px;min-height:32px}
-.xlon{display:flex;align-items:center;gap:8px;font-size:14px;white-space:nowrap}.xlon input{width:18px;height:18px;min-height:0;margin:0;padding:0;flex:none}.xidle{color:var(--ac);font-weight:600}
-/* ===== The app and the group market: one header with the search and your status, underline tabs, calm cards ===== */
+.xlon{display:flex;align-items:center;gap:8px;font-size:14px;white-space:nowrap}.xlon input{width:18px;height:18px;min-height:0;margin:0;padding:0;flex:none}.xidle{color:var(--sky);font-weight:700}
+/* ===== The app and the group market: one header with the search and your status, pill tabs, calm cards ===== */
 html.app .top{margin:0;padding:12px 0;gap:16px;align-items:center}
-html.app .brand h1{font-size:17px}html.app .brand p{display:none}
-#gsf{flex:1;display:none;align-items:center;gap:10px;min-width:0;background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:0 14px;height:44px;color:var(--mu)}
-#gsf:focus-within{border-color:var(--sky);box-shadow:0 0 0 3px var(--skybg)}
-#gsf input{flex:1;min-width:0;border:0;background:transparent;min-height:0;padding:0;font-size:15px}#gsf input:focus-visible{outline:none}
-#gsf kbd{font:12px var(--mono);color:var(--mu);border:1px solid var(--bd);border-radius:6px;padding:1px 7px;background:var(--card)}
+html.app .brand h1{font-size:18px}html.app .brand p{display:none}
+#gsf{flex:1;display:none;align-items:center;gap:10px;min-width:0;background:var(--card);border:1px solid var(--bd);border-radius:999px;padding:0 16px;height:44px;color:var(--mu);
+  box-shadow:var(--shadow)}
+#gsf:focus-within{border-color:var(--ac);box-shadow:0 0 0 3px var(--glow)}
+#gsf input{flex:1;min-width:0;border:0;background:transparent;min-height:0;padding:0;font-size:15px}#gsf input:focus{box-shadow:none}#gsf input:focus-visible{outline:none}
+#gsf kbd{font:12px var(--mono);color:var(--mu);border:1px solid var(--bd);border-radius:6px;padding:1px 7px;background:var(--sf)}
 html.app #gsf{display:flex}
-html.app .lchip{padding:8px 14px;font-weight:600;color:var(--mu)}html.app .lchip.on{background:color-mix(in srgb,var(--ok) 10%,var(--card));border-color:color-mix(in srgb,var(--ok) 40%,var(--bd));color:var(--ok)}
+html.app .lchip{padding:8px 14px;font-weight:700;color:var(--mu)}html.app .lchip.on{background:color-mix(in srgb,var(--ok) 10%,var(--card));
+  border-color:color-mix(in srgb,var(--ok) 40%,var(--bd));color:var(--ok)}
 html.app .lchip.off{background:color-mix(in srgb,var(--bad) 8%,var(--card));color:var(--bad)}
-html.app #theme{min-height:36px}
-html.app nav{background:none;border:0;border-bottom:1px solid var(--bd);border-radius:0;padding:0;gap:2px;margin:0 0 20px;top:0}
-html.app nav button{flex:0 0 auto;border-radius:0;border-bottom:2px solid transparent;padding:10px 14px;margin-bottom:-1px;color:var(--mu)}
-html.app nav button:hover{background:none;color:var(--tx)}
-html.app nav button[aria-current=page]{background:none;color:var(--tx);border-bottom-color:var(--sky);font-weight:600}
-html.app nav button[data-nav=more]{margin-left:auto}
+html.app #theme{min-height:38px}
+html.app main>nav{background:var(--card);border:1px solid var(--bd);border-radius:999px;padding:4px;gap:2px;margin:4px 0 20px;top:0;overflow:visible;width:max-content;max-width:100%}
+html.app main>nav button{flex:0 0 auto;border-radius:999px;border-bottom:0;padding:8px 16px;margin:0;color:var(--mu);min-height:36px}
+html.app main>nav button:hover{background:var(--sf);color:var(--tx)}
+html.app main>nav button[aria-current=page]{background:linear-gradient(180deg,color-mix(in srgb,var(--ac) 82%,#fff),var(--ac));color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.15);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 2px 6px -2px var(--ac)}
+html.app main>nav button[data-nav=more]{margin-left:8px}
 html.app .foot{display:none}
-html.app .card{border-radius:14px;margin-bottom:16px}
-html.app .tile{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px 16px}
-html.app .feed{border-radius:14px}
+html.app .card{border-radius:16px;margin-bottom:16px}
+html.app .tile{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow)}
+html.app .feed{border-radius:16px}
 html.app .fr{padding:11px 16px;grid-template-columns:40px minmax(0,1fr) auto}
-html.app .fr .ic,html.app .fr .ph,html.app .seg button{min-height:30px;padding:3px 11px;border-radius:9px}
+html.app .fr .ic,html.app .fr .ph{width:40px;height:40px;border-radius:10px}
+html.app .seg button{min-height:30px;padding:3px 11px;border-radius:999px}
 /* the MapleReader window is one size: the header and tabs stay put, each view scrolls inside */
 html.desk,html.desk body{height:100%;overflow:hidden}
 html.desk main{height:100vh;box-sizing:border-box;display:flex;flex-direction:column;padding-block:0 0;max-width:none;padding-inline:24px}
-html.desk nav{flex:none}html.desk .top{flex:none}
+html.desk main>nav{flex:none}html.desk .top{flex:none}
 html.desk #app{flex:1;min-height:0;overflow:auto;padding-bottom:16px}
 /* Home: three tiles, then just listed beside trending and alerts */
 .hgrid.home3{grid-template-columns:minmax(0,7fr) minmax(0,5fr);margin-top:16px}
@@ -357,32 +375,32 @@ html.desk #app{flex:1;min-height:0;overflow:auto;padding-bottom:16px}
 html.app .hgrid .row{min-height:32px}
 .tiles.today{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 @media(max-width:700px){.tiles.today{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.tile .v.txt{font-family:var(--display);font-size:19px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tile .v small{font-size:14px;font-weight:500;color:var(--mu);font-family:var(--body)}
+.tile .v.txt{font-family:var(--display);font-size:19px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile .v small{font-size:14px;font-weight:600;color:var(--mu);font-family:var(--body)}
 /* Prices: a list of rows on the left, the item on the right */
 html.app .pgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
 @media(min-width:900px){html.app .pgrid{grid-template-columns:400px minmax(0,1fr)}html.app #ipanel{position:sticky;top:0}}
 html.app .cards{display:flex;flex-direction:column;gap:10px}
 html.app .pc{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"nm k" "mu num";column-gap:14px;row-gap:2px;align-items:center;padding:12px 14px;border-width:1px}
-html.app .pc[aria-pressed=true]{border:2px solid var(--sky);padding:11px 13px}
+html.app .pc[aria-pressed=true]{border:2px solid var(--ac);padding:11px 13px;background:color-mix(in srgb,var(--acbg) 40%,var(--card))}
 html.app .pc>.nm{grid-area:nm;margin:0}html.app .pc>.k{grid-area:k;text-align:right}html.app .pc>.num{grid-area:num;text-align:right;font-size:17px}
 html.app .pc>.mu{grid-area:mu;padding-left:50px}
 html.app .pc .ic,html.app .pc .ph{width:40px;height:40px;border-radius:10px}
 html.app #ipanel{padding:20px 22px}html.app #ipanel .nm h2{font-size:21px}
-html.app #ipanel .tile,html.app #lpanel .tile{background:var(--sf);border:0;border-radius:12px;padding:12px 14px}
-html.app #ipanel .tile .v,html.app #lpanel .tile .v{font-size:20px}
+html.app #ipanel .tile,html.app #lpanel .tile{background:var(--sf);border:0;border-radius:12px;padding:12px 14px;box-shadow:none}
+html.app #ipanel .tile .v,html.app #lpanel .tile .v{font-size:17px}
 /* phones: the tabs along the bottom, within reach of a thumb */
-@media(max-width:640px){html.app nav{position:fixed;top:auto;bottom:0;left:0;right:0;margin:0;border-radius:0;border:1px solid var(--bd);border-width:1px 0 0;background:var(--card);
-  padding:4px 4px calc(6px + env(safe-area-inset-bottom,0px));z-index:20;gap:2px}html.app main{padding-bottom:90px}
-  html.app nav button{flex:1 1 0;min-height:48px;font-size:12px;padding:6px 4px;border-bottom:0;border-radius:10px;margin:0}
-  html.app nav button[aria-current=page]{background:var(--skybg);color:var(--sky)}html.app nav button[data-nav=more]{margin-left:0}
+@media(max-width:640px){html.app main>nav{position:fixed;top:auto;bottom:0;left:0;right:0;margin:0;border-radius:0;border:1px solid var(--bd);border-width:1px 0 0;background:var(--card);
+  padding:4px 4px calc(6px + env(safe-area-inset-bottom,0px));z-index:20;gap:2px;width:auto;max-width:none}html.app main{padding-bottom:90px}
+  html.app main>nav button{flex:1 1 0;min-height:48px;font-size:12px;padding:6px 4px;border-bottom:0;border-radius:12px;margin:0}
+  html.app main>nav button[aria-current=page]{background:var(--acbg);color:var(--sky);text-shadow:none;box-shadow:none}html.app main>nav button[data-nav=more]{margin-left:0}
   html.app .top{flex-wrap:wrap;gap:10px}html.app .brand{order:0}html.app .hr{order:1;margin-left:auto}#gsf{order:2;flex-basis:100%;height:46px}
-  html.app #theme{display:none}html.app .lchip{padding:5px 9px;font-size:11px;gap:5px}html.app .brand h1{font-size:15px}html.app .brand svg{width:26px;height:26px}
+  html.app #theme span{display:none}html.app #theme{padding:4px 10px}html.app .lchip{padding:5px 9px;font-size:11px;gap:5px}html.app .brand h1{font-size:15px}html.app .brand svg{width:26px;height:26px}
   .tiles.today>.tile:last-child{grid-column:1/-1}.tile .v.txt{white-space:normal}.tile .v small{display:block;margin-top:2px}
   html.app #live{bottom:calc(72px + env(safe-area-inset-bottom,0px))}}
 </style>
 <main>
-<header class="top"><div class="brand"><svg width="30" height="30" viewBox="0 0 28 28" aria-hidden="true"><rect x="2" y="2" width="24" height="24" rx="7" fill="var(--ac)"/><path d="M8 18 L12 10 L15 15 L18 9 L21 18" fill="none" stroke="var(--onsky)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><h1>Maple Market</h1><p>Free Market prices from your own shop scans</p></div></div><form id="gsf" role="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="gs" type="search" placeholder="Search any item" aria-label="Search any item" autocomplete="off"><kbd>/</kbd></form><div class="hr"><span id="chip" class="lchip" hidden></span><button id="theme" aria-label="Switch light or dark theme">Theme</button></div></header>
+<header class="top"><div class="brand"><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="var(--acbg)"/><path d="M16 4.5l2.2 4.6 4.6-1.8-1.5 4.7 5 1.7-4 2.8 2.6 4.6-5.1-1.2L16 27.5l-3.8-7.6-5.1 1.2 2.6-4.6-4-2.8 5-1.7-1.5-4.7 4.6 1.8z" fill="var(--ac)"/><path d="M16 14v12" stroke="color-mix(in srgb,var(--ac) 70%,#000)" stroke-width="1.6" stroke-linecap="round"/></svg><div><h1>Maple Market</h1><p>Free Market prices from your own shop scans</p></div></div><form id="gsf" role="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="gs" type="search" placeholder="Search any item" aria-label="Search any item" autocomplete="off"><kbd>/</kbd></form><div class="hr"><span id="chip" class="lchip" hidden></span><button id="theme" aria-label="Switch between the day and night look" title="Day or night look"><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>Theme</span></button></div></header>
 <div class="note"><span><b>Mockup.</b> Sample data mixed with your imports, saved in this browser only.</span><button id="reset">Reset</button></div>
 <nav aria-label="Sections"><button data-nav="scan" hidden>Scanner</button><button data-nav="market">Market</button><button data-nav="mine">Mine</button><button data-nav="browse">Items</button><button data-nav="deals">Deals</button><button data-nav="sources">Sources</button></nav>
 <div id="app" tabindex="-1"></div><p id="live" class="mu" role="status" aria-live="polite"></p><p class="foot">Fan project, not affiliated with Nexon. Item names can be imported from the MapleClassic Wiki (CC BY-SA) with credit. Other price sites are linked, never copied.</p>
@@ -390,8 +408,8 @@ html.app #ipanel .tile .v,html.app #lpanel .tile .v{font-size:20px}
 <script>
 /* ===== Constants, demo items and shared helpers (order matters: these are not hoisted) ===== */
 // LIVE = opened from the MapleReader app (http://127.0.0.1:8765): listings stream in by themselves
-// MODE: "local" = served by MapleReader on this PC; "shared" = the group's market (maple.vendormarket.app);
-// "static" = this page on its own (the copy on Claude). The servers say which by setting window.MAPLE.
+// MODE: "local" = served by MapleReader on this PC; "static" = this page on its own (a plain file, sample data).
+// window.MAPLE.mode overrides it (the page checks use it to run the app layout without a server).
 const MODE =
   (window.MAPLE && window.MAPLE.mode) ||
   (location.protocol === "http:" && /^(127\.0\.0\.1|localhost)$/.test(location.hostname) ? "local" : "static");
@@ -754,7 +772,7 @@ function scanAll() {
         .sort((a, b) => (m[b].n || 1) - (m[a].n || 1))
         .forEach(k => extra-- > 0 && (m[k].st = "gone"));
     });
-    // in time order, not arrival order: a friend's older "for sale" row arriving after this PC's "gone" line
+    // in time order, not arrival order: an older "for sale" row arriving after this PC's "gone" line
     // must not put the listing back on sale (a stable sort keeps same-second rows as they came)
     [...sc.rows].sort((a, b) => (a.t || sc.t) - (b.t || sc.t)).forEach(r => {
       let k = K(r);
@@ -866,7 +884,7 @@ function hashT(t) {
   return h;
 }
 // Names as MapleReader fixes them today (names.py: fix_w and fix_name, without the items.txt step). Older scans
-// and friends' older readers keep misreads ("Ink-and-vVYash", "-¥Wash"), so one item showed up as several.
+// and older readers kept misreads ("Ink-and-vVYash", "-¥Wash"), so one item showed up as several.
 const fixW = s =>
   String(s).replace(/(?<![A-Za-z0-9])(?!W[a-z])(?:[VvWwYy¥]{2}[VWY¥]|[VvWwYy¥]{2}|\\\/\\\/)(?=[a-z])/g, "W");
 const SMALL = new Set(["of", "for", "the", "a", "an", "and", "to", "in", "on", "with"]);
@@ -956,7 +974,7 @@ function numberCopies(rows) {
   // identical listings (same room, channel, item and price) in one scan are separate copies: 1, 2, 3...
   // Sold rows are numbered on their own, so "copy 1 sold" lines up with "copy 1 for sale".
   const cn = {};
-  // The reader writes the copy number (c2) itself, so two friends scanning the same shop agree on it.
+  // The reader writes the copy number (c2) itself, so a shop seen twice merges the same way.
   rows.forEach(r => {
     if (r.c) return void (r.n = r.c);
     // copies are counted within one look at the shop (rows saved the same second), not over a whole session
@@ -1385,20 +1403,17 @@ function drawMarket() {
   bindImport();
   drawMB();
 }
-// Older scan files (in the app), the group's "This market" box, or the main import card (the page on its own)
+// Older scan files (in the app), or the main import card (the page on its own)
 function importCard() {
   return (
-        (MODE === "shared"
-          ? `<details class="card"><summary>This market</summary><p class="mu" style="margin:0 0 8px">Listings from everyone ` +
-            `in the group arrive by themselves. <b>Reload all</b> clears this browser's copy and reads everything again.</p>`
-          : LIVE
+        (LIVE
           ? `<details class="card"><summary>Older scan files</summary><p class="mu" style="margin:0 0 8px">New listings arrive by themselves. ` +
             `Pick older scan files here, or drop them on the page; rows already here are skipped. ` +
             `<b>Reload all</b> clears this page and reads all_scans.txt again.</p>`
           : `<div class="card imp"><b>Import your scans</b><p class="mu" style="margin:4px 0 8px">` +
             `Pick <b>all_scans.txt</b> from the reader's scans folder, or drop it anywhere on this page. ` +
             `Only new rows are added, so use the same file every time.</p>`) +
-        `<div${MODE === "shared" ? " hidden" : ""}>` + // the group's market gets its rows from the scanners, not files
+        `<div>` +
         `<input type="file" id="scf" accept=".txt,text/plain" multiple aria-label="Scan file"><p class="mu" id="e5" role="status"></p>` +
         `<details><summary class="mu">Paste rows instead</summary><p class="mu">One row per line: item | price | shop | room | channel, ` +
         `then optional x37 stock, #13 position, sold, @time seen.</p><textarea id="sc" rows="4" aria-label="Scan rows"></textarea>` +
@@ -1635,7 +1650,7 @@ ${listCard(cur)}${scanCard(cur)}<div class="card"><b>Log a price</b><div class="
     }
   };
 }
-/* ===== The app's simple views ===== Inside MapleReader (and the group's market) there are four tabs: Scan, Prices
+/* ===== The app's simple views ===== Inside MapleReader there are four tabs: Scan, Prices
    (one row per item you've scanned), Listings (every shop listing, copies merged) and More (everything else). */
 const SIMPLE = LIVE;
 const SEE_DEALS = SIMPLE ? "See Options › Alerts and deals." : "See Deals.";
@@ -1681,8 +1696,7 @@ function priceRow(p) {
     `<span class="k">${p.low != null ? "Cheapest now" : "Usual price"}</span><span class="num">${v == null ? "–" : fmt(v)}</span>` +
     `<span class="mu">${p.n ? `${p.n} for sale` : "none for sale now"} · ${seenTxt(p.seen)}</span></button>`;
 }
-const EMPTY_SCAN = MODE === "shared" ? "Nothing yet." :
-  "Nothing scanned yet. Press <b>Start watching</b> on the Scan tab, then open shops.";
+const EMPTY_SCAN = "Nothing scanned yet. Press <b>Start watching</b> on the Scan tab, then open shops.";
 function drawPriceList() {
   const P = priceRows(),
     was = pick;
@@ -2211,14 +2225,11 @@ const optCard = (id, title, desc, on) => `<div class="card oc"><div class="oh"><
 function drawMore() {
   const st = APP.st || {},
     se = st.settings || {},
-    sh = st.share || {},
-    go = (v, t, d) => `<button class="card oc" data-go="${v}"><b>${t}</b><span class="mu">${d}</span><span class="k">Open ›</span></button>`,
-    theme = optCard("odk", "Dark theme", "", isDark());
+    go = (v, t, d) => `<button class="card oc" data-go="${v}"><b>${t}</b><span class="mu">${d}</span><span class="k">Open ›</span></button>`;
   $("#app").innerHTML = (HASAPP ? `<h2 class="oh2">Settings</h2><div class="ocards">` +
     optCard("oa", "Start when MapleReader opens", "Watch shops as soon as the app opens.", se.auto_start !== false) +
     optCard("oq", "Chime when saved", "A soft chime each time a shop is saved.", !se.quiet) +
-    optCard("ox", "Record my EXP", "Also Start/Stop on the Scan tab.",
-      se.exp !== false) + theme +
+    optCard("ox", "Record my EXP", "Start/Stop is on the EXP tab too.", se.exp !== false) +
     optCard("ofp", "Save fight pictures", "For tuning mob pictures: the screenshots around each kill go to scans\\fight (30 kills kept). Off at the next start.",
       !!se.fight_pics) +
     `<div class="card oc"><label for="ov"><b>Chime volume</b></label><p class="mu">How loud the saved chime is.</p>` +
@@ -2228,24 +2239,15 @@ function drawMore() {
     `<div class="card oc"><b>Your scans</b><p class="mu">Test a screenshot, or open the scans folder.</p>` +
     `<div class="btns"><label class="bt">Test a screenshot<input type="file" id="opic" accept="image/*"></label><button id="oscans">Open scans folder</button></div></div>` +
     `<div class="card oc"><b>Updates</b><p class="mu" id="updline">Updates</p><p class="mu" id="eng"></p>` +
-    `<button id="updcheck" style="align-self:flex-start">Check now</button></div>` +
-    // sharing with the group market (maple.vendormarket.app, on Vercel + Supabase): a key from whoever runs it
-    (HASAPP ? `<div class="card oc"><div class="oh"><label for="shon"><b>Share with friends</b></label><label class="sw"><input type="checkbox" ` +
-      `id="shon"${sh.enabled ? " checked" : ""}><span></span></label></div><p class="st" id="shst"><i></i><span></span></p>` +
-      `<div class="shf"><label class="mu" for="shsv">Market address</label><input id="shsv" value="${esc(sh.server || "")}">` +
-      `<label class="mu" for="shk">Your key</label><input id="shk" type="password" autocomplete="off" ` +
-      `placeholder="${esc(sh.key_hint || "mm-… from whoever runs the market")}">` +
-      `<div class="btns"><button id="shsave">Save</button><a class="bt" id="shopen" target="_blank" rel="noopener" ` +
-      `href="${esc(sh.server || "#")}">Open group market</a></div></div></div>` : "") + `</div>`
-    : `<div class="ocards">${theme}</div>`) +
+    `<button id="updcheck" style="align-self:flex-start">Check now</button></div></div>`
+    : "") +
     `<h2 class="oh2">More</h2><div class="ocards">` +
     go("deals", "Alerts and deals", "Price alerts and best deals.") +
     go("mine", "My shop", "What you are selling.") +
     go("sources", "Where prices come from", "Other price sites (links only).") + `</div>` +
-    (MODE === "shared" ? "" : importCard());
-  $("#odk").onchange = e => setTheme(e.target.checked);
+    importCard();
   if (HASAPP) bindSettings();
-  if (MODE !== "shared") bindImport();
+  bindImport();
 }
 function setTheme(dark) {
   document.documentElement.dataset.theme = dark ? "dark" : "light";
@@ -2462,12 +2464,6 @@ const RESET = () => {
   if (LIVE) {
     MAIN.reset(); // read everything again from the top
     setOff(0);
-    if (FEED2) {
-      FEED2.reset();
-      try {
-        localStorage.setItem(KEY + ":friendsoff", "0");
-      } catch (e) {}
-    }
     say("Cleared. Reloading your scans from MapleReader");
   } else say("Sample data restored");
   draw();
@@ -2475,7 +2471,6 @@ const RESET = () => {
 $("#reset").onclick = RESET;
 $("#theme").onclick = () => {
   setTheme(!isDark());
-  if ($("#odk")) $("#odk").checked = isDark();
 };
 try {
   const t = localStorage.getItem(KEY + ":theme"),
@@ -2533,21 +2528,13 @@ function liveChip() {
   const st = liveStatus;
   c.hidden = false;
   c.className = "lchip " + (liveOk ? (st && st.watching ? "on" : "") : "off");
-  if (MODE === "shared") {
-    c.className = "lchip " + (liveOk ? (st && st.scanning ? "on" : "") : "off");
-    c.innerHTML =
-      "<i></i>" +
-      (!liveOk ? "Can't reach the market" : st && st.scanning ? `Shared market · ${st.scanning} scanning now` : "Shared market");
-    return;
-  }
   c.innerHTML =
     "<i></i>" +
     (!liveOk
       ? "MapleReader closed"
       : st && st.watching
         ? `Watching${st.channel ? ` · CH ${st.channel}` : ""}${st.room ? ` · Room ${st.room}` : ""}`
-        : "Ready · not watching") +
-    (FRIENDS && FRIENDS.scanning ? ` · ${FRIENDS.scanning} friend${FRIENDS.scanning > 1 ? "s" : ""} scanning` : "");
+        : "Ready · not watching");
 }
 function liveBanner() {
   liveChip();
@@ -2566,8 +2553,7 @@ function liveBanner() {
     `<button id="reset" title="Clear this page's data and reload everything from all_scans.txt">Reload all</button>`;
   $("#reset").onclick = RESET;
 }
-// One feed of scan rows: this PC's all_scans.txt ("/api/rows"), or, in the app with sharing on,
-// the group's listings ("/api/shared/rows"). Each keeps its own place so nothing is read twice.
+// The feed of scan rows: this PC's all_scans.txt ("/api/rows"). It keeps its place so nothing is read twice.
 function puller(path, offKey, isMain) {
   const get = () => {
       try {
@@ -2582,9 +2568,7 @@ function puller(path, offKey, isMain) {
       } catch (e) {}
     };
   let off = get();
-  // this PC's own file: every 2 s. The group's market runs on a free plan: every 20 s is plenty (the app's own
-  // scans show at once anyway; a friend's appear within half a minute)
-  const EVERY = MODE === "local" && isMain ? 2000 : 20000;
+  const EVERY = 2000; // this PC's own file: every 2 s
   const pull = async () => {
     let wait = EVERY;
     if (isMain && Date.now() - PRUNED > 3600e3) (PRUNED = Date.now()), pruneOld(); // the window stays open for days
@@ -2592,14 +2576,10 @@ function puller(path, offKey, isMain) {
       const r = await fetch(path + "?from=" + off, { cache: "no-store" });
       if (!r.ok) throw new Error(r.status);
       const j = await r.json();
-      if (j.configured === false) {
-        setTimeout(pull, 10000); // sharing is off in the app: look again later
-        return;
-      }
       if (isMain) {
         liveOk = true;
         liveStatus = j.status;
-      } else FRIENDS = j.status || FRIENDS;
+      }
       if (j.reset) off = 0;
       if (j.text) {
         const before = alertHits().map(K),
@@ -2628,11 +2608,9 @@ function puller(path, offKey, isMain) {
   };
   return { pull, reset: () => (off = 0) };
 }
-let FRIENDS = null;
-const MAIN = puller("/api/rows", OFFK, true),
-  FEED2 = MODE === "local" ? puller("/api/shared/rows", KEY + ":friendsoff", false) : null;
+const MAIN = puller("/api/rows", OFFK, true);
 const livePull = MAIN.pull;
-// The search box: the header's in the app and the group market, else the one on the Prices or Listings page
+// The search box: the header's in the app, else the one on the Prices or Listings page
 const searchBox = () => (LIVE ? $("#gs") : $("#q, #ms"));
 // Show the Prices tab (redraw = refresh its list if it is already showing)
 function showPrices(redraw) {
@@ -2657,10 +2635,9 @@ if (LIVE) {
   liveBanner();
   pruneOld();
   livePull();
-  if (FEED2) FEED2.pull();
   loadIcons();
 }
-// Item pictures: which ones exist (yours and the group's). Checked now and every minute.
+// Item pictures: which ones exist. Checked now and every minute.
 async function loadIcons() {
   try {
     const list = await (await fetch("/api/icons", { cache: "no-store" })).json(),
@@ -2727,7 +2704,6 @@ const STATUS = {
 function drawScan() {
   const st = APP.st || {},
     se = st.settings || {},
-    sh = st.share || {},
     // channel and room: shown big, with a Change button that opens a small box to type the right number
     tile = (k, id, ph) => `<div class="tile"><div class="k">${k}</div><div class="v" id="v${id}">—</div>` +
       `<button class="chg" data-chg="${id}">Change</button><div class="fix" id="f${id}" hidden><input id="i${id}" inputmode="numeric" ` +
@@ -2741,12 +2717,7 @@ function drawScan() {
     `</div></div>` +
     `<div class="scan"><div>` +
     `<div class="card"><button class="go" id="go"></button><p class="st" id="sst"><i></i><span></span></p><ol class="steps" id="steps"></ol></div>` +
-    // the EXP tracker: reads the EXP line at the bottom of the game window while watching
-    // EXP is recorded on its own (its own Start/Stop), whether or not shops are being watched
-    `<div class="card" id="expc"><div class="row"><p class="sec" style="margin:0">Your EXP</p><span class="hr">` +
-    `<button id="expgo" class="chg"></button><button id="expreset" class="chg">Reset</button>` +
-    `<button class="chg" data-tonav="exp">More ›</button></span></div><div id="expt"></div><p class="mu" id="expn" style="margin:6px 0 0">` +
-    `</p></div>` +
+    // (EXP is recorded on its own, with its own Start/Stop: all of it lives on the EXP tab)
     `</div><div><div class="card msgs"><p class="sec">Messages</p><ul class="notes" id="notes"></ul></div>` +
     `<div class="feedh"><h2>Saved this session</h2><span class="mu" id="fcount"></span></div><div class="feed" id="feed"></div></div></div>`;
   $("#go").onclick = async () => {
@@ -2786,14 +2757,6 @@ function drawScan() {
     b.textContent = f.hidden ? "Change" : "Cancel";
     if (!f.hidden) $("#i" + b.dataset.chg).focus();
   }));
-  $("#expreset").onclick = async () => {
-    await api("/api/exp-reset");
-    say("EXP tracking starts again from now");
-  };
-  $("#expgo").onclick = async () => {
-    const r = await api("/api/set", { exp: !(APP.st && APP.st.exp_on) });
-    if (!r.ok) say(r.error || "Could not change EXP recording.");
-  };
   $("#upd").onclick = async e => {
     const b = e.target.closest("button");
     if (!b) return;
@@ -2816,21 +2779,6 @@ function bindSettings() {
     $("#updline").textContent = "Checking for updates…";
     await api("/api/update-check");
   };
-  if ($("#shon")) $("#shon").onchange = async e => {
-    const r = await api("/api/set", { share_on: e.target.checked });
-    if (!r.ok) {
-      e.target.checked = false;
-      say(r.error);
-      $("#shk").focus();
-    }
-  };
-  if ($("#shsave")) $("#shsave").onclick = async () => {
-    const r = await api("/api/set", { share_server: $("#shsv").value, share_key: $("#shk").value, share_on: true });
-    if (!r.ok) return say(r.error);
-    $("#shk").value = "";
-    $("#shon").checked = true;
-    say("Sharing settings saved");
-  };
   $("#opic").onchange = async e => {
     const f = e.target.files[0];
     e.target.value = "";
@@ -2849,22 +2797,6 @@ function bindSettings() {
 }
 function updOpts(st) {
   drawUpdLine(st.update || {});
-  const sh = st.share || {},
-    shText = !sh.enabled
-      ? ["", "Off."]
-      : sh.state === "ok"
-        ? ["on", `Sharing${sh.who ? " as " + sh.who : ""} · ${(sh.sent || 0).toLocaleString()} sent` +
-            (sh.last_ok ? ` · checked ${ago(Date.now() - sh.last_ok * 1000).replace("1 min ago", "just now")}` : "")]
-        : sh.state === "starting"
-          ? ["wait", "Connecting…"]
-          : sh.state === "offline" || sh.state === "retrying"
-            ? ["wait", sh.error || "Trying again shortly."]
-            : ["bad", sh.error || "Type your key and press Save."];
-  if ($("#shst")) {
-    $("#shst").className = "st " + shText[0];
-    $("#shst span").textContent = shText[1];
-  }
-  if (sh.server && $("#shopen")) $("#shopen").href = sh.server;
   if ($("#eng")) $("#eng").textContent = !st.tesseract ? "" : st.engine === "fast" ? `MapleReader ${st.version} · fast reading` : `MapleReader ${st.version} · standard reading`;
 }
 function drawFeed() {
@@ -2887,30 +2819,6 @@ function drawFeed() {
     : `<div class="empty">Nothing saved yet. Press Start, then open shops.</div>`;
 }
 // The EXP card: level, EXP per hour, gained, time to the next level (numbers from ExpTracker.summary in exp.py)
-function drawExp(x, on, found) {
-  const go = $("#expgo");
-  if (go) {
-    go.textContent = on ? "Stop" : "Start";
-    go.setAttribute("aria-label", on ? "Stop recording EXP" : "Start recording EXP");
-  }
-  const t = $("#expt");
-  if (!t) return;
-  // compact: the level and a bar on one line, then three small figures side by side
-  const fig = (k, v, sub, cls) => `<div><div class="k">${k}</div><div class="num${cls ? " " + cls : ""}">${v}</div><div class="mu">${sub}</div></div>`;
-  const html = !x ? "" :
-    `<div class="xh"><span class="xl">Lv. ${x.level || "—"}</span><span class="mu">${x.pct.toFixed(2)}% · ${fmt(x.exp)} EXP</span></div>` +
-    `<div class="xbar" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, x.pct))}%"></i></div><div class="xs">` +
-    fig("Per hour", x.per_hour == null ? "…" : fmt(x.per_hour), x.pct_per_hour == null ? "after a minute" : `${x.pct_per_hour}%/h`, "gold") +
-    fig("Gained", fmt(x.gained), `in ${x.minutes} min${x.levels ? ` · ${x.levels} up` : ""}`) +
-    fig("Next level", x.eta_text || "—", x.left == null ? "" : `${fmt(x.left)} to go`) + `</div>`;
-  if (t.dataset.html !== html) t.innerHTML = t.dataset.html = html;
-  t.hidden = !x;
-  $("#expn").hidden = !!x && on && !x.lost;        // (only when there's something to say: keeps the card short)
-  $("#expn").textContent = !on
-    ? (x ? "EXP recording is stopped. " : "") + "Press Start to record EXP."
-    : x ? (x.lost ? `Lost ${fmt(x.lost)} EXP (from dying).` : "")
-      : found ? "Reading your EXP…" : "Looking for the EXP line. Keep the status bar visible.";
-}
 // A newer MapleReader: a card at the top of Scan (only when there's something to do) and a line in Settings
 function drawUpdate(u, lost) {
   drawUpdLine(u);
@@ -2969,7 +2877,6 @@ function updScan(feedChanged, lost) {
   $("#vtot").textContent = st.total || 0;
   $("#vrun").textContent = on && st.started ? `this session · ${Math.max(0, Math.floor(Date.now() / 6e4 - st.started / 60))} min` : "this session";
   $("#vshop").textContent = on && st.shop ? st.shop : "—";
-  drawExp(st.exp, !lost && st.exp_on, st.exp_found);
   $("#vrows").textContent = on && st.shop ? `${st.shop_rows} listing${st.shop_rows === 1 ? "" : "s"} read · scroll with the wheel for more` : "";
   updOpts(st);
   $("#notes").innerHTML = APP.notes.length
