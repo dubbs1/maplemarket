@@ -86,8 +86,9 @@ def main():
     ok('the install script waits for this app (its process, then any MapleReader.exe from the app folder), runs the setup '
        'quietly with a log, and starts MapleReader again if the setup did not',
        'Wait-Process -Id 4321 ' in ps and "$exe = 'C:\\Users\\O''Neil x\\MapleReader\\MapleReader.exe'" in ps and
-       "Start-Process -FilePath 'C:\\Users\\O''Neil x\\MapleReader\\updates\\MapleReader-Setup-2099-01-03.exe'" in ps and
-       '/VERYSILENT' in ps and "'/LOG=\"C:\\Users\\O''Neil x\\MapleReader\\updates\\setup.log\"'" in ps and
+       "$psi.FileName = 'C:\\Users\\O''Neil x\\MapleReader\\updates\\MapleReader-Setup-2099-01-03.exe'" in ps and
+       "$psi.Arguments = '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /LOG=\"C:\\Users\\O''Neil x\\MapleReader\\updates\\setup.log\"'" in ps and
+       'could not be started' in ps and
        "$log = 'C:\\Users\\O''Neil x\\MapleReader\\updates\\install.log'" in ps and
        'if (-not (Running)) {' in ps and 'Start-Process -FilePath $exe' in ps and '"' not in ps.replace('/LOG=\"', '').replace('.log\"', ''))
     cmd = update.install_command(r'C:\x\updates\install.ps1')

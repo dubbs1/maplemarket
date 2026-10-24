@@ -119,15 +119,21 @@ def install_script(setup_path, pid, app_exe=None):
                   'function Running { Get-Process -Name MapleReader -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe } }',
                   'for ($i = 0; $i -lt 120 -and (Running); $i++) { Start-Sleep -Seconds 1 }',
                   "if (Running) { Say 'MapleReader is still running after 5 minutes: the setup will not be able to replace its files' }"]
+    args = '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /LOG="' + ntpath.join(folder, SETUP_LOG) + '"'
     lines += ["Say 'running the setup'",
-              f"$p = Start-Process -FilePath {_ps(setup_path)} -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "
-              f"{_ps('/LOG=' + chr(34) + ntpath.join(folder, SETUP_LOG) + chr(34))} -PassThru",
-              "if ($p.WaitForExit(600000)) { Say ('the setup finished with code ' + $p.ExitCode) } "
-              "else { Say 'the setup did not finish in 10 minutes'; Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }"]
+              'try {',                                   # plain CreateProcess, and the error's words if it fails
+              '  $psi = New-Object System.Diagnostics.ProcessStartInfo',
+              f'  $psi.FileName = {_ps(setup_path)}; $psi.Arguments = {_ps(args)}; $psi.WorkingDirectory = {_ps(folder)}',
+              '  $psi.UseShellExecute = $false',
+              '  $p = [System.Diagnostics.Process]::Start($psi)',
+              "  if ($p.WaitForExit(600000)) { Say ('the setup finished with code ' + $p.ExitCode) } "
+              "else { Say 'the setup did not finish in 10 minutes'; $p.Kill() }",
+              "} catch { Say ('the setup could not be started: ' + $_.Exception.Message) }"]
     if app_exe:
         lines += ['Start-Sleep -Seconds 5',
                   "if (-not (Running)) { Say 'starting MapleReader'; Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) }"]
-    lines.append("Say 'done'")
+    lines += ["if ($Error.Count) { Say ('errors: ' + (($Error | ForEach-Object { $_.ToString() }) -join ' | ')) }",
+              "Say 'done'"]
     return '\n'.join(lines) + '\n'
 
 
