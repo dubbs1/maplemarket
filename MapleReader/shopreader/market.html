@@ -223,7 +223,7 @@ button.fr:last-child{border-bottom:0}
 .xs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .xs .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);font-weight:800}
 .xs .num{font-size:16px}.xs .num.gold{color:var(--gold)}.xs .mu{font-size:12px}
-#notes{max-height:96px;overflow-y:auto}
+#notes{max-height:96px;overflow-y:auto}.scan #notes{max-height:300px}
 .msgs{margin-bottom:12px;padding:10px 14px}.msgs .sec{margin-bottom:4px}
 .strip .tile{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;align-items:center}
 .strip .tile>.k,.strip .tile>.fix,.strip .tile>.mu{grid-column:1/-1}
@@ -2475,7 +2475,8 @@ $("#theme").onclick = () => {
 try {
   const t = localStorage.getItem(KEY + ":theme"),
     c = JSON.parse(localStorage.getItem(KEY + ":charts") || "{}"); // how the charts are drawn (remembered)
-  if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+  // night first: the game window is dark and the app sits beside it; the Theme button remembers a change
+  document.documentElement.dataset.theme = t === "dark" || t === "light" ? t : "dark";
   if (c.hk === "line") hkind = "line";
   if (c.xk === "line") xkind = "line";
   hlog = !!c.hs;
@@ -2718,7 +2719,8 @@ function drawScan() {
     `<div class="scan"><div>` +
     `<div class="card"><button class="go" id="go"></button><p class="st" id="sst"><i></i><span></span></p><ol class="steps" id="steps"></ol></div>` +
     // (EXP is recorded on its own, with its own Start/Stop: all of it lives on the EXP tab)
-    `</div><div><div class="card msgs"><p class="sec">Messages</p><ul class="notes" id="notes"></ul></div>` +
+    `<div class="card msgs"><p class="sec">Messages</p><ul class="notes" id="notes"></ul></div>` +
+    `</div><div>` +
     `<div class="feedh"><h2>Saved this session</h2><span class="mu" id="fcount"></span></div><div class="feed" id="feed"></div></div></div>`;
   $("#go").onclick = async () => {
     if (APP.busy) return;
