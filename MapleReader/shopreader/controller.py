@@ -6,7 +6,6 @@ small requests. Everything here is safe to call from the web server's threads.
 import io
 import json
 import os
-import shutil
 import subprocess
 import sys
 import threading
@@ -100,8 +99,8 @@ class Controller:
         self.update_info = {'state': 'checking'}
         self._update_at = 0
         self.quit_requested = False                  # set when an update is about to install: the window closes
-        if self.frozen:                              # an earlier update's setup file is no longer needed
-            shutil.rmtree(os.path.join(APP_DIR, 'updates'), ignore_errors=True)
+        if self.frozen:
+            self._after_update()
 
     # --- settings ---
     def _load(self):
@@ -190,6 +189,39 @@ class Controller:
             threading.Thread(target=look, daemon=True).start()
         return {'ok': True}
 
+    PENDING = 'pending.json'                         # updates/pending.json: an update was started (from, to, when)
+
+    def _after_update(self):
+        """The installed app's start: say how the last update went (updates/pending.json was written when it
+        started: if this is the version it aimed for, it worked; otherwise the install log says what happened),
+        then drop the setup file and script, keeping the logs for reading."""
+        folder = os.path.join(APP_DIR, 'updates')
+        pending = os.path.join(folder, self.PENDING)
+        try:
+            with open(pending, encoding='utf-8') as f:
+                want = json.load(f)
+        except (OSError, ValueError):
+            want = None
+        if want:
+            if not updater.newer(str(want.get('to', '')), __version__):
+                self.note(f'Updated to MapleReader {__version__}.')
+            else:
+                why = ''
+                try:
+                    with open(os.path.join(folder, updater.INSTALL_LOG), encoding='utf-8-sig') as f:
+                        why = '; '.join(line[20:].strip() for line in f.read().splitlines()[-3:] if len(line) > 20)
+                except OSError:
+                    pass
+                self.note(f"The update to {want.get('to')} did not install ({why or 'the install script never ran'}). "
+                          f"The files install.log and setup.log in the folder updates (next to MapleReader.exe) say why.",
+                          'error')
+        for name in os.listdir(folder) if os.path.isdir(folder) else []:
+            if name.lower().endswith('.exe') or name in (updater.SCRIPT, self.PENDING):
+                try:
+                    os.remove(os.path.join(folder, name))
+                except OSError:
+                    pass
+
     def install_update(self):
         """Download the new version, check its fingerprint, and hand over to its setup (which restarts us)."""
         if not self.frozen:
@@ -202,10 +234,13 @@ class Controller:
 
         def go():
             try:
-                path = updater.download(info, os.path.join(APP_DIR, 'updates'))
+                folder = os.path.join(APP_DIR, 'updates')
+                path = updater.download(info, folder)
                 self.update_info = dict(info, state='installing')
                 self.note('Installing the update. MapleReader closes now and opens again by itself in a minute.')
-                updater.start_install(path)
+                with open(os.path.join(folder, self.PENDING), 'w', encoding='utf-8') as f:
+                    json.dump({'from': __version__, 'to': info['version'], 't': time.time()}, f)
+                updater.start_install(path, app_exe=sys.executable)
                 self.quit_requested = True
             except (OSError, ValueError) as e:
                 self.update_info = dict(info, state='available', error=f'The update could not be installed: {e}')

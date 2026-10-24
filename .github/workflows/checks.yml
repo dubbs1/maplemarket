@@ -125,13 +125,28 @@ jobs:
           $code = Run-And-Wait "$app\MapleReader.exe" @("--self-check", "$pwd\installed_check.txt") "The installed copy's self-check"
           Get-Content installed_check.txt
           if ($code -ne 0) { throw "The installed copy failed its self-check" }
-          # a quiet update over the top: the files are replaced, and the scans folder stays
-          New-Item -ItemType Directory -Force "$app\scans" | Out-Null; Set-Content "$app\scans\all_scans.txt" "kept"
-          $code = Run-And-Wait "out\MapleReader-Setup-$v.exe" @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART") "The update"
-          Start-Sleep 8
+          # an update the way the app does it: MapleReader is running (window and all), the app's own install script
+          # waits for it to close, runs the setup quietly with a log, and MapleReader comes back; the scans stay
+          New-Item -ItemType Directory -Force "$app\scans", "$app\updates" | Out-Null; Set-Content "$app\scans\all_scans.txt" "kept"
+          Copy-Item "out\MapleReader-Setup-$v.exe" "$app\updates\"
+          $run = Start-Process "$app\MapleReader.exe" -PassThru
+          Start-Sleep 10
+          $env:PYTHONPATH = "$pwd\MapleReader"
+          python -c "from shopreader import update; update.start_install(r'$app\updates\MapleReader-Setup-$v.exe', pid=$($run.Id), app_exe=r'$app\MapleReader.exe')"
+          Start-Sleep 5
+          if (-not (Test-Path "$app\updates\install.log")) { throw "The install script wrote no log: it did not run" }
+          Stop-Process -Id $run.Id -Force; Get-Process msedge -ErrorAction SilentlyContinue | Stop-Process -Force   # (the app closes itself in real life)
+          $deadline = (Get-Date).AddMinutes(5)
+          while ((Get-Date) -lt $deadline -and -not ((Get-Content "$app\updates\install.log" -Raw) -match "done")) { Start-Sleep 3 }
+          Get-Content "$app\updates\install.log"
+          if (-not ((Get-Content "$app\updates\install.log" -Raw) -match "finished with code 0")) { throw "The update did not install (install.log above)" }
+          if (-not (Test-Path "$app\updates\setup.log")) { throw "The setup wrote no setup.log" }
+          Start-Sleep 5
+          $back = @(Get-Process MapleReader -ErrorAction SilentlyContinue).Count
+          "MapleReader running after the update: $back"
+          if ($back -lt 1) { throw "MapleReader did not come back after the update" }
           Get-Process MapleReader, msedge -ErrorAction SilentlyContinue | Stop-Process -Force
           Start-Sleep 2
-          if ($code -ne 0) { throw "Installing over the top failed ($code)" }
           if ((Get-Content "$app\scans\all_scans.txt") -ne "kept") { throw "An update lost the scans" }
           $code = Run-And-Wait "$app\unins000.exe" @("/VERYSILENT", "/SUPPRESSMSGBOXES") "The uninstaller"
           Start-Sleep 3

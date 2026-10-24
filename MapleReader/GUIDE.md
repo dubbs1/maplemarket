@@ -65,6 +65,7 @@ The installer needs nothing else first (no Python, no `setup.bat`, no `build_exe
    - If the big button says **Install Tesseract**, click it (see Part G2).
 4. From now on, open MapleReader from the Start menu or the desktop icon.
 5. **Updates:** when a new version is out, a card at the top of the Scan tab says **A new version is ready**. Click **Update now**. MapleReader closes, updates and opens again by itself within a minute. Your scans and settings stay.
+   - If it comes back on the same version, the Messages box says the update did not install and why. The details are in the files `install.log` and `setup.log` in the folder `updates` next to `MapleReader.exe` (`%LOCALAPPDATA%\Programs\MapleReader\updates`). You can always install a version by hand: download `MapleReader-Setup-<version>.exe` from the Releases page and run it.
    - **Options** shows `Updates: ...` and has a **Check now** button.
    - To remove MapleReader: Windows Settings > Apps > MapleReader > Uninstall. Your scans stay in `%LOCALAPPDATA%\Programs\MapleReader\scans` until you delete that folder.
 

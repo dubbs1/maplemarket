@@ -81,9 +81,18 @@ def main():
     except ValueError:
         ok('a download that does not match its fingerprint is refused, and deleted',
            not os.listdir(os.path.join(work, 'updates2')))
-    cmd = update.install_command(r"C:\Users\O'Neil x\MapleReader\updates\MapleReader-Setup-2099-01-03.exe", 4321)
-    ok('the setup runs quietly once this app (its process) has closed', cmd[0] == 'powershell' and
-       cmd[-1].startswith('Wait-Process -Id 4321 ') and "'C:\\Users\\O''Neil x\\" in cmd[-1] and '/VERYSILENT' in cmd[-1])
+    ps = update.install_script(r"C:\Users\O'Neil x\MapleReader\updates\MapleReader-Setup-2099-01-03.exe", 4321,
+                               r"C:\Users\O'Neil x\MapleReader\MapleReader.exe")
+    ok('the install script waits for this app (its process, then any MapleReader.exe from the app folder), runs the setup '
+       'quietly with a log, and starts MapleReader again if the setup did not',
+       'Wait-Process -Id 4321 ' in ps and "$exe = 'C:\\Users\\O''Neil x\\MapleReader\\MapleReader.exe'" in ps and
+       "Start-Process -FilePath 'C:\\Users\\O''Neil x\\MapleReader\\updates\\MapleReader-Setup-2099-01-03.exe'" in ps and
+       '/VERYSILENT' in ps and "'/LOG=\"C:\\Users\\O''Neil x\\MapleReader\\updates\\setup.log\"'" in ps and
+       "$log = 'C:\\Users\\O''Neil x\\MapleReader\\updates\\install.log'" in ps and
+       'if (-not (Running)) {' in ps and 'Start-Process -FilePath $exe' in ps and '"' not in ps.replace('/LOG=\"', '').replace('.log\"', ''))
+    cmd = update.install_command(r'C:\x\updates\install.ps1')
+    ok('the script runs as a file, hidden, whatever the PC\'s script policy', cmd[0].lower().endswith('powershell.exe') and
+       cmd[-2:] == ['-File', r'C:\x\updates\install.ps1'] and '-ExecutionPolicy' in cmd and 'Hidden' in cmd)
 
     # --- the app's Update now ---
     from shopreader import controller as CT
@@ -95,7 +104,7 @@ def main():
     ok('the app sees the update', ctl.snapshot()['update']['state'] == 'available')
     ok('the zip version is sent to the download page instead', ctl.install_update()['ok'] is False)
     started = []
-    CT.updater.start_install = lambda p: started.append(p)
+    CT.updater.start_install = lambda p, pid=None, app_exe=None: started.append(p)
     ctl.frozen = True
     ctl.update_info['can_install'] = True
     ctl.install_update()
@@ -105,6 +114,27 @@ def main():
         threading.Event().wait(0.1)
     ok('installed app: downloads, checks, starts the setup and closes', ctl.quit_requested and started and
        ctl.update_info['state'] == 'installing' and open(started[0], 'rb').read() == SETUP)
+    pending = os.path.join(work, 'updates', 'pending.json')
+    ok('...and notes which version it is going for', json.load(open(pending))['to'] == '2099-01-05')
+    # the next start of the installed app says how it went (sys.frozen pretended, as in the exe)
+    sys.frozen = True
+    try:
+        with open(os.path.join(work, 'updates', 'install.log'), 'w', encoding='utf-8-sig') as f:
+            f.write('2026-10-24T12:00:00 running the setup\n2026-10-24T12:00:09 the setup finished with code 5\n2026-10-24T12:00:14 done\n')
+        notes = [e for e in CT.Controller().snapshot()['events'] if e.get('kind') == 'note']
+        ok('a failed update is reported at the next start, with the log lines', any('did not install' in n['text'] and
+           'finished with code 5' in n['text'] and 'install.log' in n['text'] for n in notes))
+        ok('...the setup file and script are dropped, the logs and the scans stay',
+           not os.path.exists(pending) and not os.path.exists(started[0]) and
+           os.path.exists(os.path.join(work, 'updates', 'install.log')))
+        with open(pending, 'w') as f:
+            json.dump({'from': '2000-01-01', 'to': CT.__version__, 't': 0}, f)
+        notes = [e for e in CT.Controller().snapshot()['events'] if e.get('kind') == 'note']
+        ok('a finished update says so once', any(n['text'] == f'Updated to MapleReader {CT.__version__}.' for n in notes)
+           and not os.path.exists(pending))
+        ok('no marker: nothing said', not any('pdate' in e.get('text', '') for e in CT.Controller().snapshot()['events']))
+    finally:
+        del sys.frozen
     del os.environ['MAPLEREADER_UPDATE_API']
 
     # --- first run of the installed app: old scans come along ---
