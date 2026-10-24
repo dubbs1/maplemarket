@@ -60,9 +60,12 @@ async def main():
                 await pg.screenshot(path=OUT + '_idle.png')
                 await pg.click('[data-chg=ch]'); await pg.fill('#ich', '99'); await pg.click('#sch'); await pg.wait_for_timeout(300)
                 ok('A3 bad channel refused', ctl.state['channel'] == 0)
-                await pg.click('#expgo'); await pg.wait_for_timeout(1500)
-                ok('A3b EXP has its own Start: recording EXP without watching shops', ctl.exp_runner is not None and
-                   not ctl.state['watching'] and (await pg.inner_text('#expgo')) == 'Stop')
+                ok('A3a the Scan tab carries no EXP card: EXP lives on its own tab', await pg.locator('#expc').count() == 0 and
+                   'EXP' not in await pg.inner_text('.scan'))
+                await pg.click('[data-nav=exp]'); await pg.wait_for_timeout(600); await pg.click('[data-x=go]'); await pg.wait_for_timeout(1500)
+                ok('A3b EXP has its own Start on the EXP tab: recording EXP without watching shops', ctl.exp_runner is not None and
+                   not ctl.state['watching'] and 'Stop recording' in await pg.inner_text('.xctl'))
+                await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(600)
                 await pg.click('#go'); await pg.wait_for_timeout(1500)
                 ok('A4 Start starts the scanner', ctl.state['watching'] and 'Stop' in await pg.inner_text('#go'))
                 t0 = time.time()
@@ -76,16 +79,18 @@ async def main():
                 ok('A7 channel and room tiles', (await pg.inner_text('#vch')) == '10' and (await pg.inner_text('#vrm')) == '1')
                 ok('A8 header chip live', 'CH 10' in await pg.inner_text('#chip'))
                 # the tracker starts once two readings (3 s apart) agree: give it a moment on a fast machine
+                await pg.click('[data-nav=exp]'); await pg.wait_for_timeout(600)
                 for _ in range(20):
-                    xt = await pg.inner_text('#expt')
+                    xt = await pg.inner_text('.xgrid')
                     if '43.17%' in xt:
                         break
                     await pg.wait_for_timeout(1000)
                 if '43.17%' not in xt:
                     print('  EXP tracker state:', ctl.exp.first, ctl.exp.last, ctl.settings.get('exp'), bool(ctl.scanner))
-                ok(f'A8b the EXP card read the status bar (level 37, 43.17%) {xt[:60]!r}', '37' in xt and '43.17%' in xt and '93,499' in xt)
-                await pg.click('#expreset'); await pg.wait_for_timeout(1500)
+                ok(f'A8b the EXP tab read the status bar (level 37, 43.17%) {xt[:60]!r}', '37' in xt and '43.17%' in xt and '93,499' in xt)
+                await pg.click('[data-x=reset]'); await pg.wait_for_timeout(1500)
                 ok('A8c Reset clears it (until the next readings)', ctl.exp.gained == 0 and ctl.exp.levels == 0)
+                await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(600)
                 ok('A9 newest listings marked just listed', await pg.locator('#feed .fr.new').count() >= 6)
                 await pg.screenshot(path=OUT + '_dark.png')
                 ok('A9b the steps go away once listings are saved', await pg.locator('#steps').is_hidden())
@@ -96,11 +101,11 @@ async def main():
                 await pg.uncheck('#oa'); await pg.wait_for_timeout(300)
                 st = json.load(open(os.path.join(work, 'settings.json')))
                 ok('A10 options saved (chime off, screen 2, no auto start)', st['quiet'] is True and st['monitor'] == 2 and st['auto_start'] is False)
-                on = await pg.is_checked('#odk')              # this browser asks for dark, so the switch starts on
-                await pg.uncheck('#odk'); await pg.wait_for_timeout(200)
+                ok('A10a Options has no theme card: the header button is the switch', await pg.locator('#odk').count() == 0)
+                await pg.click('#theme'); await pg.wait_for_timeout(200)     # this browser asks for dark, so the first click gives day
                 lt = await pg.evaluate("document.documentElement.dataset.theme")
-                await pg.check('#odk'); await pg.wait_for_timeout(200)
-                ok(f'A10b the dark theme switch works (starts {on}, then {lt})', on and lt == 'light' and
+                await pg.click('#theme'); await pg.wait_for_timeout(200)
+                ok(f'A10b the header Theme button switches day and night (first {lt})', lt == 'light' and
                    await pg.evaluate("document.documentElement.dataset.theme") == 'dark')
                 await pg.set_input_files('#opic', os.path.join(R, 'tests/fixtures/screw.png')); await pg.wait_for_timeout(6000)
                 await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(500)
@@ -155,10 +160,11 @@ async def main():
                 await pg.click('#tomore'); await pg.click('[data-go=mine]'); await pg.wait_for_timeout(300)
                 ok('A15d My shop has the post form', await pg.locator('#pgo').count() == 1)
                 await pg.evaluate("document.documentElement.dataset.theme = 'light'")   # (A10b left the dark theme on)
+                bg0 = await pg.evaluate("getComputedStyle(document.body).backgroundColor")
                 await pg.click('[data-nav=exp]'); await pg.wait_for_timeout(2500)
                 xp = await pg.inner_text('#app')
-                ok('A15i the EXP tab: its own page, drawn dark, with the trend on top', await pg.locator('.xband').count() == 1 and
-                   'EXP/h' in xp and 'Stop recording' in xp and await pg.evaluate("getComputedStyle(document.body).backgroundColor") == 'rgb(14, 24, 34)'
+                ok('A15i the EXP tab: the same look as the other tabs, with the trend on top', await pg.locator('.xband').count() == 1 and
+                   'EXP/h' in xp and 'Stop recording' in xp and await pg.evaluate("getComputedStyle(document.body).backgroundColor") == bg0
                    and ('level-ups' in xp.lower() or 'No EXP reading yet' in xp))
                 ok('A15i2 ...with the mobs killed and the damage taken', await pg.locator('.xmobs').count() == 1 and 'mobs this' in xp.lower() and
                    ('damage taken' in xp.lower() or 'No EXP reading yet' in xp))
@@ -193,13 +199,14 @@ async def main():
                 await pg.click('.xlog [data-xl=on]'); await pg.wait_for_timeout(800)
                 await pg.screenshot(path=OUT + '_exp.png', full_page=True)
                 await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(800)
-                ok('A15k leaving it, the page is light again', await pg.evaluate("getComputedStyle(document.body).backgroundColor") != 'rgb(14, 24, 34)')
+                ok('A15k leaving it, the page keeps its look', await pg.evaluate("getComputedStyle(document.body).backgroundColor") == bg0)
                 await pg.click('#go'); await pg.wait_for_timeout(1500)
                 ok('A16 Stop stops', not ctl.state['watching'] and 'Start' in await pg.inner_text('#go'))
-                ok('A16b stopping shops leaves EXP recording on', ctl.exp_runner is not None and (await pg.inner_text('#expgo')) == 'Stop')
-                await pg.click('#expgo'); await pg.wait_for_timeout(1500)
-                ok('A16c and EXP stops with its own button', ctl.exp_runner is None and (await pg.inner_text('#expgo')) == 'Start'
+                ok('A16b stopping shops leaves EXP recording on', ctl.exp_runner is not None)
+                await pg.click('[data-nav=exp]'); await pg.wait_for_timeout(600); await pg.click('[data-x=go]'); await pg.wait_for_timeout(1500)
+                ok('A16c and EXP stops with its own button on the EXP tab', ctl.exp_runner is None and 'Start recording' in await pg.inner_text('.xctl')
                    and json.load(open(os.path.join(work, 'settings.json')))['exp'] is False)
+                await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(600)
                 ok('A17 feed kept after stop', await pg.locator('#feed .fr').count() == 29)
                 await pg.reload(); await pg.wait_for_timeout(2000)
                 ok('A18 reload restores the session feed', await pg.locator('#feed .fr').count() == 29)

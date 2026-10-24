@@ -1,4 +1,4 @@
-// Rooms above 11, times with a time zone, and names that try to sneak HTML in (shared mode: anyone with a key)
+// Rooms above 11, times with a time zone, and names that try to sneak HTML in
 const {JSDOM}=require('jsdom'),fs=require('fs');
 const d=new JSDOM(fs.readFileSync(require('path').join(__dirname,'../../MapleReader/shopreader/market.html'),'utf8'),{runScripts:'dangerously',url:'https://x.test/',pretendToBeVisual:true});
 const w=d.window,A=w.App,$=s=>w.document.querySelector(s);let f=0;const ok=(n,c)=>{console.log(c?'PASS':'FAIL',n);if(!c)f++};

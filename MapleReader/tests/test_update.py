@@ -143,7 +143,7 @@ def main():
     old = os.path.join(home, 'OneDrive', 'Desktop', 'MapleReader')
     os.makedirs(os.path.join(old, 'scans', 'icons'))
     for rel, text in (('scans/all_scans.txt', 'Ice Wand | 12500 | WCC | 2 | 10\n'), ('scans/icons/ice-wand.png', 'png'),
-                      ('scans/share_state.json', '{}'), ('settings.json', '{"volume": 0.2}'), ('items.txt', 'Ice Wand\n')):
+                      ('settings.json', '{"volume": 0.2}'), ('items.txt', 'Ice Wand\n')):
         with open(os.path.join(old, rel), 'w') as f:
             f.write(text)
     before = sorted(os.walk(old))
@@ -153,7 +153,6 @@ def main():
     ok(f'first run brings the old scans over ({msg})', msg and 'Brought over' in msg and
        open(os.path.join(app, 'scans', 'all_scans.txt')).read().startswith('Ice Wand') and
        os.path.isfile(os.path.join(app, 'scans', 'icons', 'ice-wand.png')) and os.path.isfile(os.path.join(app, 'settings.json')))
-    ok("where sharing got to isn't copied", not os.path.exists(os.path.join(app, 'scans', 'share_state.json')))
     ok('the old folder is left as it was', sorted(os.walk(old)) == before)
     ok('it only happens once', migrate.first_run(app, env) is None)
     ok('no old folder: nothing happens', migrate.first_run(tempfile.mkdtemp(), {'USERPROFILE': tempfile.mkdtemp()}) is None)

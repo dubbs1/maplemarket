@@ -4,7 +4,7 @@ const {JSDOM}=require('jsdom'),fs=require('fs');
 const html=fs.readFileSync(require('path').join(__dirname,'../../MapleReader/shopreader/market.html'),'utf8');
 let f=0;const ok=(n,c)=>{console.log(c?'PASS':'FAIL',n);if(!c)f++};
 const page=(extra)=>new JSDOM(html,{runScripts:'dangerously',url:'https://x.test/',pretendToBeVisual:true,
-  beforeParse(w){w.MAPLE={mode:'shared'};w.fetch=()=>Promise.reject(new Error('offline'));if(extra)extra(w)}}).window;
+  beforeParse(w){w.MAPLE={mode:'local'};w.fetch=()=>Promise.reject(new Error('offline'));if(extra)extra(w)}}).window;
 const at=m=>new Date(Date.now()-m*60e3).toISOString().slice(0,19)+'Z';
 const L=(name,p,m,ex='',shop='Part Shop')=>`${name} | ${p} | ${shop} | 3 | 5 |${ex} c1 | @${at(m)}`;
 let w=page(),A=w.App;
