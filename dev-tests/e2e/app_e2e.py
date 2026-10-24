@@ -58,7 +58,10 @@ async def main():
                 ctl.update_info = {'state': 'none'}; await pg.wait_for_timeout(1600)
                 ok('A2g and goes away again', await pg.locator('#upd').is_hidden())
                 await pg.screenshot(path=OUT + '_idle.png')
-                await pg.click('[data-chg=ch]'); await pg.fill('#ich', '99'); await pg.click('#sch'); await pg.wait_for_timeout(300)
+                await pg.click('[data-chg=ch]'); await pg.keyboard.type('99'); await pg.wait_for_timeout(200)   # real keystrokes
+                ok('A2h digits typed into the Channel box land in it (the Enter handler used to cancel every other key)',
+                   await pg.input_value('#ich') == '99')
+                await pg.click('#sch'); await pg.wait_for_timeout(300)
                 ok('A3 bad channel refused', ctl.state['channel'] == 0)
                 ok('A3a the Scan tab carries no EXP card: EXP lives on its own tab', await pg.locator('#expc').count() == 0 and
                    'EXP' not in await pg.inner_text('.scan'))
@@ -109,7 +112,7 @@ async def main():
                    await pg.evaluate("document.documentElement.dataset.theme") == 'dark')
                 await pg.set_input_files('#opic', os.path.join(R, 'tests/fixtures/screw.png')); await pg.wait_for_timeout(6000)
                 await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(500)
-                await pg.click('[data-chg=rm]'); await pg.fill('#irm', '7'); await pg.press('#irm', 'Enter'); await pg.wait_for_timeout(1500)
+                await pg.click('[data-chg=rm]'); await pg.keyboard.type('7'); await pg.press('#irm', 'Enter'); await pg.wait_for_timeout(1500)
                 ok('A11 room typed by hand', ctl.state['room'] == 7 and (await pg.inner_text('#vrm')) == '7')
                 ok('A12 read a screenshot', 'screw.png: 6 listings' in await pg.inner_text('#notes'))
                 await pg.click('[data-nav=browse]'); await pg.wait_for_timeout(1500)

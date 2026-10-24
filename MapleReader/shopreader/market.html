@@ -2751,8 +2751,9 @@ function drawScan() {
   };
   $("#sch").onclick = fix("#ich", "channel", 40);
   $("#srm").onclick = fix("#irm", "room", 40);
-  $("#ich").onkeydown = e => e.key === "Enter" && $("#sch").click();
-  $("#irm").onkeydown = e => e.key === "Enter" && $("#srm").click();
+  // (a handler must not return false for the other keys: that would cancel the keystroke, and no digit could be typed)
+  $("#ich").onkeydown = e => void (e.key === "Enter" && $("#sch").click());
+  $("#irm").onkeydown = e => void (e.key === "Enter" && $("#srm").click());
   document.querySelectorAll("[data-chg]").forEach(b => (b.onclick = () => {
     const f = $("#f" + b.dataset.chg);
     f.hidden = !f.hidden;
