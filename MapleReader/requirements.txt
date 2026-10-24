@@ -1,5 +1,5 @@
 # MapleReader's Python packages, at the versions the checks pass with. setup.bat and the automatic builds
 # install exactly these, so a new release of a package can't change the app without being tested first.
 mss==10.2.0
-pillow==12.3.0
+pillow==13.0.0   # 13.0.0 fixes the 2026-10 security advisories (CVE-2026-112398, -112900 and others) in every release up to 12.3.0
 pytesseract==0.3.13

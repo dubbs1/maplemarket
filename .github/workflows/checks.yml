@@ -26,22 +26,27 @@ jobs:
     env:
       MAPLEREADER_UPDATE_API: "off"
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09   # v5.1.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1   # v6.3.0
         with:
           python-version: "3.13"
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444   # v5.0.0
         with:
           node-version: 22
+          check-latest: true   # the newest 22.x, not a cached older one (22.23.4 has the 2026-10-21 security fixes)
           cache: npm
       - name: Tesseract and Python packages
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q tesseract-ocr postgresql   # (Postgres: the cloud market check runs a throwaway one)
           tesseract --version | head -1
-          python -m pip install -q -r MapleReader/requirements.txt playwright==1.64.0 pyflakes==4.0.3
+          python -m pip install -q -r MapleReader/requirements.txt playwright==1.64.1 pyflakes==4.0.3 pip-audit==2.10.1
           python -m playwright install --with-deps chromium
-          npm ci
+          npm ci --ignore-scripts   # no package's install script runs (the 2026 npm worms spread through them)
+      - name: Known vulnerabilities in the packages
+        run: |
+          python -m pip_audit -r MapleReader/requirements-build.txt
+          npm audit --audit-level=high
       - name: Code check (pyflakes)
         run: python -m pyflakes MapleReader maple-cloud tools dev-tests
       - name: All checks
@@ -61,8 +66,8 @@ jobs:
     env:
       MAPLEREADER_UPDATE_API: "off"
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09   # v5.1.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1   # v6.3.0
         with:
           python-version: "3.13"
       - name: Tesseract, Inno Setup and Python packages
@@ -137,7 +142,7 @@ jobs:
           Start-Sleep 3
           if (Test-Path "$app\MapleReader.exe") { throw "Uninstall left the program behind" }
           "install, update over the top, self-check and uninstall all fine"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4   # v5.0.0
         with:
           name: MapleReader-Setup-${{ steps.ver.outputs.version }}
           path: out/*
@@ -162,7 +167,7 @@ jobs:
             echo "publishing $TAG"; echo "new=true" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.new.outputs.new == 'true'
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0   # v5.0.0
         with:
           path: out
           merge-multiple: true
