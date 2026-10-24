@@ -1,7 +1,7 @@
 // The app's simple layout: ages come from the last sighting, Listings hides week-old ones until asked, Prices groups by item
 const {JSDOM}=require('jsdom'),fs=require('fs');
 const d=new JSDOM(fs.readFileSync(require('path').join(__dirname,'../../MapleReader/shopreader/market.html'),'utf8'),{runScripts:'dangerously',
- url:'https://x.test/',pretendToBeVisual:true,beforeParse(w){w.MAPLE={mode:'shared'};w.fetch=()=>Promise.reject(new Error('offline'))}});
+ url:'https://x.test/',pretendToBeVisual:true,beforeParse(w){w.MAPLE={mode:'local'};w.fetch=()=>Promise.reject(new Error('offline'))}});
 const w=d.window,A=w.App,$=s=>w.document.querySelector(s);let f=0;const ok=(n,c)=>{console.log(c?'PASS':'FAIL',n);if(!c)f++};
 const p=n=>String(n).padStart(2,'0'),iso=t=>{const x=new Date(t);return '@'+x.getFullYear()+'-'+p(x.getMonth()+1)+'-'+p(x.getDate())+'T'+p(x.getHours())+':'+p(x.getMinutes())+':'+p(x.getSeconds())};
 const H=36e5,now=Date.now();

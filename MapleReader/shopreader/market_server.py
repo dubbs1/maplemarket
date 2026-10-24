@@ -114,32 +114,15 @@ class _Handler(BaseHTTPRequestHandler):
             except ValueError:
                 since = 0
             return self._json(c.snapshot(since))
-        if u.path == '/api/shared/rows' and c is not None:
-            try:
-                start = max(0, int(parse_qs(u.query).get('from', ['0'])[0]))
-            except ValueError:
-                start = 0
-            return self._json(c.shared_rows(start))
         if u.path.startswith('/icons/') and u.path.endswith('.png'):
             name = os.path.basename(u.path)[:-4]
             if not name.replace('-', '').isalnum():
                 return self._send(404, 'Not found', 'text/plain')
-            for folder in ('icons', 'icons_shared'):     # yours first, then pictures from the group
-                try:
-                    with open(os.path.join(APP_DIR, 'scans', folder, name + '.png'), 'rb') as f:
-                        return self._send(200, f.read(), 'image/png', 'max-age=600')
-                except OSError:
-                    pass
-            if c is not None and c.settings.get('share_on'):
-                try:
-                    from .share import fetch_icon
-                    png = fetch_icon(c.settings['share_server'], name)
-                    os.makedirs(os.path.join(APP_DIR, 'scans', 'icons_shared'), exist_ok=True)
-                    with open(os.path.join(APP_DIR, 'scans', 'icons_shared', name + '.png'), 'wb') as f:
-                        f.write(png)
-                    return self._send(200, png, 'image/png', 'max-age=600')
-                except Exception:
-                    pass
+            try:
+                with open(os.path.join(APP_DIR, 'scans', 'icons', name + '.png'), 'rb') as f:
+                    return self._send(200, f.read(), 'image/png', 'max-age=600')
+            except OSError:
+                pass
             return self._send(404, 'Not found', 'text/plain')
         if u.path.startswith('/api/mobpic/') and u.path.endswith('.png') and c is not None:
             name = os.path.basename(u.path)[:-4]
@@ -158,10 +141,7 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._send(404, 'Not found', 'text/plain')
         if u.path == '/api/icons':
             from .icons import known
-            names = set(known())
-            if c is not None and c.settings.get('share_on'):
-                names |= _shared_icon_names(c.settings['share_server'])
-            return self._json(sorted(names))
+            return self._json(sorted(known()))
         if u.path in ('/', '/index.html'):
             try:
                 with open(PAGE, 'rb') as f:
@@ -216,23 +196,6 @@ class MarketServer:
             self.httpd.shutdown()
             self.httpd.server_close()
             self.httpd = None
-
-
-_shared_icons = {'at': 0, 'names': set(), 'server': None}
-
-
-def _shared_icon_names(server):
-    """The group's picture list, asked for at most once a minute."""
-    if time.time() - _shared_icons['at'] < 60 and _shared_icons['server'] == server:
-        return _shared_icons['names']
-    try:
-        from .share import _clean_server
-        with urllib.request.urlopen(_clean_server(server) + '/api/icons', timeout=8) as r:
-            _shared_icons['names'] = set(json.loads(r.read().decode('utf-8')))
-    except Exception:
-        pass
-    _shared_icons.update(at=time.time(), server=server)
-    return _shared_icons['names']
 
 
 def _is_ours(port):

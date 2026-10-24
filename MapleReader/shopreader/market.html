@@ -408,8 +408,8 @@ html.app #ipanel .tile .v,html.app #lpanel .tile .v{font-size:17px}
 <script>
 /* ===== Constants, demo items and shared helpers (order matters: these are not hoisted) ===== */
 // LIVE = opened from the MapleReader app (http://127.0.0.1:8765): listings stream in by themselves
-// MODE: "local" = served by MapleReader on this PC; "shared" = the group's market (maple.vendormarket.app);
-// "static" = this page on its own (the copy on Claude). The servers say which by setting window.MAPLE.
+// MODE: "local" = served by MapleReader on this PC; "static" = this page on its own (a plain file, sample data).
+// window.MAPLE.mode overrides it (the page checks use it to run the app layout without a server).
 const MODE =
   (window.MAPLE && window.MAPLE.mode) ||
   (location.protocol === "http:" && /^(127\.0\.0\.1|localhost)$/.test(location.hostname) ? "local" : "static");
@@ -772,7 +772,7 @@ function scanAll() {
         .sort((a, b) => (m[b].n || 1) - (m[a].n || 1))
         .forEach(k => extra-- > 0 && (m[k].st = "gone"));
     });
-    // in time order, not arrival order: a friend's older "for sale" row arriving after this PC's "gone" line
+    // in time order, not arrival order: an older "for sale" row arriving after this PC's "gone" line
     // must not put the listing back on sale (a stable sort keeps same-second rows as they came)
     [...sc.rows].sort((a, b) => (a.t || sc.t) - (b.t || sc.t)).forEach(r => {
       let k = K(r);
@@ -884,7 +884,7 @@ function hashT(t) {
   return h;
 }
 // Names as MapleReader fixes them today (names.py: fix_w and fix_name, without the items.txt step). Older scans
-// and friends' older readers keep misreads ("Ink-and-vVYash", "-¥Wash"), so one item showed up as several.
+// and older readers kept misreads ("Ink-and-vVYash", "-¥Wash"), so one item showed up as several.
 const fixW = s =>
   String(s).replace(/(?<![A-Za-z0-9])(?!W[a-z])(?:[VvWwYy¥]{2}[VWY¥]|[VvWwYy¥]{2}|\\\/\\\/)(?=[a-z])/g, "W");
 const SMALL = new Set(["of", "for", "the", "a", "an", "and", "to", "in", "on", "with"]);
@@ -974,7 +974,7 @@ function numberCopies(rows) {
   // identical listings (same room, channel, item and price) in one scan are separate copies: 1, 2, 3...
   // Sold rows are numbered on their own, so "copy 1 sold" lines up with "copy 1 for sale".
   const cn = {};
-  // The reader writes the copy number (c2) itself, so two friends scanning the same shop agree on it.
+  // The reader writes the copy number (c2) itself, so a shop seen twice merges the same way.
   rows.forEach(r => {
     if (r.c) return void (r.n = r.c);
     // copies are counted within one look at the shop (rows saved the same second), not over a whole session
@@ -1403,20 +1403,17 @@ function drawMarket() {
   bindImport();
   drawMB();
 }
-// Older scan files (in the app), the group's "This market" box, or the main import card (the page on its own)
+// Older scan files (in the app), or the main import card (the page on its own)
 function importCard() {
   return (
-        (MODE === "shared"
-          ? `<details class="card"><summary>This market</summary><p class="mu" style="margin:0 0 8px">Listings from everyone ` +
-            `in the group arrive by themselves. <b>Reload all</b> clears this browser's copy and reads everything again.</p>`
-          : LIVE
+        (LIVE
           ? `<details class="card"><summary>Older scan files</summary><p class="mu" style="margin:0 0 8px">New listings arrive by themselves. ` +
             `Pick older scan files here, or drop them on the page; rows already here are skipped. ` +
             `<b>Reload all</b> clears this page and reads all_scans.txt again.</p>`
           : `<div class="card imp"><b>Import your scans</b><p class="mu" style="margin:4px 0 8px">` +
             `Pick <b>all_scans.txt</b> from the reader's scans folder, or drop it anywhere on this page. ` +
             `Only new rows are added, so use the same file every time.</p>`) +
-        `<div${MODE === "shared" ? " hidden" : ""}>` + // the group's market gets its rows from the scanners, not files
+        `<div>` +
         `<input type="file" id="scf" accept=".txt,text/plain" multiple aria-label="Scan file"><p class="mu" id="e5" role="status"></p>` +
         `<details><summary class="mu">Paste rows instead</summary><p class="mu">One row per line: item | price | shop | room | channel, ` +
         `then optional x37 stock, #13 position, sold, @time seen.</p><textarea id="sc" rows="4" aria-label="Scan rows"></textarea>` +
@@ -1653,7 +1650,7 @@ ${listCard(cur)}${scanCard(cur)}<div class="card"><b>Log a price</b><div class="
     }
   };
 }
-/* ===== The app's simple views ===== Inside MapleReader (and the group's market) there are four tabs: Scan, Prices
+/* ===== The app's simple views ===== Inside MapleReader there are four tabs: Scan, Prices
    (one row per item you've scanned), Listings (every shop listing, copies merged) and More (everything else). */
 const SIMPLE = LIVE;
 const SEE_DEALS = SIMPLE ? "See Options › Alerts and deals." : "See Deals.";
@@ -1699,8 +1696,7 @@ function priceRow(p) {
     `<span class="k">${p.low != null ? "Cheapest now" : "Usual price"}</span><span class="num">${v == null ? "–" : fmt(v)}</span>` +
     `<span class="mu">${p.n ? `${p.n} for sale` : "none for sale now"} · ${seenTxt(p.seen)}</span></button>`;
 }
-const EMPTY_SCAN = MODE === "shared" ? "Nothing yet." :
-  "Nothing scanned yet. Press <b>Start watching</b> on the Scan tab, then open shops.";
+const EMPTY_SCAN = "Nothing scanned yet. Press <b>Start watching</b> on the Scan tab, then open shops.";
 function drawPriceList() {
   const P = priceRows(),
     was = pick;
@@ -2229,7 +2225,6 @@ const optCard = (id, title, desc, on) => `<div class="card oc"><div class="oh"><
 function drawMore() {
   const st = APP.st || {},
     se = st.settings || {},
-    sh = st.share || {},
     go = (v, t, d) => `<button class="card oc" data-go="${v}"><b>${t}</b><span class="mu">${d}</span><span class="k">Open ›</span></button>`;
   $("#app").innerHTML = (HASAPP ? `<h2 class="oh2">Settings</h2><div class="ocards">` +
     optCard("oa", "Start when MapleReader opens", "Watch shops as soon as the app opens.", se.auto_start !== false) +
@@ -2244,23 +2239,15 @@ function drawMore() {
     `<div class="card oc"><b>Your scans</b><p class="mu">Test a screenshot, or open the scans folder.</p>` +
     `<div class="btns"><label class="bt">Test a screenshot<input type="file" id="opic" accept="image/*"></label><button id="oscans">Open scans folder</button></div></div>` +
     `<div class="card oc"><b>Updates</b><p class="mu" id="updline">Updates</p><p class="mu" id="eng"></p>` +
-    `<button id="updcheck" style="align-self:flex-start">Check now</button></div>` +
-    // sharing with the group market (maple.vendormarket.app, on Vercel + Supabase): a key from whoever runs it
-    (HASAPP ? `<div class="card oc"><div class="oh"><label for="shon"><b>Share with friends</b></label><label class="sw"><input type="checkbox" ` +
-      `id="shon"${sh.enabled ? " checked" : ""}><span></span></label></div><p class="st" id="shst"><i></i><span></span></p>` +
-      `<div class="shf"><label class="mu" for="shsv">Market address</label><input id="shsv" value="${esc(sh.server || "")}">` +
-      `<label class="mu" for="shk">Your key</label><input id="shk" type="password" autocomplete="off" ` +
-      `placeholder="${esc(sh.key_hint || "mm-… from whoever runs the market")}">` +
-      `<div class="btns"><button id="shsave">Save</button><a class="bt" id="shopen" target="_blank" rel="noopener" ` +
-      `href="${esc(sh.server || "#")}">Open group market</a></div></div></div>` : "") + `</div>`
+    `<button id="updcheck" style="align-self:flex-start">Check now</button></div></div>`
     : "") +
     `<h2 class="oh2">More</h2><div class="ocards">` +
     go("deals", "Alerts and deals", "Price alerts and best deals.") +
     go("mine", "My shop", "What you are selling.") +
     go("sources", "Where prices come from", "Other price sites (links only).") + `</div>` +
-    (MODE === "shared" ? "" : importCard());
+    importCard();
   if (HASAPP) bindSettings();
-  if (MODE !== "shared") bindImport();
+  bindImport();
 }
 function setTheme(dark) {
   document.documentElement.dataset.theme = dark ? "dark" : "light";
@@ -2477,12 +2464,6 @@ const RESET = () => {
   if (LIVE) {
     MAIN.reset(); // read everything again from the top
     setOff(0);
-    if (FEED2) {
-      FEED2.reset();
-      try {
-        localStorage.setItem(KEY + ":friendsoff", "0");
-      } catch (e) {}
-    }
     say("Cleared. Reloading your scans from MapleReader");
   } else say("Sample data restored");
   draw();
@@ -2547,21 +2528,13 @@ function liveChip() {
   const st = liveStatus;
   c.hidden = false;
   c.className = "lchip " + (liveOk ? (st && st.watching ? "on" : "") : "off");
-  if (MODE === "shared") {
-    c.className = "lchip " + (liveOk ? (st && st.scanning ? "on" : "") : "off");
-    c.innerHTML =
-      "<i></i>" +
-      (!liveOk ? "Can't reach the market" : st && st.scanning ? `Shared market · ${st.scanning} scanning now` : "Shared market");
-    return;
-  }
   c.innerHTML =
     "<i></i>" +
     (!liveOk
       ? "MapleReader closed"
       : st && st.watching
         ? `Watching${st.channel ? ` · CH ${st.channel}` : ""}${st.room ? ` · Room ${st.room}` : ""}`
-        : "Ready · not watching") +
-    (FRIENDS && FRIENDS.scanning ? ` · ${FRIENDS.scanning} friend${FRIENDS.scanning > 1 ? "s" : ""} scanning` : "");
+        : "Ready · not watching");
 }
 function liveBanner() {
   liveChip();
@@ -2580,8 +2553,7 @@ function liveBanner() {
     `<button id="reset" title="Clear this page's data and reload everything from all_scans.txt">Reload all</button>`;
   $("#reset").onclick = RESET;
 }
-// One feed of scan rows: this PC's all_scans.txt ("/api/rows"), or, in the app with sharing on,
-// the group's listings ("/api/shared/rows"). Each keeps its own place so nothing is read twice.
+// The feed of scan rows: this PC's all_scans.txt ("/api/rows"). It keeps its place so nothing is read twice.
 function puller(path, offKey, isMain) {
   const get = () => {
       try {
@@ -2596,9 +2568,7 @@ function puller(path, offKey, isMain) {
       } catch (e) {}
     };
   let off = get();
-  // this PC's own file: every 2 s. The group's market runs on a free plan: every 20 s is plenty (the app's own
-  // scans show at once anyway; a friend's appear within half a minute)
-  const EVERY = MODE === "local" && isMain ? 2000 : 20000;
+  const EVERY = 2000; // this PC's own file: every 2 s
   const pull = async () => {
     let wait = EVERY;
     if (isMain && Date.now() - PRUNED > 3600e3) (PRUNED = Date.now()), pruneOld(); // the window stays open for days
@@ -2606,14 +2576,10 @@ function puller(path, offKey, isMain) {
       const r = await fetch(path + "?from=" + off, { cache: "no-store" });
       if (!r.ok) throw new Error(r.status);
       const j = await r.json();
-      if (j.configured === false) {
-        setTimeout(pull, 10000); // sharing is off in the app: look again later
-        return;
-      }
       if (isMain) {
         liveOk = true;
         liveStatus = j.status;
-      } else FRIENDS = j.status || FRIENDS;
+      }
       if (j.reset) off = 0;
       if (j.text) {
         const before = alertHits().map(K),
@@ -2642,11 +2608,9 @@ function puller(path, offKey, isMain) {
   };
   return { pull, reset: () => (off = 0) };
 }
-let FRIENDS = null;
-const MAIN = puller("/api/rows", OFFK, true),
-  FEED2 = MODE === "local" ? puller("/api/shared/rows", KEY + ":friendsoff", false) : null;
+const MAIN = puller("/api/rows", OFFK, true);
 const livePull = MAIN.pull;
-// The search box: the header's in the app and the group market, else the one on the Prices or Listings page
+// The search box: the header's in the app, else the one on the Prices or Listings page
 const searchBox = () => (LIVE ? $("#gs") : $("#q, #ms"));
 // Show the Prices tab (redraw = refresh its list if it is already showing)
 function showPrices(redraw) {
@@ -2671,10 +2635,9 @@ if (LIVE) {
   liveBanner();
   pruneOld();
   livePull();
-  if (FEED2) FEED2.pull();
   loadIcons();
 }
-// Item pictures: which ones exist (yours and the group's). Checked now and every minute.
+// Item pictures: which ones exist. Checked now and every minute.
 async function loadIcons() {
   try {
     const list = await (await fetch("/api/icons", { cache: "no-store" })).json(),
@@ -2741,7 +2704,6 @@ const STATUS = {
 function drawScan() {
   const st = APP.st || {},
     se = st.settings || {},
-    sh = st.share || {},
     // channel and room: shown big, with a Change button that opens a small box to type the right number
     tile = (k, id, ph) => `<div class="tile"><div class="k">${k}</div><div class="v" id="v${id}">—</div>` +
       `<button class="chg" data-chg="${id}">Change</button><div class="fix" id="f${id}" hidden><input id="i${id}" inputmode="numeric" ` +
@@ -2830,21 +2792,6 @@ function bindSettings() {
     $("#updline").textContent = "Checking for updates…";
     await api("/api/update-check");
   };
-  if ($("#shon")) $("#shon").onchange = async e => {
-    const r = await api("/api/set", { share_on: e.target.checked });
-    if (!r.ok) {
-      e.target.checked = false;
-      say(r.error);
-      $("#shk").focus();
-    }
-  };
-  if ($("#shsave")) $("#shsave").onclick = async () => {
-    const r = await api("/api/set", { share_server: $("#shsv").value, share_key: $("#shk").value, share_on: true });
-    if (!r.ok) return say(r.error);
-    $("#shk").value = "";
-    $("#shon").checked = true;
-    say("Sharing settings saved");
-  };
   $("#opic").onchange = async e => {
     const f = e.target.files[0];
     e.target.value = "";
@@ -2863,22 +2810,6 @@ function bindSettings() {
 }
 function updOpts(st) {
   drawUpdLine(st.update || {});
-  const sh = st.share || {},
-    shText = !sh.enabled
-      ? ["", "Off."]
-      : sh.state === "ok"
-        ? ["on", `Sharing${sh.who ? " as " + sh.who : ""} · ${(sh.sent || 0).toLocaleString()} sent` +
-            (sh.last_ok ? ` · checked ${ago(Date.now() - sh.last_ok * 1000).replace("1 min ago", "just now")}` : "")]
-        : sh.state === "starting"
-          ? ["wait", "Connecting…"]
-          : sh.state === "offline" || sh.state === "retrying"
-            ? ["wait", sh.error || "Trying again shortly."]
-            : ["bad", sh.error || "Type your key and press Save."];
-  if ($("#shst")) {
-    $("#shst").className = "st " + shText[0];
-    $("#shst span").textContent = shText[1];
-  }
-  if (sh.server && $("#shopen")) $("#shopen").href = sh.server;
   if ($("#eng")) $("#eng").textContent = !st.tesseract ? "" : st.engine === "fast" ? `MapleReader ${st.version} · fast reading` : `MapleReader ${st.version} · standard reading`;
 }
 function drawFeed() {

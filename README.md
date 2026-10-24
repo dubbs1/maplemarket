@@ -26,20 +26,16 @@ That's it. The app opens by itself and starts watching.
 | **Prices** | Every item you've seen: cheapest now, usual price, price history |
 | **Listings** | Every listing, with the shop, room and channel to find it |
 | **EXP** | EXP per hour, time to level, mesos per hour, kills by mob, damage taken, a log of your hunts |
-| **Options** | Sound, EXP recording, updates, sharing with friends (the Theme button in the header switches day and night) |
+| **Options** | Sound, EXP recording, updates (the Theme button in the header switches day and night) |
 
 The step-by-step guide, with pictures of what you should see, is in [the Guide](MapleReader/GUIDE.md).
 
-## Share with friends
-
-Turn on **Options › Share with friends** and your scans go to a shared market page that everyone in your group can open, on a phone too. Each friend gets their own key. Setting up the shared page is free and takes about 20 minutes: [Setup](maple-cloud/SETUP.md).
-
 ## Good to know
 
-- Everything stays on your PC unless you turn sharing on.
+- Everything stays on your PC.
 - No game files are read or changed. Whether screen readers are allowed is for Nexon to say; use your own judgement.
-- Prices come only from what you and your friends have seen. Nothing is copied from other sites.
+- Prices come only from what you have seen. Nothing is copied from other sites.
 
 ---
 
-Developers: the app is in `MapleReader/`, the shared market in `maple-cloud/`, and the notes on how it all fits together in [CLAUDE.md](CLAUDE.md).
+Developers: the app is in `MapleReader/`, and the notes on how it all fits together in [CLAUDE.md](CLAUDE.md).

@@ -232,16 +232,6 @@ B. Use it:
    - The market page opened as a plain file (not from the app) still works, but it doesn't update by itself and has no pictures: there you import `all_scans.txt` as before (Part G).
    - Using `start.bat` instead? Double-click `market.bat` to open the live market in your browser.
 
-**Part G3: Share with friends (the group market)**
-
-The group market is a shared website (https://maple.vendormarket.app) where you and your friends see everyone's listings, on a phone too. Whoever runs it sets it up once with `maple-cloud\SETUP.md` and gives each friend a key.
-
-1. In MapleReader, click **Options** and find the **Share with friends** card.
-2. **Market address:** `https://maple.vendormarket.app`. **Your key:** paste the `mm-…` key you were given. Click **Save**.
-   - You should see **Sharing as YourName · … sent**.
-   - If it says **Key not accepted**: check the key was copied whole, with no space at the end.
-3. To stop sharing, turn the card's switch off. Your scans stay on your PC either way.
-
 **Part H: Check the reader still works (after an update)**
 
 23. Double-click `run_tests.bat`.
