@@ -26,11 +26,11 @@ jobs:
     env:
       MAPLEREADER_UPDATE_API: "off"
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -39,7 +39,7 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y -q tesseract-ocr postgresql   # (Postgres: the cloud market check runs a throwaway one)
           tesseract --version | head -1
-          python -m pip install -q -r MapleReader/requirements.txt playwright==1.64.0 pyflakes==4.0.3
+          python -m pip install -q -r MapleReader/requirements.txt playwright==1.64.1 pyflakes==4.0.3
           python -m playwright install --with-deps chromium
           npm ci
       - name: Code check (pyflakes)
@@ -61,8 +61,8 @@ jobs:
     env:
       MAPLEREADER_UPDATE_API: "off"
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: Tesseract, Inno Setup and Python packages
@@ -137,7 +137,7 @@ jobs:
           Start-Sleep 3
           if (Test-Path "$app\MapleReader.exe") { throw "Uninstall left the program behind" }
           "install, update over the top, self-check and uninstall all fine"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: MapleReader-Setup-${{ steps.ver.outputs.version }}
           path: out/*
@@ -162,12 +162,12 @@ jobs:
             echo "publishing $TAG"; echo "new=true" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.new.outputs.new == 'true'
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           path: out
           merge-multiple: true
       - if: steps.new.outputs.new == 'true'
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65   # v2.6.2, pinned: this step can write releases
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64   # v3.0.3, pinned: this step can write releases
         with:
           tag_name: v${{ needs.windows.outputs.version }}
           target_commitish: ${{ github.sha }}
