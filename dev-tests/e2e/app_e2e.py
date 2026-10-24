@@ -96,11 +96,11 @@ async def main():
                 await pg.uncheck('#oa'); await pg.wait_for_timeout(300)
                 st = json.load(open(os.path.join(work, 'settings.json')))
                 ok('A10 options saved (chime off, screen 2, no auto start)', st['quiet'] is True and st['monitor'] == 2 and st['auto_start'] is False)
-                on = await pg.is_checked('#odk')              # this browser asks for dark, so the switch starts on
-                await pg.uncheck('#odk'); await pg.wait_for_timeout(200)
+                ok('A10a Options has no theme card: the header button is the switch', await pg.locator('#odk').count() == 0)
+                await pg.click('#theme'); await pg.wait_for_timeout(200)     # this browser asks for dark, so the first click gives day
                 lt = await pg.evaluate("document.documentElement.dataset.theme")
-                await pg.check('#odk'); await pg.wait_for_timeout(200)
-                ok(f'A10b the dark theme switch works (starts {on}, then {lt})', on and lt == 'light' and
+                await pg.click('#theme'); await pg.wait_for_timeout(200)
+                ok(f'A10b the header Theme button switches day and night (first {lt})', lt == 'light' and
                    await pg.evaluate("document.documentElement.dataset.theme") == 'dark')
                 await pg.set_input_files('#opic', os.path.join(R, 'tests/fixtures/screw.png')); await pg.wait_for_timeout(6000)
                 await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(500)
@@ -155,10 +155,11 @@ async def main():
                 await pg.click('#tomore'); await pg.click('[data-go=mine]'); await pg.wait_for_timeout(300)
                 ok('A15d My shop has the post form', await pg.locator('#pgo').count() == 1)
                 await pg.evaluate("document.documentElement.dataset.theme = 'light'")   # (A10b left the dark theme on)
+                bg0 = await pg.evaluate("getComputedStyle(document.body).backgroundColor")
                 await pg.click('[data-nav=exp]'); await pg.wait_for_timeout(2500)
                 xp = await pg.inner_text('#app')
-                ok('A15i the EXP tab: its own page, drawn dark, with the trend on top', await pg.locator('.xband').count() == 1 and
-                   'EXP/h' in xp and 'Stop recording' in xp and await pg.evaluate("getComputedStyle(document.body).backgroundColor") == 'rgb(14, 24, 34)'
+                ok('A15i the EXP tab: the same look as the other tabs, with the trend on top', await pg.locator('.xband').count() == 1 and
+                   'EXP/h' in xp and 'Stop recording' in xp and await pg.evaluate("getComputedStyle(document.body).backgroundColor") == bg0
                    and ('level-ups' in xp.lower() or 'No EXP reading yet' in xp))
                 ok('A15i2 ...with the mobs killed and the damage taken', await pg.locator('.xmobs').count() == 1 and 'mobs this' in xp.lower() and
                    ('damage taken' in xp.lower() or 'No EXP reading yet' in xp))
@@ -193,7 +194,7 @@ async def main():
                 await pg.click('.xlog [data-xl=on]'); await pg.wait_for_timeout(800)
                 await pg.screenshot(path=OUT + '_exp.png', full_page=True)
                 await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(800)
-                ok('A15k leaving it, the page is light again', await pg.evaluate("getComputedStyle(document.body).backgroundColor") != 'rgb(14, 24, 34)')
+                ok('A15k leaving it, the page keeps its look', await pg.evaluate("getComputedStyle(document.body).backgroundColor") == bg0)
                 await pg.click('#go'); await pg.wait_for_timeout(1500)
                 ok('A16 Stop stops', not ctl.state['watching'] and 'Start' in await pg.inner_text('#go'))
                 ok('A16b stopping shops leaves EXP recording on', ctl.exp_runner is not None and (await pg.inner_text('#expgo')) == 'Stop')
