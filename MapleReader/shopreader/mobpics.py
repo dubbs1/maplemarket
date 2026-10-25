@@ -3,7 +3,8 @@ can show what a "22 EXP each" mob looks like and you can name it in the app. Scr
 
 How: the EXP recorder keeps the last few screenshots. When a kill is seen (an EXP rise of one amount), the picture
 from 2 s before the rise (the mob alive) is compared with the one 2 s after it (the mob gone, its death animation
-over). It is kept only when the kill is clear (`catch`): the camera didn't move (nearly all of the screen is the
+over), and the pictures 3 s before and 3 and 4 s after confirm it: the mob was there before too, and its spot
+stays empty (a blinking map lamp fails that). It is kept only when the kill is clear (`catch`): the camera didn't move (nearly all of the screen is the
 same), exactly one mob-sized thing vanished (not the player in the middle of the screen, not a floating damage
 number, not a dropped item picked up just then: its icon is 32 px, a mob is bigger), and its spot stays still
 afterwards. Otherwise no picture this time: the kill still counts,
@@ -67,9 +68,12 @@ def _fraction(mask, box=None):
     return h[255] / max(1, m.width * m.height)
 
 
-def catch(before, after, after2):
+def catch(before, after, after2, earlier=None, after3=None):
     """The box of the one mob that vanished between `before` and `after` (and whose spot is still in `after2`),
-    or None when it isn't clear. All three pictures are the same size."""
+    or None when it isn't clear. All the pictures are the same size. With `earlier` (a second before `before`)
+    the thing must have been there then too, and with `after3` its spot must still be still a second later:
+    a map lamp that blinks (the owner's Kerning subway: a red light switching off at a kill became "the mob")
+    fails both, a mob that stood there and died passes both."""
     if not (before.size == after.size == after2.size):
         return None
     chg = _changed(before, after)
@@ -88,6 +92,10 @@ def catch(before, after, after2):
             continue                               # a dropped item picked up at the same moment (an icon is 32 px): not a mob
         if _fraction(_changed(after, after2), box) > GONE_STILL:
             continue                               # still moving there: a mob that walked, not one that died
+        if after3 is not None and _fraction(_changed(after2, after3), box) > GONE_STILL:
+            continue                               # something came back (a blinking lamp, a mob walking in)
+        if earlier is not None and _fraction(_changed(earlier, after), box) < 0.5 * _fraction(chg, box):
+            continue                               # it wasn't there a second before: a blink, not a mob standing there
         found.append(box)
     return found[0] if len(found) == 1 else None   # two vanished: can't tell which the kill was
 
@@ -126,7 +134,8 @@ class MobPics:
         self.have.discard(exp)
 
     def look(self, exp, frames):
-        """A kill of `exp` EXP was seen: frames = (before, after, after2). Keeps the mob's picture when it's clear."""
+        """A kill of `exp` EXP was seen: frames = (before, after, after2[, earlier, after3]). Keeps the mob's
+        picture when it's clear."""
         box = catch(*frames)
         if box is not None:
             pad = 4
@@ -141,10 +150,11 @@ class MobPics:
         try:
             os.makedirs(self.fight, exist_ok=True)
             stamp = stamp or time.strftime('%Y%m%d_%H%M%S')
-            for name, img in zip(('before', 'after', 'after2'), frames):
-                img.save(os.path.join(self.fight, f'{stamp}_{int(exp)}_{name}.png'), 'PNG')
+            for name, img in zip(('before', 'after', 'after2', 'earlier', 'after3'), frames):
+                if img is not None:
+                    img.save(os.path.join(self.fight, f'{stamp}_{int(exp)}_{name}.png'), 'PNG')
             old = sorted(f for f in os.listdir(self.fight) if f.endswith('.png'))
-            for f in old[:-FIGHT_KEEP * 3]:
+            for f in old[:-FIGHT_KEEP * len(frames)]:
                 os.remove(os.path.join(self.fight, f))
         except OSError:
             pass
