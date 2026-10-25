@@ -73,6 +73,16 @@ def catching():
     bigger = scene(bg, mob=False, mob2=1200, player_seed=1)
     blob(ImageDraw.Draw(bigger), (700, 530, 744, 572), 13)
     check(MP.catch(bigger, gone, gone) is not None, 'a 44 px thing that vanished still counts as a mob')
+    # a map lamp that blinks (48 px, off a second before the kill and on again two seconds after): not a mob
+    lamp_on = scene(bg, mob=False, mob2=1200, player_seed=1)
+    blob(ImageDraw.Draw(lamp_on), (700, 300, 748, 348), 17)
+    check(MP.catch(lamp_on, gone, gone) is not None, '(without the extra pictures the lamp would pass)')
+    check(MP.catch(lamp_on, gone, gone, earlier=gone, after3=gone) is None, 'a blinking lamp: off a second before too: no picture')
+    check(MP.catch(lamp_on, gone, gone, earlier=lamp_on, after3=lamp_on) is None, 'a blinking lamp: on again 4 s after: no picture')
+    earlier = scene(bg, mob=True, mob2=1170, player_seed=4, number=True)
+    after3 = scene(bg, mob=False, mob2=1290, player_seed=5, drop=True)
+    box = MP.catch(before, after, after2, earlier, after3)
+    check(box is not None and abs(box[0] - 300) <= 8, f'the dead mob, there a second earlier and gone 4 s after, still passes: {box}')
     d = tempfile.mkdtemp()
     pics = MP.MobPics(os.path.join(d, 'mobs'), os.path.join(d, 'fight'))
     got = pics.look(22, (before, after, after2))
@@ -83,9 +93,9 @@ def catching():
     pics.forget(22)
     check(22 not in pics.have and not os.path.exists(pics.path(22)), 'a wrong picture can be dropped')
     for i in range(MP.FIGHT_KEEP + 2):
-        pics.save_fight(22, (before, after, after2), stamp=f'20261022_{i:06d}')
+        pics.save_fight(22, (before, after, after2, earlier, after3), stamp=f'20261022_{i:06d}')
     files = sorted(os.listdir(os.path.join(d, 'fight')))
-    check(len(files) == MP.FIGHT_KEEP * 3 and files[0].startswith('20261022_000002'),
+    check(len(files) == MP.FIGHT_KEEP * 5 and files[0].startswith('20261022_000002'),
           f'fight pictures: at most {MP.FIGHT_KEEP} kills kept, the oldest dropped ({len(files)} files)')
 
 
@@ -112,8 +122,8 @@ def pairing():
         if t == 3:
             tr.last_kills, tr.gain_t = [(22, 1)], 3          # a kill seen at t = 3
         r.saw(frames[t], t)
-    check(len(pics.got) == 2 and pics.got[0][0] == 22 and pics.got[0][1] == (frames[1], frames[5], frames[6]),
-          'before = 2 s before the kill, after = 2 and 3 s after it')
+    check(len(pics.got) == 2 and pics.got[0][0] == 22 and pics.got[0][1] == (frames[1], frames[5], frames[6], frames[0], frames[7]),
+          'before = 2 and 3 s before the kill, after = 2, 3 and 4 s after it')
     check(pics.got[1] == ('fight', 22), 'the whole pictures are saved when the fight_pics setting is on')
     tr.last_kills, tr.gain_t, pics.got = [(22, 2)], 10, []
     r.saw(frames[0], 10)
