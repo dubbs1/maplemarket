@@ -10,7 +10,7 @@ results=(); bad=0
 run() {   # run <name> <command...>: one line per check, the output only when it fails
   local name="$1"; shift
   local out; out="$("$@" 2>&1)"; local code=$?
-  if [[ $code == 0 ]]; then results+=("PASS  $name"); else results+=("FAIL  $name"); bad=1; printf '\n--- %s ---\n%s\n' "$name" "$out" | tail -n 40; fi
+  if [[ $code == 0 ]]; then results+=("PASS  $name"); else results+=("FAIL  $name"); bad=1; printf '\n--- %s ---\n%s\n' "$name" "$out" | tail -n 40; printf '%s\n' "$out" | grep -E '^ *FAIL|Error|Traceback' | head -n 10; fi
 }
 run "market page"        npm test --silent
 run "reader: session"    bash -c 'cd MapleReader && python3 tests/test_session.py'

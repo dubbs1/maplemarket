@@ -5,7 +5,8 @@ How: the EXP recorder keeps the last few screenshots. When a kill is seen (an EX
 from 2 s before the rise (the mob alive) is compared with the one 2 s after it (the mob gone, its death animation
 over). It is kept only when the kill is clear (`catch`): the camera didn't move (nearly all of the screen is the
 same), exactly one mob-sized thing vanished (not the player in the middle of the screen, not a floating damage
-number or a drop), and its spot stays still afterwards. Otherwise no picture this time: the kill still counts,
+number, not a dropped item picked up just then: its icon is 32 px, a mob is bigger), and its spot stays still
+afterwards. Otherwise no picture this time: the kill still counts,
 the next clear one brings the picture.
 
 With the `fight_pics` setting on, the four screenshots around each kill are saved whole in scans/fight (at most
@@ -18,6 +19,7 @@ CELL = 8                       # the change map's cell size (pixels): blobs are 
 STILL = 0.08                   # more of the screen than this changed: the camera moved (or a lot happened): not clear
 GONE_STILL = 0.04              # the mob's spot must change less than this between the two "after" pictures
 MIN_PX, MAX_PX = 24, 220       # a mob's width and height on screen (damage numbers and drops are smaller)
+MOB_PX = 40                    # the vanished thing's longer side, measured to the pixel: a dropped item's icon is 32 px
 PLAYER_BAND = 0.055            # the player stands in the middle: blobs within this (of the width) of it are skipped
 FIGHT_KEEP = 30                # kills kept whole by the fight_pics setting
 KEEP = 300                     # mob pictures kept
@@ -81,6 +83,9 @@ def catch(before, after, after2):
             continue                               # a damage number, a drop, or something far bigger than a mob
         if abs((box[0] + box[2]) / 2 - W / 2) < PLAYER_BAND * W:
             continue                               # the player (the camera keeps them in the middle)
+        exact = chg.crop(box).getbbox()            # the thing itself, not the 8 px cells around it
+        if exact is None or max(exact[2] - exact[0], exact[3] - exact[1]) < MOB_PX:
+            continue                               # a dropped item picked up at the same moment (an icon is 32 px): not a mob
         if _fraction(_changed(after, after2), box) > GONE_STILL:
             continue                               # still moving there: a mob that walked, not one that died
         found.append(box)

@@ -65,6 +65,14 @@ def catching():
     moving = scene(bg, mob=True, mob2=1200, player_seed=1)
     blob(ImageDraw.Draw(moving), (300, 500, 360, 570), 8)   # the mob's spot still changing afterwards
     check(MP.catch(still, gone, moving) is None, 'the spot keeps changing afterwards: not a kill')
+    # a dropped item (a 32 px icon) picked up at the moment of the kill, the mob itself beside the player (skipped):
+    # the item must not become the mob's picture (seen on the owner's EXP tab: a scroll icon for a 14 EXP mob)
+    picked = scene(bg, mob=False, mob2=1200, player_seed=1)
+    blob(ImageDraw.Draw(picked), (700, 540, 732, 572), 13)
+    check(MP.catch(picked, gone, gone) is None, 'a picked-up drop (32 px) is not a mob: no picture')
+    bigger = scene(bg, mob=False, mob2=1200, player_seed=1)
+    blob(ImageDraw.Draw(bigger), (700, 530, 744, 572), 13)
+    check(MP.catch(bigger, gone, gone) is not None, 'a 44 px thing that vanished still counts as a mob')
     d = tempfile.mkdtemp()
     pics = MP.MobPics(os.path.join(d, 'mobs'), os.path.join(d, 'fight'))
     got = pics.look(22, (before, after, after2))
