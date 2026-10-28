@@ -1,4 +1,4 @@
-"""First run of the installed app: bring over the data from an older MapleReader folder (the zip version).
+"""First run of the installed app: bring over the data from an older MapleReader folder (the app's old name).
 
 The installed app keeps its data next to itself (in AppData). People who used the zip version have their
 scans folder (the run log, day totals, mob pictures) in a folder like Desktop\\MapleReader. On the very first
@@ -13,11 +13,13 @@ MARK = 'exp_log.json'                            # in scans/: its being here mea
 
 
 def candidates(env=None):
-    """Folders where an older MapleReader may live, most likely first."""
+    """Folders where an older MapleReader (the app's old name) may live, most likely first."""
     env = os.environ if env is None else env
     home = env.get('USERPROFILE') or os.path.expanduser('~')
-    bases = [env.get('OneDrive'), env.get('OneDriveConsumer'), os.path.join(home, 'OneDrive'), home]
     out = []
+    if env.get('LOCALAPPDATA'):                  # the installed MapleReader, before the rename
+        out.append(os.path.normpath(os.path.join(env['LOCALAPPDATA'], 'Programs', 'MapleReader')))
+    bases = [env.get('OneDrive'), env.get('OneDriveConsumer'), os.path.join(home, 'OneDrive'), home]
     for base in bases:
         for sub in ('Desktop', 'Documents', 'Downloads', ''):
             if base:

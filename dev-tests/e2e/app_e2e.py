@@ -1,13 +1,13 @@
 """The app in a real browser: the page (Sapline) served by the app, with a pretend screen that shows a status bar.
-   python3 dev-tests/e2e/app_e2e.py [MapleReader folder] [screenshot prefix]   (needs: pip install playwright)"""
+   python3 dev-tests/e2e/app_e2e.py [Sapline folder] [screenshot prefix]   (needs: pip install playwright)"""
 import sys, os, types, time, json, tempfile, asyncio, urllib.request, urllib.error
-os.environ.setdefault('MAPLEREADER_UPDATE_API', 'off')   # never ask the real GitHub from a test
+os.environ.setdefault('SAPLINE_UPDATE_API', 'off')   # never ask the real GitHub from a test
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the repository
-R = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_ROOT, 'MapleReader')
+R = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_ROOT, 'Sapline')
 OUT = sys.argv[2] if len(sys.argv) > 2 else tempfile.mkdtemp(prefix='mr_shots_')   # screenshots go here
 sys.path.insert(0, R)
 work = tempfile.mkdtemp(prefix='mr_app_'); os.chdir(work)
-import shopreader.config as C; C.APP_DIR = work
+import sapline.config as C; C.APP_DIR = work
 from PIL import Image
 BAR = Image.open(os.path.join(R, 'tests', 'fixtures', 'live_shop.png')).convert('RGB')   # a screen with the status bar: 93,499 (43.17%), level 37
 class Shot:
@@ -20,7 +20,7 @@ class Screen:
         time.sleep(0.05)
         return Shot(BAR)
 sys.modules['mss'] = types.SimpleNamespace(MSS=lambda: Screen())
-import shopreader.controller as CT, shopreader.server as SV
+import sapline.controller as CT, sapline.server as SV
 CT.APP_DIR = work; CT.SETTINGS = os.path.join(work, 'settings.json')
 ctl = CT.Controller(); srv = SV.AppServer(controller=ctl); url = srv.start(); print('url', url)
 fails = []
@@ -28,7 +28,7 @@ def ok(n, c):
     print(('PASS ' if c else 'FAIL ') + n)
     if not c: fails.append(n)
 # safety: buttons can't be pressed by other pages
-for hdr, want in (({}, 403), ({'X-MapleReader': '1', 'Host': 'evil.example'}, 403)):
+for hdr, want in (({}, 403), ({'X-Sapline': '1', 'Host': 'evil.example'}, 403)):
     try:
         urllib.request.urlopen(urllib.request.Request(url + 'api/set', data=b'{}', headers=hdr)); ok(f'S0 blocked {hdr}', False)
     except urllib.error.HTTPError as e: ok(f'S0 press without the app header/host is refused ({e.code})', e.code == want)

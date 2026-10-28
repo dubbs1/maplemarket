@@ -5,7 +5,7 @@ Colours are (red, green, blue) as they appear in a screenshot of the game. Times
 import os
 import sys
 
-# The MapleReader folder: next to MapleReader.exe, or the folder holding app.py.
+# The Sapline folder: next to Sapline.exe, or the folder holding app.py.
 # The scans folder (the EXP log, the day totals, mob pictures), mobs.txt and settings.json live here.
 APP_DIR = (os.path.dirname(os.path.abspath(sys.executable)) if getattr(sys, 'frozen', False)
            else os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -16,7 +16,7 @@ TESS_PATHS = [r'C:\Program Files\Tesseract-OCR\tesseract.exe',
               os.path.expandvars(r'%LOCALAPPDATA%\Programs\Tesseract-OCR\tesseract.exe')]
 
 # --- updates ---
-UPDATE_REPO = 'dubbs1/maplemarket'   # GitHub repository whose releases carry MapleReader-Setup-<version>.exe
+UPDATE_REPO = 'dubbs1/maplemarket'   # GitHub repository whose releases carry Sapline-Setup-<version>.exe
 UPDATE_EVERY = 6 * 3600        # look for a new version this often while the app is open
 
 # --- EXP tracker ---

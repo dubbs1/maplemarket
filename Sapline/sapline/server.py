@@ -1,7 +1,7 @@
 """Serves the app's page on your own PC, at http://127.0.0.1:8765, and answers the window's requests.
 
 Only this PC can reach it: it listens on 127.0.0.1 and answers only requests addressed to 127.0.0.1 or
-localhost. Button presses (POST) must carry the X-MapleReader header, which other websites can't add.
+localhost. Button presses (POST) must carry the X-Sapline header, which other websites can't add.
 """
 import json
 import os
@@ -16,7 +16,7 @@ PAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app.html')
 
 
 class _Handler(BaseHTTPRequestHandler):
-    server_version = 'MapleReader'
+    server_version = 'Sapline'
 
     def log_message(self, *a):                       # stay quiet (the app has no console)
         pass
@@ -41,7 +41,7 @@ class _Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         """Button presses from the app window."""
         c = self.server.controller
-        if not self._local() or self.headers.get('X-MapleReader') != '1' or c is None:
+        if not self._local() or self.headers.get('X-Sapline') != '1' or c is None:
             return self._send(403, 'Forbidden', 'text/plain')
         try:
             n = int(self.headers.get('Content-Length') or 0)
@@ -100,7 +100,7 @@ class _Handler(BaseHTTPRequestHandler):
             except OSError:
                 return self._send(500, 'app.html is missing next to server.py', 'text/plain')
         if u.path == '/api/ping':
-            return self._send(200, json.dumps({'app': 'MapleReader'}), 'application/json')
+            return self._send(200, json.dumps({'app': 'Sapline'}), 'application/json')
         return self._send(404, 'Not found', 'text/plain')
 
 
@@ -121,7 +121,7 @@ class AppServer:
             try:
                 httpd = _Server(('127.0.0.1', port), _Handler)
             except OSError:
-                if _is_ours(port):                   # another MapleReader already serves it: use that one
+                if _is_ours(port):                   # another Sapline already serves it: use that one
                     self.url, self.shared = f'http://127.0.0.1:{port}/', True
                     return self.url
                 continue
@@ -141,6 +141,6 @@ class AppServer:
 def _is_ours(port):
     try:
         with urllib.request.urlopen(f'http://127.0.0.1:{port}/api/ping', timeout=1) as r:
-            return json.loads(r.read().decode()).get('app') == 'MapleReader'
+            return json.loads(r.read().decode()).get('app') == 'Sapline'
     except Exception:
         return False

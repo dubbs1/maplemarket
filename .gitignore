@@ -1,11 +1,11 @@
 # your own data (the run log, pictures, settings) stays on your PC
-MapleReader/scans/
-MapleReader/settings.json
-MapleReader/mobs.txt
+Sapline/scans/
+Sapline/settings.json
+Sapline/mobs.txt
 # built app (made by build_exe.bat)
-MapleReader/MapleReader.exe
-MapleReader/_internal/
-MapleReader/build_tmp/
+Sapline/Sapline.exe
+Sapline/_internal/
+Sapline/build_tmp/
 *.spec
 # tools
 __pycache__/

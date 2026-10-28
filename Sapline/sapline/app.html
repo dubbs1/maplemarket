@@ -140,7 +140,7 @@ input.mn{width:180px;min-height:32px}td.mob button{min-height:32px;padding:2px 1
 <div id="app" tabindex="-1"></div><p id="live" role="status" aria-live="polite"></p>
 </main>
 <script>
-/* Sapline: the page MapleReader shows. It asks the app (http://127.0.0.1:8765) for its state once a second and
+/* Sapline: the page Sapline shows. It asks the app (http://127.0.0.1:8765) for its state once a second and
    sends button presses as small requests. Nothing here talks to anything but the app on this PC. */
 const $ = s => document.querySelector(s),
   fmt = n => Math.round(n).toLocaleString("en-US"),
@@ -159,8 +159,8 @@ const optCard = (id, title, desc, on) => `<div class="card oc"><div class="oh"><
   `<input type="checkbox" id="${id}"${on ? " checked" : ""}><span></span></label></div><p class="mu">${desc}</p></div>`;
 const mins = m => (m < 60 ? m + " min" : `${Math.floor(m / 60)} h ${m % 60} min`);
 async function api(path, body) {
-  const r = await fetch(path, { method: "POST", headers: { "X-MapleReader": "1", "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
-  return r.json().catch(() => ({ ok: false, error: "No answer from MapleReader." }));
+  const r = await fetch(path, { method: "POST", headers: { "X-Sapline": "1", "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+  return r.json().catch(() => ({ ok: false, error: "No answer from Sapline." }));
 }
 // Short messages ("EXP tracking starts again from now") show at the bottom of the window for a few seconds
 function say(m) {
@@ -203,7 +203,7 @@ async function appPull() {
 function drawChip() {
   const st = APP.st || {}, x = st.exp, c = $("#chip");
   let cls = "", text = "Starting…";
-  if (APP.lost) [cls, text] = ["off", "MapleReader has closed"];
+  if (APP.lost) [cls, text] = ["off", "Sapline has closed"];
   else if (!st.exp_on) [cls, text] = ["", "Not recording"];
   else if (!x) [cls, text] = ["wait", st.exp_found ? "Reading your EXP…" : "Looking for the EXP line"];
   else if (x.idle) [cls, text] = ["wait", `Paused · Lv ${x.level || "—"}`];
@@ -215,7 +215,7 @@ function draw() {
   document.querySelectorAll("[data-nav]").forEach(b => (b.dataset.nav === view ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
   $("#app").dataset.html = "";
   if (!LOCAL) {
-    $("#app").innerHTML = '<div class="card"><b>This page is part of MapleReader.</b><p class="mu">Open MapleReader; it shows this page in its own window.</p></div>';
+    $("#app").innerHTML = '<div class="card"><b>This page is part of Sapline.</b><p class="mu">Open Sapline; it shows this page in its own window.</p></div>';
     return;
   }
   ({ exp: drawExp, runs: drawRuns, mobs: drawMobs, more: drawMore })[view](true);
@@ -311,7 +311,7 @@ function notesHtml() {
   return APP.notes.length ? `<div class="card"><b>Messages</b><ul class="notes">${APP.notes.slice(0, 6).map(n =>
     `<li class="${n.level || ""}"><b>${new Date((n.t || 0) * 1000).toTimeString().slice(0, 5)}</b><span>${esc(n.text)}</span></li>`).join("")}</ul></div>` : "";
 }
-// A newer MapleReader: a card at the top of the EXP tab (only when there's something to do) and a line in Options
+// A newer Sapline: a card at the top of the EXP tab (only when there's something to do) and a line in Options
 function updCard(st) {
   const u = st.update || {}, v = esc(u.version || ""), busy = u.state === "downloading" || u.state === "installing";
   if (APP.lost || !(u.state === "available" || busy)) return "";
@@ -402,7 +402,7 @@ function updOpts(st) {
     none: "Up to date", available: `${u.version} is ready (see the EXP tab)`, downloading: "Downloading…", installing: "Installing…",
     checking: "Checking…", offline: "Can't reach GitHub right now", unavailable: "No release to check yet", off: "Switched off"
   }[u.state] || "";
-  $("#eng").textContent = `MapleReader ${st.version || ""}`;
+  $("#eng").textContent = `Sapline ${st.version || ""}`;
   $("#tess").textContent = st.tesseract ? "Read for the run log (Tesseract is installed)." : "Needs Tesseract, a free text reader. EXP works without it.";
   $("#tessgo").hidden = !!st.tesseract;
 }
