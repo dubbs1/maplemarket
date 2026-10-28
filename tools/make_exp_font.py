@@ -1,19 +1,19 @@
-"""Builds MapleReader/shopreader/exp_font.py: the shapes of the status bar's characters, cut from test screenshots
+"""Builds Sapline/sapline/exp_font.py: the shapes of the status bar's characters, cut from test screenshots
 whose text is known. The EXP tracker reads digits by comparing them with these shapes (more reliable than a
 general text reader on this small pixel font).
 
     python tools/make_exp_font.py
 
-To add digits (say, a screenshot showing a 5): add the picture to MapleReader/tests/fixtures and a line to SOURCES
+To add digits (say, a screenshot showing a 5): add the picture to Sapline/tests/fixtures and a line to SOURCES
 below with the text each part shows, then run this again.
 """
 import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, 'MapleReader'))
+sys.path.insert(0, os.path.join(ROOT, 'Sapline'))
 from PIL import Image                                            # noqa: E402
-from shopreader import exp as E                                  # noqa: E402
+from sapline import exp as E                                  # noqa: E402
 
 # picture, then for each text on its status bar: (which part, the characters it shows, left to right)
 BAR = [('hp', '1303/1303'), ('mp', '1072/1072'), ('exp', '93,499'), ('pct', '43.17%'), ('level', '37')]
@@ -40,7 +40,7 @@ MADE_UP = {
 def main():
     found = {}
     for name, parts in SOURCES:
-        img = Image.open(os.path.join(ROOT, 'MapleReader', 'tests', 'fixtures', name)).convert('RGB')
+        img = Image.open(os.path.join(ROOT, 'Sapline', 'tests', 'fixtures', name)).convert('RGB')
         bar = E.find_bar(img)
         if not bar:
             sys.exit(f'{name}: no status bar found')
@@ -70,7 +70,7 @@ def main():
                 out.append('        ],')
         out.append('    },')
     out.append('}')
-    path = os.path.join(ROOT, 'MapleReader', 'shopreader', 'exp_font.py')
+    path = os.path.join(ROOT, 'Sapline', 'sapline', 'exp_font.py')
     with open(path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(out) + '\n')
     have = {f: ''.join(sorted(ch for ff, ch in found if ff == f)) for f in {f for f, _ in found}}

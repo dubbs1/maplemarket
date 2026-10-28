@@ -5,7 +5,7 @@ import os, sys, tempfile, random
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 from PIL import Image, ImageDraw                            # noqa: E402
-from shopreader import mobpics as MP                        # noqa: E402
+from sapline import mobpics as MP                        # noqa: E402
 
 fails = []
 
@@ -102,7 +102,7 @@ def catching():
 
 def pairing():
     print('The EXP recorder pairs the screenshots around a kill:')
-    from shopreader.recorder import ExpRunner
+    from sapline.recorder import ExpRunner
 
     class Tracker:
         last_kills, gain_t = [], None

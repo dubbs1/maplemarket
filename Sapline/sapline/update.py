@@ -1,8 +1,8 @@
-"""Updates: is there a newer MapleReader on GitHub, and installing it (the installed app only).
+"""Updates: is there a newer Sapline on GitHub, and installing it (the installed app only).
 
-A release carries two files: MapleReader-Setup-<version>.exe and MapleReader-Setup-<version>.exe.sha256.
+A release carries two files: Sapline-Setup-<version>.exe and Sapline-Setup-<version>.exe.sha256.
 The setup file is only run if its SHA-256 fingerprint matches, so a broken or swapped download never runs.
-Installing runs that setup quietly once this app has closed; the setup starts MapleReader again (and the
+Installing runs that setup quietly once this app has closed; the setup starts Sapline again (and the
 install script starts it if the setup didn't, so a failed update never leaves the app closed).
 """
 import hashlib
@@ -20,7 +20,7 @@ from . import __version__
 from .config import UPDATE_REPO
 
 API = 'https://api.github.com/repos/{}/releases/latest'
-SETUP = re.compile(r'^MapleReader-Setup-[\w.-]+\.exe$')
+SETUP = re.compile(r'^Sapline-Setup-[\w.-]+\.exe$')
 
 
 def version_key(v):
@@ -35,7 +35,7 @@ def newer(candidate, current=__version__):
 
 
 def _get(url, timeout=15):
-    req = urllib.request.Request(url, headers={'User-Agent': f'MapleReader/{__version__}', 'Accept': 'application/vnd.github+json'})
+    req = urllib.request.Request(url, headers={'User-Agent': f'Sapline/{__version__}', 'Accept': 'application/vnd.github+json'})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read()
 
@@ -43,8 +43,8 @@ def _get(url, timeout=15):
 def check(api=None, current=__version__):
     """What the newest release is. state: 'available', 'none' (up to date), 'unavailable' (no public releases
     to look at), or 'offline'. With 'available': version, setup_url, sha_url, page, notes."""
-    # MAPLEREADER_UPDATE_API: another address to ask (the tests' pretend GitHub), or "off"
-    url = api or os.environ.get('MAPLEREADER_UPDATE_API') or API.format(UPDATE_REPO)
+    # SAPLINE_UPDATE_API: another address to ask (the tests' pretend GitHub), or "off"
+    url = api or os.environ.get('SAPLINE_UPDATE_API') or API.format(UPDATE_REPO)
     if url == 'off':
         return {'state': 'off'}
     try:
@@ -81,7 +81,7 @@ def download(info, folder):
     os.makedirs(folder, exist_ok=True)
     path = os.path.join(folder, os.path.basename(info['name']))
     h = hashlib.sha256()
-    req = urllib.request.Request(info['setup_url'], headers={'User-Agent': f'MapleReader/{__version__}'})
+    req = urllib.request.Request(info['setup_url'], headers={'User-Agent': f'Sapline/{__version__}'})
     with urllib.request.urlopen(req, timeout=60) as r, open(path, 'wb') as f:
         while True:
             chunk = r.read(1 << 16)
@@ -105,20 +105,20 @@ def _ps(s):
 
 
 def install_script(setup_path, pid, app_exe=None):
-    """The PowerShell script that waits for this app (process `pid`, and any MapleReader.exe still running from
-    the app folder) to close, runs the setup quietly with a log, and starts MapleReader again if the setup
+    """The PowerShell script that waits for this app (process `pid`, and any Sapline.exe still running from
+    the app folder) to close, runs the setup quietly with a log, and starts Sapline again if the setup
     didn't. Every step goes to updates/install.log, the setup's own story to updates/setup.log, so a failed
     update can be read about afterwards (the first one on the owner's PC closed the app and left nothing)."""
     folder = ntpath.dirname(setup_path)                   # a Windows path (the tests make one on Linux)
     lines = [f'$log = {_ps(ntpath.join(folder, INSTALL_LOG))}',
              "function Say($t) { ((Get-Date -Format s) + ' ' + $t) | Out-File -FilePath $log -Append -Encoding utf8 }",
-             f"Say 'waiting for MapleReader (process {int(pid)}) to close'",
+             f"Say 'waiting for Sapline (process {int(pid)}) to close'",
              f'Wait-Process -Id {int(pid)} -Timeout 300 -ErrorAction SilentlyContinue']
     if app_exe:
         lines += [f'$exe = {_ps(app_exe)}',
-                  'function Running { Get-Process -Name MapleReader -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe } }',
+                  'function Running { Get-Process -Name Sapline -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe } }',
                   'for ($i = 0; $i -lt 120 -and (Running); $i++) { Start-Sleep -Seconds 1 }',
-                  "if (Running) { Say 'MapleReader is still running after 5 minutes: the setup will not be able to replace its files' }"]
+                  "if (Running) { Say 'Sapline is still running after 5 minutes: the setup will not be able to replace its files' }"]
     args = '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /LOG="' + ntpath.join(folder, SETUP_LOG) + '"'
     lines += ["Say 'running the setup'",
               'try {',                                   # plain CreateProcess, and the error's words if it fails
@@ -131,7 +131,7 @@ def install_script(setup_path, pid, app_exe=None):
               "} catch { Say ('the setup could not be started: ' + $_.Exception.Message) }"]
     if app_exe:
         lines += ['Start-Sleep -Seconds 5',
-                  "if (-not (Running)) { Say 'starting MapleReader'; Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) }"]
+                  "if (-not (Running)) { Say 'starting Sapline'; Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) }"]
     lines += ["if ($Error.Count) { Say ('errors: ' + (($Error | ForEach-Object { $_.ToString() }) -join ' | ')) }",
               "Say 'done'"]
     return '\n'.join(lines) + '\n'

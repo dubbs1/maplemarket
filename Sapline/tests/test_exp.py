@@ -14,8 +14,8 @@ import os, sys, types
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 from PIL import Image                                       # noqa: E402
-from shopreader import exp as E                             # noqa: E402
-from shopreader.ocr import find_tesseract                   # noqa: E402
+from sapline import exp as E                             # noqa: E402
+from sapline.ocr import find_tesseract                   # noqa: E402
 
 FX = os.path.join(HERE, 'fixtures')
 TRUE = (93499, 43.17, 37)
@@ -166,7 +166,7 @@ def kills_and_damage():
         check(E.read_hp(img, E.find_bar(img)) == want, f'{name}: HP {want[0]} of {want[1]}')
     w = E.ExpWatcher()
     check(w.update(load('status38_lowmp.png'), now=1000)['hp'] == (1146, 1325), 'a reading carries the HP')
-    from shopreader.mobs import parse_mobs, Mobs
+    from sapline.mobs import parse_mobs, Mobs
     table = parse_mobs('# notes\nSnail | 1 | 8 | 3\nBlue Snail\t2\t15\t4\nStump | 1,200\nno number\nMano | 3\nOrange Mushroom|15\n')
     check(table == {3: ['Snail', 'Mano'], 4: ['Blue Snail'], 1200: ['Stump'], 15: ['Orange Mushroom']}, f'mobs.txt read: {table}')
     import tempfile
@@ -302,7 +302,7 @@ def breaks_and_log():
 
 def map_and_party():
     print('The map\'s name and the party, for the EXP log:')
-    from shopreader import location as L
+    from sapline import location as L
     hunt = load('hunt_party.png')                            # your screenshot: a party of 4 in a party quest
     check(L.read_map(hunt) == '1st Accompaniment <1st Stage>', f'hunt_party.png: the map is {L.read_map(hunt)!r}')
     check(L.read_map(load('kerning_inv.png')) == 'Kerning City', f"kerning_inv.png: {L.read_map(load('kerning_inv.png'))!r} (once read 'Kerming')")
@@ -331,7 +331,7 @@ def map_and_party():
 
 def mesos():
     print('Mesos (the Item window\'s meso box):')
-    from shopreader import mesos as M
+    from sapline import mesos as M
     inv = load('kerning_inv.png')                            # your screenshot: 1,421,566 mesos, level 39
     got = [M.read_mesos(inv.resize((round(inv.width * f), round(inv.height * f)), flt))
            for f in (0.8, 1.0, 1.3, 1.6) for flt in (Image.BILINEAR, Image.LANCZOS)]
@@ -379,7 +379,7 @@ def loop():
             return Shot(pics.pop(0))
 
     sys.modules['mss'] = types.SimpleNamespace(MSS=lambda: Screen())
-    from shopreader import recorder
+    from sapline import recorder
     clock = [1000.0]
     recorder.time = types.SimpleNamespace(sleep=lambda s: clock.__setitem__(0, clock[0] + 4), time=lambda: clock[0])
     E.time = recorder.time                                   # the watcher's "every few seconds" uses the same clock

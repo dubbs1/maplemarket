@@ -4,11 +4,11 @@ import json, os, socket, sys, tempfile, urllib.error, urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 work = tempfile.mkdtemp(prefix='maplereader_server_')
-os.environ.setdefault('MAPLEREADER_UPDATE_API', 'off')    # these checks never ask GitHub (test_update.py does that)
+os.environ.setdefault('SAPLINE_UPDATE_API', 'off')    # these checks never ask GitHub (test_update.py does that)
 os.chdir(work)
-import shopreader.config as C                           # noqa: E402
+import sapline.config as C                           # noqa: E402
 C.APP_DIR = work
-from shopreader import controller as CT, server as SV   # noqa: E402
+from sapline import controller as CT, server as SV   # noqa: E402
 CT.APP_DIR, CT.SETTINGS = work, os.path.join(work, 'settings.json')
 TEST_PORTS = range(8790, 8796)                          # never the real app's port, in case it is open
 
@@ -22,7 +22,7 @@ def get(url, host=None):
 def post(url, body, header=True):
     hdr = {'Content-Type': 'application/json'}
     if header:
-        hdr['X-MapleReader'] = '1'
+        hdr['X-Sapline'] = '1'
     req = urllib.request.Request(url, data=json.dumps(body).encode(), headers=hdr)
     with urllib.request.urlopen(req, timeout=5) as r:
         return json.loads(r.read().decode())

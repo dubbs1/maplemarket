@@ -2,13 +2,13 @@
 
 Your EXP, read from your own screen.
 
-**MapleReader** is a small Windows app. While you hunt, it looks at the status bar on your screen about once a second and keeps count: EXP per hour, time to the next level, kills by mob (with a picture of each), damage taken, mesos per hour, and a log of every hunt. Its window is called **Sapline**.
+**Sapline** is a small Windows app. While you hunt, it looks at the status bar on your screen about once a second and keeps count: EXP per hour, time to the next level, kills by mob (with a picture of each), damage taken, mesos per hour, and a log of every hunt. (It was called MapleReader until October 2026.)
 
 It only looks at your screen. It never clicks, types, reads the game's memory or sends anything anywhere.
 
 ## Install
 
-1. Open **Releases** (on the right) and download `MapleReader-Setup-<version>.exe`.
+1. Open **Releases** (on the right) and download `Sapline-Setup-<version>.exe`.
 2. Double-click it. If Windows says "Windows protected your PC", click **More info**, then **Run anyway**.
 3. The app opens by itself and starts recording. Keep the game's status bar visible.
 
@@ -23,14 +23,14 @@ Optional: **Tesseract**, a free text reader, lets the app also read the map's na
 | **Mobs** | Your kills by mob, with the picture cut from your screen; name a mob once and it is remembered |
 | **Options** | Record on open, log my runs, pause after N minutes, game screen, updates, and what the app does and never does |
 
-The step-by-step guide, with what you should see at each step, is in [the Guide](MapleReader/GUIDE.md).
+The step-by-step guide, with what you should see at each step, is in [the Guide](Sapline/GUIDE.md).
 
 ## Good to know
 
-- Everything stays on your PC, in the folder next to `MapleReader.exe`.
+- Everything stays on your PC, in the folder next to `Sapline.exe`.
 - Nexon has not said whether screen readers are allowed. On a private server, ask a GM first. Use at your own risk.
 - The earlier Free Market price scanner was retired on 2026-10-28. Its code is kept on the `market-archive` branch.
 
 ---
 
-Developers: the app is in `MapleReader/`, and the notes on how it all fits together in [CLAUDE.md](CLAUDE.md).
+Developers: the app is in `Sapline/`, and the notes on how it all fits together in [CLAUDE.md](CLAUDE.md).

@@ -5,9 +5,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 work = tempfile.mkdtemp(prefix='maplereader_update_')
-import shopreader.config as C                           # noqa: E402
+import sapline.config as C                           # noqa: E402
 C.APP_DIR = work
-from shopreader import update, migrate                  # noqa: E402
+from sapline import update, migrate                  # noqa: E402
 
 SETUP = b'pretend setup program ' * 1000
 FILES = {}                                              # path -> (status, body)
@@ -27,7 +27,7 @@ class Fake(BaseHTTPRequestHandler):
 
 def release(tag, sha=None, with_sha=True):
     base = 'http://127.0.0.1:%d' % srv.server_address[1]
-    name = f'MapleReader-Setup-{tag.lstrip("v")}.exe'
+    name = f'Sapline-Setup-{tag.lstrip("v")}.exe'
     assets = [{'name': name, 'browser_download_url': base + '/dl/' + name}]
     if with_sha:
         assets.append({'name': name + '.sha256', 'browser_download_url': base + '/dl/' + name + '.sha256'})
@@ -64,9 +64,9 @@ def main():
     ok('offline: says so quietly', update.check('http://127.0.0.1:9/latest')['state'] == 'offline')
     release('v2099-01-02', with_sha=False)
     ok('a release without a fingerprint is never offered', update.check(api, current='2026-10-20f')['state'] == 'none')
-    os.environ['MAPLEREADER_UPDATE_API'] = 'off'
+    os.environ['SAPLINE_UPDATE_API'] = 'off'
     ok('checking can be switched off', update.check()['state'] == 'off')
-    del os.environ['MAPLEREADER_UPDATE_API']
+    del os.environ['SAPLINE_UPDATE_API']
 
     # --- downloading it ---
     release('v2099-01-03')
@@ -81,24 +81,24 @@ def main():
     except ValueError:
         ok('a download that does not match its fingerprint is refused, and deleted',
            not os.listdir(os.path.join(work, 'updates2')))
-    ps = update.install_script(r"C:\Users\O'Neil x\MapleReader\updates\MapleReader-Setup-2099-01-03.exe", 4321,
-                               r"C:\Users\O'Neil x\MapleReader\MapleReader.exe")
-    ok('the install script waits for this app (its process, then any MapleReader.exe from the app folder), runs the setup '
-       'quietly with a log, and starts MapleReader again if the setup did not',
-       'Wait-Process -Id 4321 ' in ps and "$exe = 'C:\\Users\\O''Neil x\\MapleReader\\MapleReader.exe'" in ps and
-       "$psi.FileName = 'C:\\Users\\O''Neil x\\MapleReader\\updates\\MapleReader-Setup-2099-01-03.exe'" in ps and
-       "$psi.Arguments = '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /LOG=\"C:\\Users\\O''Neil x\\MapleReader\\updates\\setup.log\"'" in ps and
+    ps = update.install_script(r"C:\Users\O'Neil x\Sapline\updates\Sapline-Setup-2099-01-03.exe", 4321,
+                               r"C:\Users\O'Neil x\Sapline\Sapline.exe")
+    ok('the install script waits for this app (its process, then any Sapline.exe from the app folder), runs the setup '
+       'quietly with a log, and starts Sapline again if the setup did not',
+       'Wait-Process -Id 4321 ' in ps and "$exe = 'C:\\Users\\O''Neil x\\Sapline\\Sapline.exe'" in ps and
+       "$psi.FileName = 'C:\\Users\\O''Neil x\\Sapline\\updates\\Sapline-Setup-2099-01-03.exe'" in ps and
+       "$psi.Arguments = '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /LOG=\"C:\\Users\\O''Neil x\\Sapline\\updates\\setup.log\"'" in ps and
        'could not be started' in ps and
-       "$log = 'C:\\Users\\O''Neil x\\MapleReader\\updates\\install.log'" in ps and
+       "$log = 'C:\\Users\\O''Neil x\\Sapline\\updates\\install.log'" in ps and
        'if (-not (Running)) {' in ps and 'Start-Process -FilePath $exe' in ps and '"' not in ps.replace('/LOG=\"', '').replace('.log\"', ''))
     cmd = update.install_command(r'C:\x\updates\install.ps1')
     ok('the script runs as a file, hidden, whatever the PC\'s script policy', cmd[0].lower().endswith('powershell.exe') and
        cmd[-2:] == ['-File', r'C:\x\updates\install.ps1'] and '-ExecutionPolicy' in cmd and 'Hidden' in cmd)
 
     # --- the app's Update now ---
-    from shopreader import controller as CT
+    from sapline import controller as CT
     CT.APP_DIR, CT.SETTINGS = work, os.path.join(work, 'settings.json')
-    os.environ['MAPLEREADER_UPDATE_API'] = api
+    os.environ['SAPLINE_UPDATE_API'] = api
     release('v2099-01-05')
     ctl = CT.Controller()
     ctl.check_update(wait=True)
@@ -131,16 +131,16 @@ def main():
         with open(pending, 'w') as f:
             json.dump({'from': '2000-01-01', 'to': CT.__version__, 't': 0}, f)
         notes = [e for e in CT.Controller().snapshot()['events'] if e.get('kind') == 'note']
-        ok('a finished update says so once', any(n['text'] == f'Updated to MapleReader {CT.__version__}.' for n in notes)
+        ok('a finished update says so once', any(n['text'] == f'Updated to Sapline {CT.__version__}.' for n in notes)
            and not os.path.exists(pending))
         ok('no marker: nothing said', not any('pdate' in e.get('text', '') for e in CT.Controller().snapshot()['events']))
     finally:
         del sys.frozen
-    del os.environ['MAPLEREADER_UPDATE_API']
+    del os.environ['SAPLINE_UPDATE_API']
 
     # --- first run of the installed app: the old data comes along ---
     home = tempfile.mkdtemp(prefix='maplereader_home_')
-    old = os.path.join(home, 'OneDrive', 'Desktop', 'MapleReader')
+    old = os.path.join(home, 'OneDrive', 'Desktop', 'MapleReader')   # (the app's old name)
     os.makedirs(os.path.join(old, 'scans', 'mobs'))
     for rel, text in (('scans/exp_log.json', '[{"id": "1", "date": 1}]'), ('scans/mobs/22.png', 'png'), ('scans/exp_days.json', '{}'),
                       ('settings.json', '{"monitor": 2}'), ('mobs.txt', 'Evil Eye | 22\n')):

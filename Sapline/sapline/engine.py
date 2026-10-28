@@ -38,8 +38,8 @@ def _split(config):
 
 def _candidates():
     """Where libtesseract and its tessdata folder may be. Windows first (next to tesseract.exe)."""
-    if os.environ.get('MAPLEREADER_TESSLIB'):         # a specific libtesseract (for testing other versions)
-        yield None, os.environ['MAPLEREADER_TESSLIB'], os.environ.get('TESSDATA_PREFIX', '')
+    if os.environ.get('SAPLINE_TESSLIB'):         # a specific libtesseract (for testing other versions)
+        yield None, os.environ['SAPLINE_TESSLIB'], os.environ.get('TESSDATA_PREFIX', '')
     cmd = pytesseract.pytesseract.tesseract_cmd
     folders = []
     if cmd and os.path.isfile(cmd):
@@ -62,11 +62,11 @@ def _safe_on_this_pc():
     this PC, only that test process dies and the reader carries on the standard way."""
     import subprocess
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    code = ('import sys; sys.path.insert(0, sys.argv[1]); from PIL import Image; from shopreader import engine; '
+    code = ('import sys; sys.path.insert(0, sys.argv[1]); from PIL import Image; from sapline import engine; '
             'im = Image.new("L", (120, 40), 255); engine.text(im, "--psm 7"); engine.data(im, "--psm 11"); '
             'print(engine.mode())')
-    env = dict(os.environ, MAPLEREADER_SELFTEST='1')
-    frozen = getattr(sys, 'frozen', False)            # inside MapleReader.exe: ask the exe to run the test
+    env = dict(os.environ, SAPLINE_SELFTEST='1')
+    frozen = getattr(sys, 'frozen', False)            # inside Sapline.exe: ask the exe to run the test
     cmd = [sys.executable, '--engine-selftest'] if frozen else [sys.executable, '-c', code, root]
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=60, env=env,
@@ -77,7 +77,7 @@ def _safe_on_this_pc():
 
 
 def selftest():
-    """Run by 'MapleReader.exe --engine-selftest': exit code 0 if the fast way works here."""
+    """Run by 'Sapline.exe --engine-selftest': exit code 0 if the fast way works here."""
     from PIL import Image
     im = Image.new('L', (120, 40), 255)
     text(im, '--psm 7')
@@ -87,9 +87,9 @@ def selftest():
 
 def _load():
     _state['tried'] = True
-    if os.environ.get('MAPLEREADER_SLOW_OCR'):
+    if os.environ.get('SAPLINE_SLOW_OCR'):
         return
-    if not os.environ.get('MAPLEREADER_SELFTEST') and not _safe_on_this_pc():
+    if not os.environ.get('SAPLINE_SELFTEST') and not _safe_on_this_pc():
         return
     for folder, lib, tessdata in _candidates():
         try:

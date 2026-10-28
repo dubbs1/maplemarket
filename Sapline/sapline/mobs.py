@@ -12,7 +12,7 @@ import time
 TEMPLATE = """# Your mobs list, for the EXP tab's kill counts. One mob per line:  name | level | HP | EXP
 # (level and HP may be left out; the numbers may have commas). Lines starting with # are notes.
 # A mob is told by the EXP one kill gives, so only the EXP has to be right. Copy from the MapleClassic Wiki
-# (mapleclassic.wiki, CC BY-NC-SA: credit them) or type the mobs you hunt, then save this file: MapleReader
+# (mapleclassic.wiki, CC BY-NC-SA: credit them) or type the mobs you hunt, then save this file: Sapline
 # re-reads it by itself.
 #
 # Snail | 1 | 8 | 3

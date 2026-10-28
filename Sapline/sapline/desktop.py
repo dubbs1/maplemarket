@@ -1,9 +1,9 @@
-"""MapleReader as a desktop app: the EXP recorder and its page (Sapline) in one window.
+"""Sapline as a desktop app: the EXP recorder and its page (Sapline) in one window.
 
 Starts the recorder's controls and the page on this PC (http://127.0.0.1:8765), then shows it in
 an app window: Microsoft Edge in "app mode" (no address bar or tabs), which every Windows 10/11 PC
 has. If Edge isn't there it tries Chrome, then your normal browser. Closing the window closes
-MapleReader.
+Sapline.
 """
 import json
 import os
@@ -30,7 +30,7 @@ WINDOW_SIZE = (1240, 860)          # the app window, outer size: the page is dra
 def _profile_dir():
     """The app window's own browser profile (its remembered theme and chart choices). Kept out of OneDrive."""
     base = os.environ.get('LOCALAPPDATA') or APP_DIR
-    return os.path.join(base, 'MapleReader', 'window')
+    return os.path.join(base, 'Sapline', 'window')
 
 
 def _find_browser():
@@ -45,7 +45,7 @@ def _message(text):
     """A plain Windows message box (there is no console to print to)."""
     try:
         import ctypes
-        ctypes.windll.user32.MessageBoxW(0, text, 'MapleReader', 0x40)
+        ctypes.windll.user32.MessageBoxW(0, text, 'Sapline', 0x40)
     except Exception:
         pass
 
@@ -101,7 +101,7 @@ def _lock_window(proc, title, wait=25):
 
 
 def _running_app(port=8765):
-    """Is a MapleReader app already serving? Then just open another window onto it."""
+    """Is a Sapline app already serving? Then just open another window onto it."""
     try:
         with urllib.request.urlopen(f'http://127.0.0.1:{port}/api/state', timeout=1) as r:
             return 'version' in json.loads(r.read().decode())
@@ -124,11 +124,11 @@ def run():
     srv = AppServer(controller=ctl)
     url = srv.start()
     if not url:
-        _message('MapleReader could not start: the ports it uses (8765 to 8770) are all busy.\n'
-                 'Close other copies of MapleReader, or restart the PC, and try again.')
+        _message('Sapline could not start: the ports it uses (8765 to 8770) are all busy.\n'
+                 'Close other copies of Sapline, or restart the PC, and try again.')
         return
     if srv.shared:                                   # another copy holds the port but isn't answering as the app
-        _message('MapleReader seems to be open already. Close it, then start MapleReader again.')
+        _message('Sapline seems to be open already. Close it, then start Sapline again.')
         ctl.shutdown()
         return
     ctl.autostart()
@@ -156,7 +156,7 @@ def run():
 
 
 def self_check(result_path):
-    """MapleReader.exe --self-check result.txt: start the app's parts in a scratch folder, ask them what the window
+    """Sapline.exe --self-check result.txt: start the app's parts in a scratch folder, ask them what the window
     would ask, and write what happened (the exe has no console). Exit code 0 = all good. Used by the automatic
     builds, and handy on a PC where the app won't start."""
     import tempfile
@@ -164,7 +164,7 @@ def self_check(result_path):
     lines, good = [], False
     try:
         work = tempfile.mkdtemp(prefix='maplereader_check_')
-        os.environ.setdefault('MAPLEREADER_UPDATE_API', 'off')
+        os.environ.setdefault('SAPLINE_UPDATE_API', 'off')
         from . import config, controller, server
         from .ocr import find_tesseract
         config.APP_DIR = controller.APP_DIR = work

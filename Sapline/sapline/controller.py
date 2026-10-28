@@ -55,7 +55,7 @@ class Controller:
         self.seq = 0
         self.events = deque(maxlen=400)              # notes, newest last
         self.last_seen = time.time()                 # when the window last asked for news
-        # updates: only the installed app (MapleReader.exe) can install one; the zip version is told where to get it
+        # updates: only the installed app (Sapline.exe) can install one; the zip version is told where to get it
         self.frozen = bool(getattr(sys, 'frozen', False))
         self.update_info = {'state': 'checking'}
         self._update_at = 0
@@ -132,7 +132,7 @@ class Controller:
             want = None
         if want:
             if not updater.newer(str(want.get('to', '')), __version__):
-                self.note(f'Updated to MapleReader {__version__}.')
+                self.note(f'Updated to Sapline {__version__}.')
             else:
                 why = ''
                 try:
@@ -141,7 +141,7 @@ class Controller:
                 except OSError:
                     pass
                 self.note(f"The update to {want.get('to')} did not install ({why or 'the install script never ran'}). "
-                          f"The files install.log and setup.log in the folder updates (next to MapleReader.exe) say why.",
+                          f"The files install.log and setup.log in the folder updates (next to Sapline.exe) say why.",
                           'error')
         for name in os.listdir(folder) if os.path.isdir(folder) else []:
             if name.lower().endswith('.exe') or name in (updater.SCRIPT, self.PENDING):
@@ -165,7 +165,7 @@ class Controller:
                 folder = os.path.join(APP_DIR, 'updates')
                 path = updater.download(info, folder)
                 self.update_info = dict(info, state='installing')
-                self.note('Installing the update. MapleReader closes now and opens again by itself in a minute.')
+                self.note('Installing the update. Sapline closes now and opens again by itself in a minute.')
                 with open(os.path.join(folder, self.PENDING), 'w', encoding='utf-8') as f:
                     json.dump({'from': __version__, 'to': info['version'], 't': time.time()}, f)
                 updater.start_install(path, app_exe=sys.executable)
@@ -297,9 +297,9 @@ class Controller:
         if sys.platform != 'win32':
             return {'ok': False, 'error': 'Only on Windows.'}
         cmd = ('winget install --id UB-Mannheim.TesseractOCR -e --accept-package-agreements --accept-source-agreements'
-               ' & echo. & echo Done. Close this window; MapleReader is ready. & pause')
+               ' & echo. & echo Done. Close this window; Sapline is ready. & pause')
         subprocess.Popen(['cmd', '/c', cmd], creationflags=getattr(subprocess, 'CREATE_NEW_CONSOLE', 0))
-        self.note('Installing Tesseract in a separate window. Click Yes if Windows asks. MapleReader notices when it is done.')
+        self.note('Installing Tesseract in a separate window. Click Yes if Windows asks. Sapline notices when it is done.')
         return {'ok': True}
 
     def shutdown(self):

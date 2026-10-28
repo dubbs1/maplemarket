@@ -1,18 +1,18 @@
 # Sapline: the guide
 
-Sapline is the window of **MapleReader**, a small Windows app that reads your EXP off the game's status bar and keeps count for you. It takes screenshots about once a second and reads them. It never clicks, types, moves the mouse, reads the game's memory or files, or sends anything anywhere.
+Sapline is the window of **Sapline**, a small Windows app that reads your EXP off the game's status bar and keeps count for you. It takes screenshots about once a second and reads them. It never clicks, types, moves the mouse, reads the game's memory or files, or sends anything anywhere.
 
 Nexon has not said whether screen readers are allowed. On a private server, ask a GM first. Use it at your own risk.
 
 ## 1. Install
 
-1. Download `MapleReader-Setup-<version>.exe` from the project's **Releases** page on GitHub.
+1. Download `Sapline-Setup-<version>.exe` from the project's **Releases** page on GitHub.
 2. Double-click it.
    - If Windows says "Windows protected your PC": click **More info**, then **Run anyway**. (The installer isn't signed with a paid certificate; it was built automatically from this project's code.)
-   - You should see "Setup - MapleReader". Click **Next**, then **Install**, then **Finish** with "Start MapleReader" ticked.
+   - You should see "Setup - Sapline". Click **Next**, then **Install**, then **Finish** with "Start Sapline" ticked.
 3. The window opens on the **EXP** tab. The pill at the top right says **Looking for the EXP line** until the game's status bar is on screen, then **Recording · Lv 39**.
    - If it keeps saying "Looking for the EXP line": make sure the status bar (HP, MP, EXP) is visible and not covered. Check **Game screen** in Options if the game is on another monitor.
-4. From now on, open MapleReader from the Start menu or the desktop icon.
+4. From now on, open Sapline from the Start menu or the desktop icon.
 
 **Tesseract** (optional). A free text reader. With it installed, the app also reads the map's name and your meso count for the run log. Open **Options**, and under **Text reader** click **Install Tesseract**. Click **Yes** if Windows asks, wait for "Done" in the black window and close it. The app notices by itself.
 
@@ -36,7 +36,7 @@ The map and the party are read when the minimap and the party window are on scre
 
 ## 4. The Mobs tab
 
-Every rise in your EXP is a kill. A mob always gives the same EXP, so kills are told apart by that amount. A mob you haven't named shows as "22 EXP each" with a box: type its name once, click **Save**, and it's kept in `mobs.txt` next to `MapleReader.exe` (one mob per line, `name | level | HP | EXP`; you can edit it by hand).
+Every rise in your EXP is a kill. A mob always gives the same EXP, so kills are told apart by that amount. A mob you haven't named shows as "22 EXP each" with a box: type its name once, click **Save**, and it's kept in `mobs.txt` next to `Sapline.exe` (one mob per line, `name | level | HP | EXP`; you can edit it by hand).
 
 A **picture** of the mob appears after a clear kill: the app compares the screen before and after the kill, and when the camera didn't move and exactly one mob-sized thing vanished for good, that's the mob. Kills that aren't clear (you moved, two mobs died together, a drop was picked up, a map lamp blinked) still count, they just bring no picture that time. If a picture is wrong, click it to drop it; the next clear kill brings a new one.
 
@@ -44,7 +44,7 @@ In a party, a shared mob gives a different amount each time (the EXP is split by
 
 ## 5. Options
 
-- **Record when MapleReader opens**: start recording as soon as the app opens.
+- **Record when Sapline opens**: start recording as soon as the app opens.
 - **Log my runs**: keep the Runs tab's log.
 - **Pause after**: how long without EXP before the clock stops (1 to 15 minutes).
 - **Game screen**: which monitor the game is on.
@@ -55,19 +55,20 @@ In a party, a shared mob gives a different amount each time (the EXP is split by
 
 ## 6. Updates
 
-When a new version is out, a card at the top of the EXP tab says **A new version is ready**. Click **Update now**. MapleReader closes, updates and opens again by itself within a minute. Your log, pictures and settings stay.
+When a new version is out, a card at the top of the EXP tab says **A new version is ready**. Click **Update now**. Sapline closes, updates and opens again by itself within a minute. Your log, pictures and settings stay.
 
-- If it comes back on the same version, the Messages box says the update did not install and why. The details are in `install.log` and `setup.log` in the folder `updates` next to `MapleReader.exe` (`%LOCALAPPDATA%\Programs\MapleReader\updates`). You can always install a version by hand from the Releases page.
+- If it comes back on the same version, the Messages box says the update did not install and why. The details are in `install.log` and `setup.log` in the folder `updates` next to `Sapline.exe` (`%LOCALAPPDATA%\Programs\Sapline\updates`). You can always install a version by hand from the Releases page.
 - **Options** shows `Updates: ...` and has a **Check now** button.
-- To remove MapleReader: Windows Settings > Apps > MapleReader > Uninstall. Your data stays in `%LOCALAPPDATA%\Programs\MapleReader\scans` until you delete that folder.
+- To remove Sapline: Windows Settings > Apps > Sapline > Uninstall. Your data stays in `%LOCALAPPDATA%\Programs\Sapline\scans` until you delete that folder.
+- If you installed the app while it was still called MapleReader, its folder keeps that name (`%LOCALAPPDATA%\Programs\MapleReader`); everything else says Sapline.
 
 ## 7. If something goes wrong
 
 - **"Looking for the EXP line" for a long time**: keep the status bar visible and uncovered; try **Game screen** in Options. If it still won't read, take a screenshot of the whole game window and send it.
 - **The numbers look wrong** (a huge jump, a level that isn't yours): press **Reset**. Readings that don't fit are dropped by themselves, but a bad run of them can take a moment to clear.
-- **The window is empty or white**: close it and open MapleReader again. It needs Microsoft Edge (every Windows 10/11 PC has it).
+- **The window is empty or white**: close it and open Sapline again. It needs Microsoft Edge (every Windows 10/11 PC has it).
 - **A wrong mob picture**: click it to drop it.
 
 ## 8. The zip version (without the installer)
 
-If you run from a folder instead (Python 3.13 installed as `py -3.13`): double-click `setup.bat` once (Tesseract and the Python packages), then `start_app.bat`. `run_tests.bat` checks the reader against the saved test pictures. `build_exe.bat` builds `MapleReader.exe` in the folder.
+If you run from a folder instead (Python 3.13 installed as `py -3.13`): double-click `setup.bat` once (Tesseract and the Python packages), then `start_app.bat`. `run_tests.bat` checks the reader against the saved test pictures. `build_exe.bat` builds `Sapline.exe` in the folder.
