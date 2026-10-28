@@ -45,17 +45,17 @@ async def main():
             if scheme == 'dark':
                 ok('A1 opens on the EXP tab', await pg.get_attribute('[data-nav=exp]', 'aria-current') == 'page')
                 ok('A1b night first', await pg.evaluate("document.documentElement.dataset.theme") == 'dark')
-                ok('A2 says not recording', 'Not recording' in await pg.inner_text('#chip') and 'Start recording' in await pg.inner_text('.xctl'))
+                ok('A2 says not recording', 'Not recording' in await pg.inner_text('#chip') and 'Start' in await pg.inner_text('.xctl'))
                 ok('A2b no update card when there is nothing to update', await pg.locator('#upd').count() == 0)
                 ctl.update_info = {'state': 'available', 'version': '2099-01-01', 'can_install': False, 'page': 'https://example.com/r'}
                 await pg.wait_for_timeout(1600)
                 ok('A2c a new version shows at the top of EXP', await pg.locator('#upd').count() == 1 and
-                   'A new version is ready' in await pg.inner_text('#upd') and 'Download page' in await pg.inner_text('#upd'))
+                   'New version 2099-01-01' in await pg.inner_text('#upd') and 'Download page' in await pg.inner_text('#upd'))
                 ctl.update_info = {'state': 'none'}; await pg.wait_for_timeout(1600)
                 ok('A2d and goes away again', await pg.locator('#upd').count() == 0)
                 await pg.screenshot(path=OUT + '_idle.png')
                 await pg.click('[data-x=go]'); await pg.wait_for_timeout(1500)
-                ok('A3 Start starts the recorder', ctl.exp_runner is not None and 'Stop recording' in await pg.inner_text('.xctl'))
+                ok('A3 Start starts the recorder', ctl.exp_runner is not None and 'Stop' in await pg.inner_text('.xctl'))
                 # the tracker starts once two readings (a second apart) agree
                 for _ in range(25):
                     xt = await pg.inner_text('#app')
@@ -64,9 +64,9 @@ async def main():
                     await pg.wait_for_timeout(1000)
                 ok(f'A4 the EXP tab read the status bar (level 37, 43.17%) {xt[:50]!r}', '37' in xt and '43.17%' in xt and '93,499' in xt)
                 ok('A4b the header pill shows Recording and the level', 'Recording' in await pg.inner_text('#chip') and 'Lv 37' in await pg.inner_text('#chip'))
-                ok('A4c the goals card is there, waiting for kills', 'Goals' in xt and 'kills left to level' in xt.lower() and 'kills per hour' in xt.lower())
+                ok('A4c the goals card is there, waiting for kills', 'Goals' in xt and 'kills to level' in xt.lower() and 'kills per hour' in xt.lower())
                 ok('A4d the first minutes are marked as a warm-up', await pg.locator('#app .warm').count() == 1)
-                ok('A4e the level card and the session tiles', await pg.locator('.xlv').count() == 1 and 'damage taken' in xt.lower() and 'playing time' in xt.lower())
+                ok('A4e the level card and the session tiles', await pg.locator('.xlv').count() == 1 and 'damage taken' in xt.lower() and 'This session' in xt)
                 await pg.click('[data-xr=week]'); await pg.wait_for_timeout(300)
                 ok('A5 the last 7 days chart', 'EXP per day' in await pg.inner_text('#app') and await pg.locator('.xchart i').count() == 7)
                 await pg.click('[data-xk=line]'); await pg.wait_for_timeout(300)
@@ -77,7 +77,7 @@ async def main():
                 await pg.click('[data-xk=bars]'); await pg.click('[data-xs=lin]'); await pg.click('[data-xr=session]'); await pg.wait_for_timeout(300)
                 await pg.screenshot(path=OUT + '_exp.png')
                 await pg.click('[data-x=reset]'); await pg.wait_for_timeout(1500)
-                ok('A6 Reset clears it (until the next readings)', ctl.exp.gained == 0 and ctl.exp.levels == 0 and 'starts again' in await pg.inner_text('#live'))
+                ok('A6 Reset clears it (until the next readings)', ctl.exp.gained == 0 and ctl.exp.levels == 0 and 'Counting again' in await pg.inner_text('#live'))
                 # Runs
                 for i, m in enumerate(('The Land of Wild Boar II', 'Ant Tunnel I')):
                     ctl.exp_log.add({'date': time.time() - 3600 * (i + 1), 'minutes': 45, 'gained': 40000, 'per_hour': 53333, 'level': 37, 'map': m, 'party': 4 - i * 3,
@@ -100,8 +100,8 @@ async def main():
                 ctl.exp.amounts = {22: 5, 45: 1}       # (as if kills had been seen)
                 await pg.click('[data-nav=mobs]'); await pg.wait_for_timeout(1500)
                 mt = await pg.inner_text('#app')
-                ok('A8 the Mobs tab lists the kills by EXP amount, with a name box', await pg.get_attribute('input.mn', 'placeholder') == '22 EXP each: name it'
-                   and 'Other gains' in mt and await pg.locator('input.mn').count() == 1)
+                ok('A8 the Mobs tab lists the kills by EXP amount, with a name box', await pg.get_attribute('input.mn', 'data-mn') == '22'
+                   and 'Other gains' in mt and await pg.locator('input.mn').count() == 1 and '22' in mt)
                 await pg.fill('input.mn', 'Evil Eye'); await pg.click('[data-mns]'); await pg.wait_for_timeout(1500)
                 ok('A8b naming a mob goes into mobs.txt and the table', ctl.mobs.name(22) == 'Evil Eye' and 'Evil Eye' in await pg.inner_text('#app')
                    and 'Evil Eye | 22' in open(os.path.join(work, 'mobs.txt'), encoding='utf-8').read())
@@ -111,7 +111,7 @@ async def main():
                 # Options
                 await pg.click('[data-nav=more]'); await pg.wait_for_timeout(500)
                 ok('A9 Options: every setting is a card, with the stance text', await pg.locator('#app .ocards .oc').count() >= 7 and
-                   'never clicks' in await pg.inner_text('#app'))
+                   'only reads your screen' in await pg.inner_text('#app'))
                 await pg.select_option('#oi', '5'); await pg.select_option('#om', '2'); await pg.uncheck('#ox'); await pg.wait_for_timeout(1500)
                 st = json.load(open(os.path.join(work, 'settings.json')))
                 ok('A9b options saved (pause after 5, screen 2, no recording on open)', st['idle_min'] == 5 and st['monitor'] == 2 and st['exp'] is False
@@ -127,7 +127,7 @@ async def main():
                 await pg.screenshot(path=OUT + '_options.png')
                 await pg.click('[data-nav=exp]'); await pg.wait_for_timeout(800)
                 await pg.click('[data-x=go]'); await pg.wait_for_timeout(1500)
-                ok('A11 Stop stops, and is remembered', ctl.exp_runner is None and 'Start recording' in await pg.inner_text('.xctl')
+                ok('A11 Stop stops, and is remembered', ctl.exp_runner is None and 'Start' in await pg.inner_text('.xctl')
                    and json.load(open(os.path.join(work, 'settings.json')))['exp'] is False)
                 await pg.reload(); await pg.wait_for_timeout(2000)
                 ok('A12 reload: still the EXP tab, still not recording', 'Not recording' in await pg.inner_text('#chip'))
