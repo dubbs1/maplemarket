@@ -87,7 +87,8 @@ def catching():
     pics = MP.MobPics(os.path.join(d, 'mobs'), os.path.join(d, 'fight'))
     got = pics.look(22, (before, after, after2))
     check(got is not None and 22 in pics.have and os.path.exists(pics.path(22)), 'the picture is kept as scans/mobs/22.png')
-    pic = Image.open(pics.path(22))
+    with Image.open(pics.path(22)) as f:
+        pic = f.copy()                                        # (closed again: Windows can't delete an open file)
     check(50 <= pic.width <= 80 and 60 <= pic.height <= 120, f'the picture is the mob, with a little around it: {pic.size}')
     check(not pics.keep(22, pic) and MP.MobPics(os.path.join(d, 'mobs')).have == {22}, 'the first clear picture wins; the folder is read again at start')
     pics.forget(22)
