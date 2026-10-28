@@ -1,13 +1,15 @@
-import sys, os, types, time, json, tempfile, threading, asyncio, urllib.request, urllib.error
+"""The app in a real browser: the page (Sapline) served by the app, with a pretend screen that shows a status bar.
+   python3 dev-tests/e2e/app_e2e.py [MapleReader folder] [screenshot prefix]   (needs: pip install playwright)"""
+import sys, os, types, time, json, tempfile, asyncio, urllib.request, urllib.error
 os.environ.setdefault('MAPLEREADER_UPDATE_API', 'off')   # never ask the real GitHub from a test
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the repository
 R = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_ROOT, 'MapleReader')
 OUT = sys.argv[2] if len(sys.argv) > 2 else tempfile.mkdtemp(prefix='mr_shots_')   # screenshots go here
-sys.path.insert(0, R); sys.path.insert(0, os.path.join(R, 'tests'))
+sys.path.insert(0, R)
 work = tempfile.mkdtemp(prefix='mr_app_'); os.chdir(work)
 import shopreader.config as C; C.APP_DIR = work
-import test_session as TS
-pics = TS.frames(); hold = {'go': False}
+from PIL import Image
+BAR = Image.open(os.path.join(R, 'tests', 'fixtures', 'live_shop.png')).convert('RGB')   # a screen with the status bar: 93,499 (43.17%), level 37
 class Shot:
     def __init__(s, img): s.size, s.bgra = img.size, img.convert('RGBA').tobytes('raw', 'BGRA')
 class Screen:
@@ -15,14 +17,12 @@ class Screen:
     def __enter__(s): return s
     def __exit__(s, *a): pass
     def grab(s, mon):
-        if threading.current_thread().name == 'exp':   # the EXP recorder looks at the same screen, but takes no turns
-            return Shot(pics[0])
-        time.sleep(0.12)
-        return Shot(pics.pop(0) if len(pics) > 1 else pics[0])
+        time.sleep(0.05)
+        return Shot(BAR)
 sys.modules['mss'] = types.SimpleNamespace(MSS=lambda: Screen())
-import shopreader.controller as CT, shopreader.market_server as M
-CT.APP_DIR = M.APP_DIR = work; CT.SETTINGS = os.path.join(work, 'settings.json')
-ctl = CT.Controller(); srv = M.MarketServer(controller=ctl); url = srv.start(); print('url', url)
+import shopreader.controller as CT, shopreader.server as SV
+CT.APP_DIR = work; CT.SETTINGS = os.path.join(work, 'settings.json')
+ctl = CT.Controller(); srv = SV.AppServer(controller=ctl); url = srv.start(); print('url', url)
 fails = []
 def ok(n, c):
     print(('PASS ' if c else 'FAIL ') + n)
@@ -30,9 +30,9 @@ def ok(n, c):
 # safety: buttons can't be pressed by other pages
 for hdr, want in (({}, 403), ({'X-MapleReader': '1', 'Host': 'evil.example'}, 403)):
     try:
-        urllib.request.urlopen(urllib.request.Request(url + 'api/start', data=b'{}', headers=hdr)); ok(f'S0 blocked {hdr}', False)
+        urllib.request.urlopen(urllib.request.Request(url + 'api/set', data=b'{}', headers=hdr)); ok(f'S0 blocked {hdr}', False)
     except urllib.error.HTTPError as e: ok(f'S0 press without the app header/host is refused ({e.code})', e.code == want)
-ok('S0b nothing started', not ctl.state['watching'])
+ok('S0b nothing recording yet', ctl.exp_runner is None)
 from playwright.async_api import async_playwright
 async def main():
     async with async_playwright() as p:
@@ -43,187 +43,104 @@ async def main():
             pg.on('pageerror', lambda e: errs.append(str(e)))
             await pg.goto(url); await pg.wait_for_timeout(1800)
             if scheme == 'dark':
-                ok('A1 opens on the Scanner tab', await pg.get_attribute('[data-nav=scan]', 'aria-current') == 'page')
-                ok('A2 says not scanning', 'Not scanning' in await pg.inner_text('#sst'))
-                lb = await pg.evaluate("document.querySelector('.scan > div').getBoundingClientRect().bottom")
-                ok(f'A1b the Scan tab fits the window without scrolling (left column ends at {lb:.0f} of 860)', lb <= 860)
-                ok('A2b three steps to follow, none done yet', await pg.locator('#steps li').count() == 3 and await pg.locator('#steps li.done').count() == 0)
-                ok('A2c channel and room boxes stay closed until Change', await pg.locator('#ich').is_hidden())
-                ok('A2d group sharing is not shown while it is off', await pg.locator('#shst').count() == 0)
-                ok('A2e no update card when there is nothing to update', await pg.locator('#upd').is_hidden())
+                ok('A1 opens on the EXP tab', await pg.get_attribute('[data-nav=exp]', 'aria-current') == 'page')
+                ok('A1b night first', await pg.evaluate("document.documentElement.dataset.theme") == 'dark')
+                ok('A2 says not recording', 'Not recording' in await pg.inner_text('#chip') and 'Start recording' in await pg.inner_text('.xctl'))
+                ok('A2b no update card when there is nothing to update', await pg.locator('#upd').count() == 0)
                 ctl.update_info = {'state': 'available', 'version': '2099-01-01', 'can_install': False, 'page': 'https://example.com/r'}
                 await pg.wait_for_timeout(1600)
-                ok('A2f a new version shows at the top of Scan', await pg.locator('#upd').is_visible() and
+                ok('A2c a new version shows at the top of EXP', await pg.locator('#upd').count() == 1 and
                    'A new version is ready' in await pg.inner_text('#upd') and 'Download page' in await pg.inner_text('#upd'))
                 ctl.update_info = {'state': 'none'}; await pg.wait_for_timeout(1600)
-                ok('A2g and goes away again', await pg.locator('#upd').is_hidden())
+                ok('A2d and goes away again', await pg.locator('#upd').count() == 0)
                 await pg.screenshot(path=OUT + '_idle.png')
-                await pg.click('[data-chg=ch]'); await pg.keyboard.type('99'); await pg.wait_for_timeout(200)   # real keystrokes
-                ok('A2h digits typed into the Channel box land in it (the Enter handler used to cancel every other key)',
-                   await pg.input_value('#ich') == '99')
-                await pg.click('#sch'); await pg.wait_for_timeout(300)
-                ok('A3 bad channel refused', ctl.state['channel'] == 0)
-                ok('A3a the Scan tab carries no EXP card: EXP lives on its own tab', await pg.locator('#expc').count() == 0 and
-                   'EXP' not in await pg.inner_text('.scan'))
-                await pg.click('[data-nav=exp]'); await pg.wait_for_timeout(600); await pg.click('[data-x=go]'); await pg.wait_for_timeout(1500)
-                ok('A3b EXP has its own Start on the EXP tab: recording EXP without watching shops', ctl.exp_runner is not None and
-                   not ctl.state['watching'] and 'Stop recording' in await pg.inner_text('.xctl'))
-                await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(600)
-                await pg.click('#go'); await pg.wait_for_timeout(1500)
-                ok('A4 Start starts the scanner', ctl.state['watching'] and 'Stop' in await pg.inner_text('#go'))
-                t0 = time.time()
-                while time.time() - t0 < 180 and ctl.state['total'] < 29:
-                    await pg.wait_for_timeout(1000)
-                await pg.wait_for_timeout(2500)
-                n = await pg.locator('#feed .fr').count()
-                ok(f'A5 all 29 listings appear in the feed ({n})', n == 29)
-                imgs = await pg.locator('#feed img.ic').count()
-                ok(f'A6 each has its picture ({imgs})', imgs == 29)
-                ok('A7 channel and room tiles', (await pg.inner_text('#vch')) == '10' and (await pg.inner_text('#vrm')) == '1')
-                ok('A8 header chip live', 'CH 10' in await pg.inner_text('#chip'))
-                # the tracker starts once two readings (3 s apart) agree: give it a moment on a fast machine
-                await pg.click('[data-nav=exp]'); await pg.wait_for_timeout(600)
-                for _ in range(20):
-                    xt = await pg.inner_text('.xgrid')
+                await pg.click('[data-x=go]'); await pg.wait_for_timeout(1500)
+                ok('A3 Start starts the recorder', ctl.exp_runner is not None and 'Stop recording' in await pg.inner_text('.xctl'))
+                # the tracker starts once two readings (a second apart) agree
+                for _ in range(25):
+                    xt = await pg.inner_text('#app')
                     if '43.17%' in xt:
                         break
                     await pg.wait_for_timeout(1000)
-                if '43.17%' not in xt:
-                    print('  EXP tracker state:', ctl.exp.first, ctl.exp.last, ctl.settings.get('exp'), bool(ctl.scanner))
-                ok(f'A8b the EXP tab read the status bar (level 37, 43.17%) {xt[:60]!r}', '37' in xt and '43.17%' in xt and '93,499' in xt)
+                ok(f'A4 the EXP tab read the status bar (level 37, 43.17%) {xt[:50]!r}', '37' in xt and '43.17%' in xt and '93,499' in xt)
+                ok('A4b the header pill shows Recording and the level', 'Recording' in await pg.inner_text('#chip') and 'Lv 37' in await pg.inner_text('#chip'))
+                ok('A4c the goals card is there, waiting for kills', 'Goals' in xt and 'kills left to level' in xt.lower() and 'kills per hour' in xt.lower())
+                ok('A4d the first minutes are marked as a warm-up', await pg.locator('#app .warm').count() == 1)
+                ok('A4e the level card and the session tiles', await pg.locator('.xlv').count() == 1 and 'damage taken' in xt.lower() and 'playing time' in xt.lower())
+                await pg.click('[data-xr=week]'); await pg.wait_for_timeout(300)
+                ok('A5 the last 7 days chart', 'EXP per day' in await pg.inner_text('#app') and await pg.locator('.xchart i').count() == 7)
+                await pg.click('[data-xk=line]'); await pg.wait_for_timeout(300)
+                ok('A5b as a line too, with a log scale on offer', await pg.locator('svg.xline polyline').count() == 1 and
+                   await pg.locator('svg.xline circle').count() == 7 and await pg.locator('[data-xs=log]').count() == 1)
+                await pg.click('[data-xs=log]'); await pg.wait_for_timeout(300)
+                ok('A5c log scale remembered', await pg.evaluate("() => JSON.parse(localStorage.getItem('sap1:charts')).xs") is True)
+                await pg.click('[data-xk=bars]'); await pg.click('[data-xs=lin]'); await pg.click('[data-xr=session]'); await pg.wait_for_timeout(300)
+                await pg.screenshot(path=OUT + '_exp.png')
                 await pg.click('[data-x=reset]'); await pg.wait_for_timeout(1500)
-                ok('A8c Reset clears it (until the next readings)', ctl.exp.gained == 0 and ctl.exp.levels == 0)
-                await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(600)
-                ok('A9 newest listings marked just listed', await pg.locator('#feed .fr.new').count() >= 6)
-                await pg.screenshot(path=OUT + '_dark.png')
-                ok('A9b the steps go away once listings are saved', await pg.locator('#steps').is_hidden())
+                ok('A6 Reset clears it (until the next readings)', ctl.exp.gained == 0 and ctl.exp.levels == 0 and 'starts again' in await pg.inner_text('#live'))
+                # Runs
+                for i, m in enumerate(('The Land of Wild Boar II', 'Ant Tunnel I')):
+                    ctl.exp_log.add({'date': time.time() - 3600 * (i + 1), 'minutes': 45, 'gained': 40000, 'per_hour': 53333, 'level': 37, 'map': m, 'party': 4 - i * 3,
+                                     'kills': [{'exp': 20, 'n': 30, 'name': 'Snail'}], 'kills_total': 30, 'taken': 120})
+                await pg.click('[data-nav=runs]'); await pg.wait_for_timeout(1500)
+                rt = await pg.inner_text('.xlog')
+                ok('A7 the Runs tab lists past runs, with the party, kills and damage', await pg.locator('.xlog tbody tr:not(.now)').count() == 2 and
+                   'Ant Tunnel I' in rt and '4 in party' in rt and 'dmg taken' in rt.lower())
+                await pg.click('.xlog [data-xl=rename] >> nth=0'); await pg.fill('#xrn', 'Boars with Sam'); await pg.wait_for_timeout(1500)
+                ok('A7b typing a name is not wiped by the page refreshing', await pg.input_value('#xrn') == 'Boars with Sam')
+                await pg.click('.xlog [data-xl=save]'); await pg.wait_for_timeout(1500)
+                ok('A7c Rename keeps the new name', ctl.exp_log.list()[0].get('name') == 'Boars with Sam' and 'Boars with Sam' in await pg.inner_text('.xlog'))
+                await pg.click('.xlog [data-xl=delete] >> nth=1'); await pg.wait_for_timeout(1500)
+                ok('A7d Delete removes a line', len(ctl.exp_log.list()) == 1 and await pg.locator('.xlog tbody tr:not(.now)').count() == 1)
+                await pg.click('.xlog [data-xl=on]'); await pg.wait_for_timeout(1000)
+                ok('A7e "Log my runs" can be turned off', ctl.settings['exp_log'] is False)
+                await pg.click('.xlog [data-xl=on]'); await pg.wait_for_timeout(800)
+                await pg.screenshot(path=OUT + '_runs.png')
+                # Mobs
+                ctl.exp.amounts = {22: 5, 45: 1}       # (as if kills had been seen)
+                await pg.click('[data-nav=mobs]'); await pg.wait_for_timeout(1500)
+                mt = await pg.inner_text('#app')
+                ok('A8 the Mobs tab lists the kills by EXP amount, with a name box', await pg.get_attribute('input.mn', 'placeholder') == '22 EXP each: name it'
+                   and 'Other gains' in mt and await pg.locator('input.mn').count() == 1)
+                await pg.fill('input.mn', 'Evil Eye'); await pg.click('[data-mns]'); await pg.wait_for_timeout(1500)
+                ok('A8b naming a mob goes into mobs.txt and the table', ctl.mobs.name(22) == 'Evil Eye' and 'Evil Eye' in await pg.inner_text('#app')
+                   and 'Evil Eye | 22' in open(os.path.join(work, 'mobs.txt'), encoding='utf-8').read())
+                r = await pg.evaluate("() => fetch('/api/mobpic/22.png').then(r => r.status)")
+                ok('A8c no picture of it yet: 404, not an error', r == 404)
+                await pg.screenshot(path=OUT + '_mobs.png')
+                # Options
                 await pg.click('[data-nav=more]'); await pg.wait_for_timeout(500)
-                ok('A9c Options: every setting is a card', await pg.locator('#app .ocards .oc').count() >= 8 and await pg.locator('#oa').count() == 1)
-                await pg.check('#oq') ; await pg.uncheck('#oq'); await pg.wait_for_timeout(300)
-                await pg.select_option('#om', '2'); await pg.wait_for_timeout(300)
-                await pg.uncheck('#oa'); await pg.wait_for_timeout(300)
+                ok('A9 Options: every setting is a card, with the stance text', await pg.locator('#app .ocards .oc').count() >= 7 and
+                   'never clicks' in await pg.inner_text('#app'))
+                await pg.select_option('#oi', '5'); await pg.select_option('#om', '2'); await pg.uncheck('#ox'); await pg.wait_for_timeout(1500)
                 st = json.load(open(os.path.join(work, 'settings.json')))
-                ok('A10 options saved (chime off, screen 2, no auto start)', st['quiet'] is True and st['monitor'] == 2 and st['auto_start'] is False)
-                ok('A10a Options has no theme card: the header button is the switch', await pg.locator('#odk').count() == 0)
+                ok('A9b options saved (pause after 5, screen 2, no recording on open)', st['idle_min'] == 5 and st['monitor'] == 2 and st['exp'] is False
+                   and ctl.exp.idle == 300)
+                ok('A9c switching recording off in Options stops it', ctl.exp_runner is None)
+                await pg.check('#ox'); await pg.wait_for_timeout(1000)
+                ok('A9d and on again starts it', ctl.exp_runner is not None)
                 await pg.click('#theme'); await pg.wait_for_timeout(200)     # this browser asks for dark, so the first click gives day
                 lt = await pg.evaluate("document.documentElement.dataset.theme")
                 await pg.click('#theme'); await pg.wait_for_timeout(200)
-                ok(f'A10b the header Theme button switches day and night (first {lt})', lt == 'light' and
+                ok(f'A10 the header Theme button switches day and night (first {lt})', lt == 'light' and
                    await pg.evaluate("document.documentElement.dataset.theme") == 'dark')
-                await pg.set_input_files('#opic', os.path.join(R, 'tests/fixtures/screw.png')); await pg.wait_for_timeout(6000)
-                await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(500)
-                await pg.click('[data-chg=rm]'); await pg.keyboard.type('7'); await pg.press('#irm', 'Enter'); await pg.wait_for_timeout(1500)
-                ok('A11 room typed by hand', ctl.state['room'] == 7 and (await pg.inner_text('#vrm')) == '7')
-                ok('A12 read a screenshot', 'screw.png: 6 listings' in await pg.inner_text('#notes'))
-                await pg.click('[data-nav=browse]'); await pg.wait_for_timeout(1500)
-                n = await pg.locator('#list [data-open]').count()
-                ok(f'A12b Prices: one row per scanned item, no sample items ({n})', n == 24 and 'Purple Tube' not in await pg.inner_text('#list'))
-                await pg.click('[data-ps=low]'); await pg.wait_for_timeout(300)
-                first = (await pg.inner_text('#list [data-open] >> nth=0')).splitlines()[0]
-                ok(f'A12c Cheapest first ({first})', first == 'Adamantium Ore')
-                await pg.fill('#gs', 'ore'); await pg.wait_for_timeout(300)
-                ok('A12d search narrows the prices (the three ores)', await pg.locator('#list [data-open]').count() == 3)
-                await pg.click('#list [data-open] >> nth=1'); await pg.wait_for_timeout(300)
-                pn = await pg.inner_text('#ipanel')
-                ok('A12e clicking a price card shows its details beside the cards', 'Where to buy' in pn and
-                   (await pg.inner_text('#list [data-open][aria-pressed=true]')).splitlines()[0] in pn)
-                await pg.click('[data-nav=market]'); await pg.wait_for_timeout(2500)
-                rows = await pg.locator('#mb .fr').count(); mi = await pg.locator('#mb img.ic').count()
-                ok(f'A13 listings: copies merged, each with its picture ({rows} rows, {mi} pictures)', rows == 17 and mi == 17)
-                ok('A13b two copies show as x2', await pg.locator('#mb .cnt:has-text("×2")').count() == 3)
-                ok('A14 market shows just listed', await pg.locator('#mb .fresh').count() >= 1)
-                ok('A14b listings are compact rows only (no Cards switch)', await pg.locator('[data-lv]').count() == 0)
-                await pg.screenshot(path=OUT + '_market.png')
-                await pg.click('#mb [data-open]'); await pg.wait_for_timeout(500)
-                ok('A15 a listing shows its item beside the list, with the big picture', await pg.locator('#lpanel img.ic.lg').count() == 1 and
-                   await pg.get_attribute('[data-nav=market]', 'aria-current') == 'page')
-                lp = await pg.inner_text('#lpanel')
-                ok('A15b ...and where to buy it, with its price history', 'Where to buy' in lp and 'Cheapest NX <3' in lp and 'Price history' in lp)
-                await pg.click('#lpanel [data-hk=line]'); await pg.wait_for_timeout(300)
-                ok('A15c price history as lines: cheapest, median and dearest', await pg.locator('#lpanel svg .hx').count() == 2 and
-                   await pg.locator('#lpanel svg .hl').count() == 1 and await pg.locator('#lpanel svg .hb').count() == 0)
-                await pg.click('#lpanel [data-hs=log]'); await pg.wait_for_timeout(300)
-                ok('A15d ...and on a log scale, remembered', 'log scale' in await pg.inner_text('#lpanel') and
-                   await pg.evaluate("() => JSON.parse(localStorage.getItem('mcm1:charts')).hs") is True)
-                await pg.click('#lpanel [data-hk=bars]'); await pg.click('#lpanel [data-hs=lin]'); await pg.wait_for_timeout(300)
-                ok('A15e back to bars', await pg.locator('#lpanel svg .hb').count() >= 1)
-                await pg.screenshot(path=OUT + '_listings.png')
-                await pg.click('[data-nav=home]'); await pg.wait_for_timeout(500)
-                ok('A15g Home: a search, today\'s numbers and what was just listed', await pg.locator('#gs').count() == 1 and
-                   await pg.locator('#home .feed [data-open]').count() == 6)
-                await pg.click('#home .feed [data-open] >> nth=0'); await pg.wait_for_timeout(400)
-                ok('A15h a Home row opens the item page', await pg.locator('#back').count() == 1 and await pg.locator('#app img.ic.lg').count() == 1)
-                await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
-                ok('A15e Esc goes back from an item', await pg.locator('#app img.ic.lg').count() == 0)
-                await pg.click('[data-nav=more]'); await pg.keyboard.press('/'); await pg.wait_for_timeout(300)
-                ok('A15f "/" jumps to the search box', await pg.evaluate("document.activeElement.id") == 'gs')
-                await pg.click('[data-nav=more]'); await pg.click('[data-go=deals]'); await pg.wait_for_timeout(300)
-                ok('A15c More opens alerts and deals, with a way back', await pg.locator('#at').count() == 1 and
-                   await pg.get_attribute('[data-nav=more]', 'aria-current') == 'page')
-                await pg.click('#tomore'); await pg.click('[data-go=mine]'); await pg.wait_for_timeout(300)
-                ok('A15d My shop has the post form', await pg.locator('#pgo').count() == 1)
-                await pg.evaluate("document.documentElement.dataset.theme = 'light'")   # (A10b left the dark theme on)
-                bg0 = await pg.evaluate("getComputedStyle(document.body).backgroundColor")
-                await pg.click('[data-nav=exp]'); await pg.wait_for_timeout(2500)
-                xp = await pg.inner_text('#app')
-                ok('A15i the EXP tab: the same look as the other tabs, with the trend on top', await pg.locator('.xband').count() == 1 and
-                   'EXP/h' in xp and 'Stop recording' in xp and await pg.evaluate("getComputedStyle(document.body).backgroundColor") == bg0
-                   and ('level-ups' in xp.lower() or 'No EXP reading yet' in xp))
-                ok('A15i2 ...with the mobs killed and the damage taken', await pg.locator('.xmobs').count() == 1 and 'mobs this' in xp.lower() and
-                   ('damage taken' in xp.lower() or 'No EXP reading yet' in xp))
-                await pg.click('[data-xr=week]'); await pg.wait_for_timeout(300)
-                ok('A15j ...and its last 7 days', 'EXP per day' in await pg.inner_text('#app') and await pg.locator('.xchart i').count() == 7)
-                await pg.click('[data-xk=line]'); await pg.wait_for_timeout(300)
-                ok('A15k ...as a line too, with a log scale on offer', await pg.locator('svg.xline polyline').count() == 1 and
-                   await pg.locator('svg.xline circle').count() == 7 and await pg.locator('[data-xs=log]').count() == 1)
-                await pg.click('[data-xs=log]'); await pg.wait_for_timeout(300)
-                ok('A15l log scale remembered', await pg.evaluate("() => JSON.parse(localStorage.getItem('mcm1:charts')).xs") is True)
-                await pg.click('[data-xk=bars]'); await pg.click('[data-xs=lin]'); await pg.wait_for_timeout(300)
-                for i, m in enumerate(('The Land of Wild Boar II', 'Ant Tunnel I')):
-                    ctl.exp_log.add({'date': time.time() - 3600 * (i + 1), 'minutes': 45, 'gained': 40000, 'per_hour': 53333, 'level': 37, 'map': m, 'party': 4 - i * 3})
-                await pg.wait_for_timeout(1500)
-                ok('A15l the EXP log lists past runs, with the party', await pg.locator('.xlog tbody tr:not(.now)').count() == 2 and 'Ant Tunnel I' in await pg.inner_text('.xlog')
-                   and 'dmg taken' in (await pg.inner_text('.xlog')).lower()
-                   and '4 in party' in await pg.inner_text('.xlog'))
-                await pg.click('.xlog [data-xl=rename] >> nth=0'); await pg.fill('#xrn', 'Boars with Sam'); await pg.wait_for_timeout(1500)
-                ok('A15m typing a name is not wiped by the page refreshing', await pg.input_value('#xrn') == 'Boars with Sam')
-                await pg.click('.xlog [data-xl=save]'); await pg.wait_for_timeout(1500)
-                ok('A15n Rename keeps the new name', ctl.exp_log.list()[0].get('name') == 'Boars with Sam' and 'Boars with Sam' in await pg.inner_text('.xlog'))
-                await pg.click('.xlog [data-xl=delete] >> nth=1'); await pg.wait_for_timeout(1500)
-                ok('A15o Delete removes a line', len(ctl.exp_log.list()) == 1 and await pg.locator('.xlog tbody tr:not(.now)').count() == 1)
-                await pg.click('.xlog [data-xl=on]'); await pg.wait_for_timeout(1000)
-                ok('A15p "Log my runs" can be turned off', ctl.settings['exp_log'] is False)
-                r = await pg.evaluate("() => fetch('/api/mob-name', {method: 'POST', headers: {'X-MapleReader': '1', 'Content-Type': 'application/json'}, "
-                                      "body: JSON.stringify({exp: 22, name: 'Evil Eye'})}).then(r => r.json())")
-                ok('A15q naming a mob from the page goes into mobs.txt', r.get('ok') and ctl.mobs.name(22) == 'Evil Eye'
-                   and 'Evil Eye | 22' in open(os.path.join(work, 'mobs.txt'), encoding='utf-8').read())
-                r = await pg.evaluate("() => fetch('/api/mobpic/22.png').then(r => r.status)")
-                ok('A15r no picture of it yet: 404, not an error', r == 404)
-                await pg.click('.xlog [data-xl=on]'); await pg.wait_for_timeout(800)
-                await pg.screenshot(path=OUT + '_exp.png', full_page=True)
-                await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(800)
-                ok('A15k leaving it, the page keeps its look', await pg.evaluate("getComputedStyle(document.body).backgroundColor") == bg0)
-                await pg.click('#go'); await pg.wait_for_timeout(1500)
-                ok('A16 Stop stops', not ctl.state['watching'] and 'Start' in await pg.inner_text('#go'))
-                ok('A16b stopping shops leaves EXP recording on', ctl.exp_runner is not None)
-                await pg.click('[data-nav=exp]'); await pg.wait_for_timeout(600); await pg.click('[data-x=go]'); await pg.wait_for_timeout(1500)
-                ok('A16c and EXP stops with its own button on the EXP tab', ctl.exp_runner is None and 'Start recording' in await pg.inner_text('.xctl')
+                await pg.screenshot(path=OUT + '_options.png')
+                await pg.click('[data-nav=exp]'); await pg.wait_for_timeout(800)
+                await pg.click('[data-x=go]'); await pg.wait_for_timeout(1500)
+                ok('A11 Stop stops, and is remembered', ctl.exp_runner is None and 'Start recording' in await pg.inner_text('.xctl')
                    and json.load(open(os.path.join(work, 'settings.json')))['exp'] is False)
-                await pg.click('[data-nav=scan]'); await pg.wait_for_timeout(600)
-                ok('A17 feed kept after stop', await pg.locator('#feed .fr').count() == 29)
                 await pg.reload(); await pg.wait_for_timeout(2000)
-                ok('A18 reload restores the session feed', await pg.locator('#feed .fr').count() == 29)
+                ok('A12 reload: still the EXP tab, still not recording', 'Not recording' in await pg.inner_text('#chip'))
             else:
                 await pg.wait_for_timeout(500); await pg.screenshot(path=OUT + '_light.png')
                 await pg.set_viewport_size({'width': 420, 'height': 900}); await pg.wait_for_timeout(500)
                 sw = await pg.evaluate('document.documentElement.scrollWidth')
-                ok(f'A19 phone width: no sideways scroll ({sw})', sw <= 420)
+                ok(f'A13 phone width: no sideways scroll ({sw})', sw <= 420)
                 await pg.screenshot(path=OUT + '_narrow.png', full_page=False)
-            ok(f'A20 no page errors ({scheme}) {errs[:2]}', not errs)
+            ok(f'A14 no page errors ({scheme}) {errs[:2]}', not errs)
             await ctx.close()
         await b.close()
 asyncio.run(main())
 srv.stop(); ctl.shutdown()
 print('ALL APP CHECKS PASSED' if not fails else f'{len(fails)} FAILED')
-
-sys.exit(1 if fails else 0)   # so a runner sees a failure, not just the printed line
+sys.exit(1 if fails else 0)

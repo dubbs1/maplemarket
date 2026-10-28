@@ -1,9 +1,8 @@
-"""The app's engine room: runs the scanner in the background and keeps what the window shows.
+"""The app's engine room: runs the EXP recorder in the background and keeps what the window shows.
 
 The window (a web page) asks for /api/state about once a second and sends button presses as
 small requests. Everything here is safe to call from the web server's threads.
 """
-import io
 import json
 import os
 import subprocess
@@ -13,57 +12,27 @@ import time
 from collections import deque
 
 from . import __version__, engine
-from .config import APP_DIR, PLACE_KEEP, UPDATE_EVERY, VOLUME
+from .config import APP_DIR, EXP_IDLE, UPDATE_EVERY
 from .exp import ExpDays, ExpLog, ExpTracker
-from .mobs import Mobs
+from .mobs import Mobs, parse_mobs
 from .mobpics import MobPics
-from .icons import slug
-from .location import RoomWatcher, read_channel
-from .names import load_items
 from .ocr import find_tesseract
-from .rows import parse_frame
-from .scanner import Events, ExpRunner, Scanner
+from .recorder import Events, ExpRunner
 from . import update as updater
 
 SETTINGS = os.path.join(APP_DIR, 'settings.json')
 
 
 class _Feed(Events):
-    """Scanner -> controller."""
+    """Recorder -> controller."""
     def __init__(self, c):
         self.c = c
 
     def message(self, text):
         self.c.note(text, 'warn')
 
-    def status(self, what):
-        self.c.set(status=what)
-
-    def channel(self, ch, auto):
-        self.c.set(channel=ch)
-        self.c.remember_place()
-        self.c.note(f'Channel {ch}, read from the Change Channel window.')
-
-    def room(self, room):
-        self.c.set(room=room)
-        if room:
-            self.c.remember_place()
-        else:
-            self.c.note('Room not read. Is the minimap open? You can type the room instead.', 'warn')
-
-    def shop(self, name, rows_seen):
-        self.c.set(shop=name, shop_rows=rows_seen)
-
-    def gone(self, rows, room, ch):
-        names = sorted({r['item'] for r in rows})
-        self.c.note(f'{len(rows)} listing{"s" if len(rows) > 1 else ""} no longer in "{rows[0]["shop"]}": ' +
-                    ', '.join(names[:3]) + ('…' if len(names) > 3 else '') + '. Taken off the market.')
-
-    def saved(self, rows, room, ch, total):
-        now = time.time()
-        self.c.set(total=total, room=room, channel=ch)
-        self.c.push('saved', rows=[dict(item=r['item'], each=r['each'], shop=r['shop'], sold=bool(r.get('sold')),
-                                        room=room, ch=ch, icon=slug(r['item']), t=now) for r in rows])
+    def exp(self, summary):
+        pass                                         # (the window reads the summary from the snapshot)
 
 
 class Controller:
@@ -75,21 +44,16 @@ class Controller:
         self.tesseract = find_tesseract()
         self.engine = engine.mode() if self.tesseract else 'none'
         self._tess_check = 0                         # when we last looked for a newly installed Tesseract
-        self.scanner = None
         self.exp_days = ExpDays(os.path.join('scans', 'exp_days.json'))   # EXP gained each day (kept by Reset)
-        self.exp_log = ExpLog(os.path.join('scans', 'exp_log.json'))     # one line per hunting run (the EXP tab's log)
+        self.exp_log = ExpLog(os.path.join('scans', 'exp_log.json'))     # one line per hunting run (the Runs tab)
         self.mobs = Mobs(os.path.join(APP_DIR, 'mobs.txt'))   # names for the kills counted (a list the owner keeps)
         self.mobs.ensure()
         self.mobpics = MobPics(os.path.join(APP_DIR, 'scans', 'mobs'), os.path.join(APP_DIR, 'scans', 'fight'))   # a picture of each mob killed
         self.exp = ExpTracker(on_gain=self.exp_days.add, on_run=self._log_run, namer=self.mobs.name)   # kept across stop/start: Reset clears it
-        self.exp_runner = None                       # records EXP on its own, apart from the shop scanner
+        self.exp.idle = int(self.settings['idle_min']) * 60
+        self.exp_runner = None
         self.seq = 0
-        self.events = deque(maxlen=400)              # saved rows and notes, newest last
-        self.state = dict(watching=False, status='stopped', channel=0, room=0, shop=None, shop_rows=0,
-                          total=0, started=None)
-        place = self.settings.get('last_place') or {}   # closed and reopened a little later: still the same place
-        if time.time() - place.get('t', 0) < PLACE_KEEP:
-            self.state.update(channel=place.get('channel', 0), room=place.get('room', 0))
+        self.events = deque(maxlen=400)              # notes, newest last
         self.last_seen = time.time()                 # when the window last asked for news
         # updates: only the installed app (MapleReader.exe) can install one; the zip version is told where to get it
         self.frozen = bool(getattr(sys, 'frozen', False))
@@ -106,13 +70,11 @@ class Controller:
                 s = json.load(f)
         except (OSError, ValueError):
             s = {}
-        s.setdefault('volume', VOLUME)
-        s.setdefault('quiet', False)
         s.setdefault('monitor', 1)
-        s.setdefault('auto_start', True)             # start watching as soon as the app opens
-        s.setdefault('exp_log', True)                # keep the EXP log (the EXP tab's "Log my runs" switch)
+        s.setdefault('exp', True)                    # record EXP as soon as the app opens
+        s.setdefault('exp_log', True)                # keep the run log (the Runs tab's "Log my runs" switch)
+        s.setdefault('idle_min', EXP_IDLE // 60)     # minutes without EXP before the clock pauses
         s['fight_pics'] = False                      # save whole screenshots around each kill (for tuning): off at every start
-        s.setdefault('exp', True)                    # record EXP (on its own, whether or not shops are watched)
         return s
 
     def _save(self):
@@ -124,19 +86,7 @@ class Controller:
         except OSError:
             pass
 
-    def remember_place(self):
-        """The channel and room, typed or read, for the next time the app opens (within PLACE_KEEP)."""
-        with self.lock:
-            ch, rm = self.state['channel'], self.state['room']
-        if 1 <= ch <= 40 or 1 <= rm <= 40:
-            self.settings['last_place'] = dict(channel=ch if 1 <= ch <= 40 else 0, room=rm if 1 <= rm <= 40 else 0, t=time.time())
-            self._save()
-
     # --- shared state ---
-    def set(self, **kw):
-        with self.lock:
-            self.state.update(kw)
-
     def push(self, kind, **data):
         with self.lock:
             self.seq += 1
@@ -150,7 +100,7 @@ class Controller:
         if find_tesseract():
             self.engine = engine.mode()               # can take a few seconds (a safety test): not on the window's request
             self.tesseract = True
-            self.note('Tesseract found. Press Start watching.')
+            self.note('Tesseract found: map names and mesos are read from now on.')
 
     # --- updates ---
     def check_update(self, wait=False):
@@ -232,44 +182,16 @@ class Controller:
         if not self.tesseract and time.time() - self._tess_check > 5:
             self._tess_check = time.time()
             threading.Thread(target=self._look_for_tesseract, daemon=True).start()
+        r = self.exp_runner
         with self.lock:
             self.last_seen = time.time()
             settings = dict(self.settings)
-            return dict(self.state, version=__version__, engine=self.engine, tesseract=self.tesseract, update=self.update_info,
+            return dict(version=__version__, engine=self.engine, tesseract=self.tesseract, update=self.update_info,
                         settings=settings, exp=self._with_pics(self.exp.summary()), exp_days=self.exp_days.last(7), exp_log=self.exp_log.list(),
-                        exp_on=bool(self.exp_runner),
-                        exp_found=bool(self.exp_runner and self.exp_runner.found), seq=self.seq,
-                        events=[e for e in self.events if e['seq'] > since])
+                        exp_on=bool(r), exp_found=bool(r and r.found), exp_unread=r.watcher.unread if r else 0,
+                        seq=self.seq, events=[e for e in self.events if e['seq'] > since])
 
-    # --- buttons ---
-    def start(self, channel=0):
-        if not self.tesseract:
-            return {'ok': False, 'error': 'Tesseract is not installed.'}
-        with self._start_lock:                       # two quick clicks must not start two scanners
-            if self.scanner:
-                return {'ok': True}
-            items = load_items(os.path.join(APP_DIR, 'items.txt'))
-            sc = Scanner(items, int(channel or self.state['channel'] or 0), monitor=int(self.settings['monitor']),
-                         volume=float(self.settings['volume']), quiet=bool(self.settings['quiet']), events=_Feed(self),
-                         room=int(self.state['room'] or 0))   # (typed or read before: kept, the scanner says so if it has to use it)
-            self.scanner = sc
-        self.set(watching=True, status='looking', channel=sc.state['ch'], room=sc.state['room'], shop=None, shop_rows=0, total=0,
-                 started=time.time())
-        self.note('Watching your screen.' + ('' if sc.state['ch'] else ' Open the Change Channel window once so I can read your channel.'))
-
-        def run():
-            try:
-                sc.run()
-            except Exception as e:                   # never stop silently
-                self.note(f'Scanning stopped: {type(e).__name__}: {e}. Please report this line.', 'error')
-            finally:
-                if self.scanner is sc:
-                    self.scanner = None
-                    self.set(watching=False, status='stopped')
-        threading.Thread(target=run, daemon=True).start()
-        return {'ok': True}
-
-    # --- EXP: recorded apart from shops, with its own Start/Stop (the `exp` setting) ---
+    # --- EXP: Start/Stop (the `exp` setting) ---
     def _with_pics(self, x):
         """The EXP summary with `pic` on each mob (is there a picture of it in scans/mobs?)."""
         if x:
@@ -309,7 +231,7 @@ class Controller:
             self.exp_log.add(e)
 
     def mob_name(self, d):
-        """The EXP tab's "Name this mob" box: the name goes into mobs.txt (replacing a line with the same EXP), or
+        """The "Name this mob" box: the name goes into mobs.txt (replacing a line with the same EXP), or
         action "forget" drops a wrong picture so the next clear kill brings a new one."""
         exp = int(d.get('exp'))
         if d.get('action') == 'forget':
@@ -321,7 +243,6 @@ class Controller:
         self.mobs.ensure()
         with open(self.mobs.path, encoding='utf-8-sig') as f:
             lines = f.read().splitlines()
-        from .mobs import parse_mobs
         keep = [ln for ln in lines if exp not in parse_mobs(ln) or ln.lstrip().startswith('#')]
         with open(self.mobs.path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(keep + [f'{name} | {exp}']) + '\n')
@@ -329,10 +250,10 @@ class Controller:
         return {'ok': True}
 
     def exp_log_edit(self, d):
-        """The EXP log's Rename and Delete buttons."""
+        """The run log's Rename and Delete buttons."""
         ok = self.exp_log.rename(str(d.get('id')), d.get('name')) if d.get('action') == 'rename' else \
             self.exp_log.delete(str(d.get('id'))) if d.get('action') == 'delete' else False
-        return {'ok': ok} if ok else {'ok': False, 'error': 'That line is not in the EXP log any more.'}
+        return {'ok': ok} if ok else {'ok': False, 'error': 'That line is not in the run log any more.'}
 
     def exp_reset(self):
         self.exp.reset()
@@ -340,72 +261,30 @@ class Controller:
         return {'ok': True}
 
     def autostart(self):
-        """When the app opens: start watching shops (unless switched off in Options) and recording EXP (if it was on;
-        EXP has its own switch and doesn't need Tesseract)."""
-        if self.settings.get('auto_start', True) and self.tesseract:
-            self.start()
+        """When the app opens: start recording EXP, unless switched off in Options."""
         if self.settings.get('exp', True):
             self.exp_start()
 
-    def stop(self):
-        sc, self.scanner = self.scanner, None
-        if sc:
-            sc.stop()
-            self.set(watching=False, status='stopped', shop=None)
-            self.note(f'Stopped. {self.state["total"]} listings saved this session.')
-        return {'ok': True}
-
     def update(self, d):
-        """Settings and corrections from the window: channel, room, volume, quiet, monitor, auto_start, exp, sharing."""
-        if 'channel' in d:
-            ch = int(d['channel'])
-            if not 1 <= ch <= 40:
-                return {'ok': False, 'error': 'Channel must be 1 to 40.'}
-            self.set(channel=ch)
-            if self.scanner:
-                self.scanner.set_channel(ch)
-            self.note(f'Channel set to {ch}.')
-        if 'room' in d:
-            rm = int(d['room'])
-            if not 0 <= rm <= 40:
-                return {'ok': False, 'error': 'Room must be 0 (unknown) to 40.'}
-            self.set(room=rm)
-            if self.scanner:
-                self.scanner.set_room(rm)
-            self.note(f'Room set to {rm}.')
-        if 'channel' in d or 'room' in d:
-            self.remember_place()
-        for k, conv in (('volume', float), ('quiet', bool), ('monitor', int), ('auto_start', bool), ('exp', bool), ('exp_log', bool), ('fight_pics', bool)):
+        """Settings from the window: monitor, exp, exp_log, idle_min, fight_pics."""
+        for k, conv in (('monitor', int), ('exp', bool), ('exp_log', bool), ('idle_min', int), ('fight_pics', bool)):
             if k in d:
                 self.settings[k] = conv(d[k])
+        if 'idle_min' in d:
+            if not 1 <= self.settings['idle_min'] <= 30:
+                self.settings['idle_min'] = min(30, max(1, self.settings['idle_min']))
+            self.exp.idle = self.settings['idle_min'] * 60
         if 'exp' in d:
             if self.settings['exp']:
                 self.exp_start()
-                self.note('Recording your EXP (shops are watched separately).')
+                self.note('Recording your EXP.')
             else:
                 self.exp_stop()
                 self.note('EXP recording stopped.')
-        if self.scanner and ('volume' in d or 'quiet' in d):
-            self.scanner.set_sound(volume=self.settings['volume'], quiet=self.settings['quiet'])
-        if 'monitor' in d and self.scanner:
+        if 'monitor' in d and self.exp_runner:
             self.note('The new screen is used next time you press Start.')
         self._save()
         return {'ok': True}
-
-    def read_picture(self, data):
-        """'Read a screenshot': what the reader sees in one picture."""
-        if not self.tesseract:
-            return {'ok': False, 'error': 'Tesseract is not installed.'}
-        from PIL import Image
-        try:
-            im = Image.open(io.BytesIO(data)).convert('RGB')
-        except Exception:
-            return {'ok': False, 'error': 'That file is not a picture.'}
-        rows, _, _ = parse_frame(im, load_items(os.path.join(APP_DIR, 'items.txt')))
-        room = RoomWatcher(keep_picture=False).update(im, [], force=True)
-        ch = None if rows else read_channel(im)
-        return {'ok': True, 'room': room, 'channel': ch,
-                'rows': [dict(item=r['item'], each=r['each'], shop=r['shop'], sold=bool(r.get('sold'))) for r in rows]}
 
     def open_scans(self):
         path = os.path.join(APP_DIR, 'scans')
@@ -423,16 +302,8 @@ class Controller:
         self.note('Installing Tesseract in a separate window. Click Yes if Windows asks. MapleReader notices when it is done.')
         return {'ok': True}
 
-    def status_line(self):
-        """For the market's live banner."""
-        s = self.state
-        return dict(watching=s['watching'], channel=s['channel'], room=s['room'], total=s['total'], shop=s['shop'])
-
     def shutdown(self):
         self.exp_stop()
-        self.exp.end_run()                           # (the run so far goes into the EXP log)
+        self.exp.end_run()                           # (the run so far goes into the run log)
         self.exp_days.flush()
-        if self.scanner:
-            self.scanner.stop()
-        self.remember_place()
         self._save()

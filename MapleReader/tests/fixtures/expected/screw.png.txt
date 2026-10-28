@@ -1,7 +1,0 @@
-room: None
-Screw | 299 | Equip ore blood spore screw | 0 | 0
-Screw | 299 | Equip ore blood spore screw | 0 | 0
-Screw | 299 | Equip ore blood spore screw | 0 | 0
-Screw | 299 | Equip ore blood spore screw | 0 | 0
-Screw | 299 | Equip ore blood spore screw | 0 | 0
-Screw | 299 | Equip ore blood spore screw | 0 | 0

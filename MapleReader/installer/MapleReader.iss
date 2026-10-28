@@ -1,7 +1,7 @@
 ; MapleReader's Windows installer (Inno Setup 6). The automatic build makes it:
 ;   iscc /DAppVersion=2026-10-20g /DSrc=<folder with MapleReader.exe and _internal> /O<out> installer\MapleReader.iss
 ; It installs for the current user only (no admin rights needed) into %LOCALAPPDATA%\Programs\MapleReader.
-; Scans, pictures and settings live next to the app and are kept on updates and on uninstall.
+; The run log, pictures and settings live next to the app and are kept on updates and on uninstall.
 #ifndef AppVersion
   #define AppVersion "0-dev"
 #endif
@@ -14,7 +14,7 @@ AppId={{6C1F0B6E-3D2A-4E5B-9A7C-4D8E2F1A0B93}
 AppName=MapleReader
 AppVersion={#AppVersion}
 AppVerName=MapleReader {#AppVersion}
-AppPublisher=Maple Classic Market (fan project, not affiliated with Nexon)
+AppPublisher=Sapline (fan project, not affiliated with Nexon)
 DefaultDirName={localappdata}\Programs\MapleReader
 DisableDirPage=yes
 DisableProgramGroupPage=yes
@@ -32,7 +32,7 @@ CloseApplications=no
 Name: "desktopicon"; Description: "Put a MapleReader icon on the desktop"; Flags: checkedonce
 
 [InstallDelete]
-; the program's libraries are replaced as a whole on every update (scans and settings are not in here)
+; the program's libraries are replaced as a whole on every update (the data and settings are not in here)
 Type: filesandordirs; Name: "{app}\_internal"
 
 [Files]

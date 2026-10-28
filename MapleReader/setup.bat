@@ -1,6 +1,6 @@
 @echo off
 cd /d "%~dp0"
-echo Step 1 of 2: Tesseract (reads the text)
+echo Step 1 of 2: Tesseract (reads map names and mesos; EXP works without it)
 if exist "C:\Program Files\Tesseract-OCR\tesseract.exe" (
   echo   Already installed.
 ) else (
@@ -14,5 +14,5 @@ echo.
 echo Step 2 of 2: Python packages
 py -3.13 -m pip install -r requirements.txt
 echo.
-echo Done. Next: double-click run_tests.bat to check everything, then start.bat to scan.
+echo Done. Next: double-click run_tests.bat to check everything, then start_app.bat.
 pause

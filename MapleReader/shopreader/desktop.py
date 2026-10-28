@@ -1,6 +1,6 @@
-"""MapleReader as a desktop app: the scanner and the market in one window.
+"""MapleReader as a desktop app: the EXP recorder and its page (Sapline) in one window.
 
-Starts the scanner's controls and the market on this PC (http://127.0.0.1:8765), then shows them in
+Starts the recorder's controls and the page on this PC (http://127.0.0.1:8765), then shows it in
 an app window: Microsoft Edge in "app mode" (no address bar or tabs), which every Windows 10/11 PC
 has. If Edge isn't there it tries Chrome, then your normal browser. Closing the window closes
 MapleReader.
@@ -23,12 +23,12 @@ BROWSERS = [r'%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe',
             r'%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe',
             r'%LocalAppData%\Google\Chrome\Application\chrome.exe']
 QUIET_FOR = 90                     # no word from the window this long (seconds) = it was closed
-WINDOW_TITLE = 'Maple Market'      # the page's <title> (the self-check looks for it; the window lock's fallback)
+WINDOW_TITLE = 'Sapline'           # the page's <title> (the self-check looks for it; the window lock's fallback)
 WINDOW_SIZE = (1240, 860)          # the app window, outer size: the page is drawn for exactly this
 
 
 def _profile_dir():
-    """The app window's own browser profile (its saved market data lives here). Kept out of OneDrive."""
+    """The app window's own browser profile (its remembered theme and chart choices). Kept out of OneDrive."""
     base = os.environ.get('LOCALAPPDATA') or APP_DIR
     return os.path.join(base, 'MapleReader', 'window')
 
@@ -110,26 +110,25 @@ def _running_app(port=8765):
 
 
 def run():
-    os.chdir(APP_DIR)                                # scans, settings and pictures live next to the app
+    os.chdir(APP_DIR)                                # the run log, settings and pictures live next to the app
     if _running_app():
         open_window('http://127.0.0.1:8765/')
         return
     from .controller import Controller
-    from .market_server import MarketServer
+    from .server import AppServer
     from .migrate import first_run
     moved = first_run(APP_DIR) if getattr(sys, 'frozen', False) else None   # the installed app's first run
     ctl = Controller()
     if moved:
         ctl.note(moved)
-    srv = MarketServer(controller=ctl)
+    srv = AppServer(controller=ctl)
     url = srv.start()
     if not url:
         _message('MapleReader could not start: the ports it uses (8765 to 8770) are all busy.\n'
                  'Close other copies of MapleReader, or restart the PC, and try again.')
         return
-    if srv.shared:                                   # a market window without the scanner (market.bat) holds the port
-        _message('MapleReader is already open as a market window (market.bat).\n'
-                 'Close that black window, then start MapleReader again.')
+    if srv.shared:                                   # another copy holds the port but isn't answering as the app
+        _message('MapleReader seems to be open already. Close it, then start MapleReader again.')
         ctl.shutdown()
         return
     ctl.autostart()
@@ -166,14 +165,14 @@ def self_check(result_path):
     try:
         work = tempfile.mkdtemp(prefix='maplereader_check_')
         os.environ.setdefault('MAPLEREADER_UPDATE_API', 'off')
-        from . import config, controller, market_server
+        from . import config, controller, server
         from .ocr import find_tesseract
-        config.APP_DIR = controller.APP_DIR = market_server.APP_DIR = work
+        config.APP_DIR = controller.APP_DIR = work
         controller.SETTINGS = os.path.join(work, 'settings.json')
         os.chdir(work)
         lines.append(f'tesseract found: {find_tesseract()}')
         ctl = controller.Controller()
-        srv = market_server.MarketServer(controller=ctl, ports=range(8780, 8786))
+        srv = server.AppServer(controller=ctl, ports=range(8780, 8786))
         url = srv.start()
         with urllib.request.urlopen(url + 'api/state', timeout=10) as r:
             state = json.loads(r.read().decode())
@@ -182,8 +181,8 @@ def self_check(result_path):
         from .exp_font import GLYPHS
         lines += [f"version {state['version']}", f"text reader: {state['engine']}", f'page: {len(page)} characters',
                   f"EXP digit shapes: {''.join(sorted(GLYPHS.get('small', {})))}"]
-        good = (bool(state['version']) and WINDOW_TITLE in page and state['tesseract'] and
-                state['engine'] in ('fast', 'slow') and 'exp' in state and len(GLYPHS.get('small', {})) >= 10)
+        good = (bool(state['version']) and WINDOW_TITLE in page and 'exp' in state and len(GLYPHS.get('small', {})) >= 10 and
+                (not state['tesseract'] or state['engine'] in ('fast', 'slow')))   # (EXP needs no Tesseract)
         srv.stop()
         ctl.shutdown()
     except Exception:

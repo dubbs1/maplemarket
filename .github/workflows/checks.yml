@@ -1,5 +1,5 @@
 # Automatic checks and builds.
-#   linux:   every push and pull request: all page, server, reader, browser and install-script checks.
+#   linux:   every push and pull request: the reader, server, update and browser checks.
 #   windows: main, pull requests, version tags, a manual run, or a push whose message says [windows]
 #            (Windows minutes cost double on a private repository): the reader checks with real Windows
 #            Tesseract, then builds MapleReader.exe and the installer, and tries both for real.
@@ -30,10 +30,6 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
       - name: Tesseract and Python packages
         run: |
           sudo apt-get update -q
@@ -41,7 +37,6 @@ jobs:
           tesseract --version | head -1
           python -m pip install -q -r MapleReader/requirements.txt playwright==1.64.1 pyflakes==4.0.3
           python -m playwright install --with-deps chromium
-          npm ci
       - name: Code check (pyflakes)
         run: python -m pyflakes MapleReader tools dev-tests
       - name: All checks
@@ -75,7 +70,7 @@ jobs:
         working-directory: MapleReader
         run: |
           $ErrorActionPreference = "Stop"; $PSNativeCommandUseErrorActionPreference = $true
-          foreach ($t in "test_pictures", "test_session", "test_scroll", "test_resize", "test_names", "test_exp", "test_revisit", "test_market", "test_update") { python "tests\$t.py" }
+          foreach ($t in "test_exp", "test_mobpics", "test_server", "test_update") { python "tests\$t.py" }
       - name: Version
         id: ver
         run: |
@@ -126,8 +121,8 @@ jobs:
           Get-Content installed_check.txt
           if ($code -ne 0) { throw "The installed copy failed its self-check" }
           # an update the way the app does it: MapleReader is running (window and all), the app's own install script
-          # waits for it to close, runs the setup quietly with a log, and MapleReader comes back; the scans stay
-          New-Item -ItemType Directory -Force "$app\scans", "$app\updates" | Out-Null; Set-Content "$app\scans\all_scans.txt" "kept"
+          # waits for it to close, runs the setup quietly with a log, and MapleReader comes back; the data stays
+          New-Item -ItemType Directory -Force "$app\scans", "$app\updates" | Out-Null; Set-Content "$app\scans\exp_log.json" "[]"
           $run = Start-Process "$app\MapleReader.exe" -PassThru
           Start-Sleep 10
           Copy-Item "out\MapleReader-Setup-$v.exe" "$app\updates\"     # after the start: the app drops old setup files as it starts
@@ -149,7 +144,7 @@ jobs:
           if ($back -lt 1) { throw "MapleReader did not come back after the update" }
           Get-Process MapleReader, msedge -ErrorAction SilentlyContinue | Stop-Process -Force
           Start-Sleep 2
-          if ((Get-Content "$app\scans\all_scans.txt") -ne "kept") { throw "An update lost the scans" }
+          if ((Get-Content "$app\scans\exp_log.json") -ne "[]") { throw "An update lost the run log" }
           $code = Run-And-Wait "$app\unins000.exe" @("/VERYSILENT", "/SUPPRESSMSGBOXES") "The uninstaller"
           Start-Sleep 3
           if (Test-Path "$app\MapleReader.exe") { throw "Uninstall left the program behind" }

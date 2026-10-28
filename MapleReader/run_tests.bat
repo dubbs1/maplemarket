@@ -1,30 +1,15 @@
 @echo off
 cd /d "%~dp0"
-echo Checking the reader against the saved test pictures. This takes a few minutes.
+echo Checking the EXP reader against the saved test pictures. This takes a minute or two.
 set FAILED=0
-echo.
-py -3.13 tests\test_pictures.py
-if errorlevel 1 set FAILED=1
-echo.
-py -3.13 tests\test_session.py
-if errorlevel 1 set FAILED=1
-echo.
-py -3.13 tests\test_scroll.py
-if errorlevel 1 set FAILED=1
-echo.
-py -3.13 tests\test_resize.py
-if errorlevel 1 set FAILED=1
-echo.
-py -3.13 tests\test_names.py
-if errorlevel 1 set FAILED=1
 echo.
 py -3.13 tests\test_exp.py
 if errorlevel 1 set FAILED=1
 echo.
-py -3.13 tests\test_revisit.py
+py -3.13 tests\test_mobpics.py
 if errorlevel 1 set FAILED=1
 echo.
-py -3.13 tests\test_market.py
+py -3.13 tests\test_server.py
 if errorlevel 1 set FAILED=1
 echo.
 py -3.13 tests\test_update.py

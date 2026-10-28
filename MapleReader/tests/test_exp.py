@@ -7,7 +7,8 @@
 4. The tracker: starts when two readings agree, adds up gains, drops a misread, counts a death's loss and a level-up,
    works out EXP per hour and the time to the next level; counts kills from the EXP jumps (named from mobs.txt) and
    damage taken from the HP numbers.
-5. EXP is recorded on its own, apart from the shop scanner (pretend screenshots, as in test_session.py).
+5. The recorder: pretend screenshots go through the watcher into the tracker.
+6. Goals: kills per hour, kills left to the level, the next 10% mark; skipped readings are counted.
 """
 import os, sys, types
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -112,7 +113,10 @@ def tracker():
     check(abs(s['per_hour'] - 1501 * 30) < 50, f'EXP per hour: {s["per_hour"]}')
     check(abs(s['need'] - need) < need * 0.001 and s['left'] == s['need'] - 95000, f'EXP to the next level: {s["left"]}')
     check(s['eta'] and abs(s['eta'] - s['left'] / s['per_hour'] * 3600) < 2, f'time to the next level: {s["eta_text"]}')
+    check(s['warm'] and s['next_mark'] == 50 and s['next_mark_eta'] and abs(s['next_mark_eta'] - (s['need'] * 0.5 - 95000) / s['per_hour'] * 3600) < 2,
+          f'the next 10% mark (50%) is {s["next_mark_text"]} away; the first minutes count as a warm-up')
     check(not t.add({'exp': 35000, 'pct': 44.0, 'level': 37}, now=123), 'a misread (number and % disagree) is dropped')
+    check(t.summary(now=123)['skipped'] == 1, 'and counted as skipped')
     check(t.add(r(90000), now=130) and t.summary()['lost'] == 5000, 'EXP lost from dying is counted apart')
     t.add(r(216000), now=200)
     up = t.add({'exp': 1200, 'pct': 0.5, 'level': 38}, now=210)
@@ -357,7 +361,7 @@ def mesos():
 
 
 def loop():
-    print('EXP is recorded on its own (no shop watching needed):')
+    print('The recorder (pretend screenshots):')
     pics = [load('live_shop.png')] * 4
 
     class Shot:
@@ -375,13 +379,13 @@ def loop():
             return Shot(pics.pop(0))
 
     sys.modules['mss'] = types.SimpleNamespace(MSS=lambda: Screen())
-    from shopreader import scanner
+    from shopreader import recorder
     clock = [1000.0]
-    scanner.time = types.SimpleNamespace(sleep=lambda s: clock.__setitem__(0, clock[0] + 4), time=lambda: clock[0])
-    E.time = scanner.time                                    # the watcher's "every few seconds" uses the same clock
+    recorder.time = types.SimpleNamespace(sleep=lambda s: clock.__setitem__(0, clock[0] + 4), time=lambda: clock[0])
+    E.time = recorder.time                                   # the watcher's "every few seconds" uses the same clock
     seen = []
 
-    class Ev(scanner.Events):
+    class Ev(recorder.Events):
         def message(self, text): pass
         def exp(self, summary): seen.append(summary)
 
@@ -391,14 +395,12 @@ def loop():
     old = os.getcwd()
     os.chdir(work)
     try:
-        sc = scanner.ExpRunner(t, events=Ev(), every=0)
+        sc = recorder.ExpRunner(t, events=Ev(), every=0)
         sc.run()
     finally:
         os.chdir(old)
     s = t.summary()
     check(bool(seen) and s and (s['exp'], s['pct'], s['level']) == TRUE, f'the EXP recorder got {s and (s["exp"], s["pct"], s["level"])}')
-    import inspect
-    check('exp' not in inspect.signature(scanner.Scanner).parameters, 'the shop scanner doesn\'t read EXP (they are separate)')
 
 
 if __name__ == '__main__':

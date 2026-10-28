@@ -1,7 +1,6 @@
-"""MapleReader with a window: the scanner and the live market together.
+"""MapleReader with a window: the EXP recorder and its page, Sapline.
 
 Double-click MapleReader.exe (after running build_exe.bat), or start_app.bat.
-The black-window version (start.bat) still works and does the same reading.
 """
 import sys
 
