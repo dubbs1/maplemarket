@@ -1,6 +1,0 @@
-room: 1
-Shield Accuracy Scroll: Gr | 40000 | s | 1 | 0
-Shoes Speed Scroll: Gre | 40000 | s | 1 | 0
-Pure Vater | 800 | s | 1 | 0 | sold
-Bronze Ore | 399 | s | 1 | 0
-Iron Ore | 399 | s | 1 | 0 | sold

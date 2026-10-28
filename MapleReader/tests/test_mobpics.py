@@ -101,7 +101,7 @@ def catching():
 
 def pairing():
     print('The EXP recorder pairs the screenshots around a kill:')
-    from shopreader.scanner import ExpRunner
+    from shopreader.recorder import ExpRunner
 
     class Tracker:
         last_kills, gain_t = [], None

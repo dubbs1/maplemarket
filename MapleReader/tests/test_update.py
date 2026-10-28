@@ -1,4 +1,4 @@
-"""Checks updates (against a pretend GitHub on this PC) and the installed app's first run (bringing old scans over).
+"""Checks updates (against a pretend GitHub on this PC) and the installed app's first run (bringing old data over).
 Run with run_tests.bat (or: py -3.13 tests/test_update.py)."""
 import hashlib, json, os, sys, tempfile, threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -125,7 +125,7 @@ def main():
         notes = [e for e in CT.Controller().snapshot()['events'] if e.get('kind') == 'note']
         ok('a failed update is reported at the next start, with the log lines', any('did not install' in n['text'] and
            'finished with code 5' in n['text'] and 'install.log' in n['text'] for n in notes))
-        ok('...the setup file and script are dropped, the logs and the scans stay',
+        ok('...the setup file and script are dropped, the logs stay',
            not os.path.exists(pending) and not os.path.exists(started[0]) and
            os.path.exists(os.path.join(work, 'updates', 'install.log')))
         with open(pending, 'w') as f:
@@ -138,21 +138,22 @@ def main():
         del sys.frozen
     del os.environ['MAPLEREADER_UPDATE_API']
 
-    # --- first run of the installed app: old scans come along ---
+    # --- first run of the installed app: the old data comes along ---
     home = tempfile.mkdtemp(prefix='maplereader_home_')
     old = os.path.join(home, 'OneDrive', 'Desktop', 'MapleReader')
-    os.makedirs(os.path.join(old, 'scans', 'icons'))
-    for rel, text in (('scans/all_scans.txt', 'Ice Wand | 12500 | WCC | 2 | 10\n'), ('scans/icons/ice-wand.png', 'png'),
-                      ('settings.json', '{"volume": 0.2}'), ('items.txt', 'Ice Wand\n')):
+    os.makedirs(os.path.join(old, 'scans', 'mobs'))
+    for rel, text in (('scans/exp_log.json', '[{"id": "1", "date": 1}]'), ('scans/mobs/22.png', 'png'), ('scans/exp_days.json', '{}'),
+                      ('settings.json', '{"monitor": 2}'), ('mobs.txt', 'Evil Eye | 22\n')):
         with open(os.path.join(old, rel), 'w') as f:
             f.write(text)
     before = sorted(os.walk(old))
     app = tempfile.mkdtemp(prefix='maplereader_installed_')
     env = {'USERPROFILE': home, 'OneDrive': os.path.join(home, 'OneDrive')}
     msg = migrate.first_run(app, env)
-    ok(f'first run brings the old scans over ({msg})', msg and 'Brought over' in msg and
-       open(os.path.join(app, 'scans', 'all_scans.txt')).read().startswith('Ice Wand') and
-       os.path.isfile(os.path.join(app, 'scans', 'icons', 'ice-wand.png')) and os.path.isfile(os.path.join(app, 'settings.json')))
+    ok(f'first run brings the old data over ({msg})', msg and 'Brought over' in msg and
+       open(os.path.join(app, 'scans', 'exp_log.json')).read().startswith('[{"id"') and
+       os.path.isfile(os.path.join(app, 'scans', 'mobs', '22.png')) and os.path.isfile(os.path.join(app, 'settings.json')) and
+       os.path.isfile(os.path.join(app, 'mobs.txt')))
     ok('the old folder is left as it was', sorted(os.walk(old)) == before)
     ok('it only happens once', migrate.first_run(app, env) is None)
     ok('no old folder: nothing happens', migrate.first_run(tempfile.mkdtemp(), {'USERPROFILE': tempfile.mkdtemp()}) is None)

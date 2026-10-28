@@ -1,7 +1,0 @@
-{
-  "name": "maplemarket-dev-tests",
-  "private": true,
-  "description": "Checks for the market page (run: npm install, then npm test).",
-  "scripts": { "test": "node dev-tests/site/run_site_tests.js" },
-  "devDependencies": { "jsdom": "^30.1.3" }
-}

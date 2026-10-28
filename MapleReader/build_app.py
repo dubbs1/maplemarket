@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DATA = [('shopreader/icon.png', 'shopreader'), ('shopreader/icon.ico', 'shopreader'), ('shopreader/market.html', 'shopreader')]
+DATA = [('shopreader/icon.png', 'shopreader'), ('shopreader/icon.ico', 'shopreader'), ('shopreader/app.html', 'shopreader')]
 
 
 def build(dist):

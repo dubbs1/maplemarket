@@ -15,8 +15,8 @@ import re
 import threading
 import time
 from PIL import Image, ImageOps
-from .config import EXP_EVERY, EXP_IDLE, EXP_RUN_GAP, EXP_SEARCH_EVERY
-from .layout import color_boxes
+from .config import EXP_EVERY, EXP_IDLE, EXP_RUN_GAP, EXP_SEARCH_EVERY, EXP_WARMUP
+from .colors import color_boxes
 from . import engine
 from .exp_font import GLYPHS
 
@@ -325,6 +325,7 @@ class ExpWatcher:
     def __init__(self):
         self.bar = None
         self.misses, self.last_read, self.last_search = 0, 0, 0
+        self.unread = 0                                   # looks at the bar that gave no reading (covered, blurred)
 
     def find(self, img):
         self.bar = find_bar(img)
@@ -345,6 +346,7 @@ class ExpWatcher:
         got = read_exp(img, self.bar)
         if got is None:
             self.misses += 1
+            self.unread += 1
             if self.misses >= 5:                          # covered for a while (the mouse over it), or the window moved:
                 self.misses = 0                           # look for it again, but keep the old place if it isn't found
                 self.bar = find_bar(img) or self.bar     # (low MP, say: the old place is still right)
@@ -377,6 +379,7 @@ class ExpTracker:
         self.namer = namer                               # the mob that gives this much EXP (mobs.txt), or None
         self.map = None                                  # the map you're on, when known (for the EXP log)
         self.paused = None                               # when recording was stopped: the clock stands still
+        self.idle = EXP_IDLE                             # no EXP for this long: the clock stops (Options: "Pause after")
         self.reset()
 
     def pause(self, now=None):
@@ -534,8 +537,8 @@ class ExpTracker:
         """The tracker's clock: it stands still while stopped, and after a minute with no EXP."""
         if self.paused is not None:
             now = min(now, self.paused)
-        if self.start and now - self.gain_t > EXP_IDLE:
-            now = self.gain_t + EXP_IDLE
+        if self.start and now - self.gain_t > self.idle:
+            now = self.gain_t + self.idle
         return now
 
     def reset(self):
@@ -557,6 +560,7 @@ class ExpTracker:
             self.taken = self.hits = self.big = 0       # damage taken, hits taken, the biggest hit
             self.history = []                           # (t, total gained) for the per-hour rate
             self.trail = []                             # (t, total gained) about once a minute, the whole session
+            self.skipped = 0                            # readings dropped as misreads (the number and % disagreed)
 
     @staticmethod
     def _need_of(exp, pct):
@@ -620,8 +624,10 @@ class ExpTracker:
             self.need_prev, self.need = self.need or self.need_prev, need
             lv0 = lv0 + 1 if lv0 else None             # counted from the level known before, not re-read
         elif not fits:
+            self.skipped += 1
             return False                                 # a misread: the number and the percentage disagree
         elif not self.need and self.need_prev and not self._new_level_ok(exp, pct, need):
+            self.skipped += 1
             return False                                 # (just after a level-up: a misread here would be kept as the level's EXP)
         elif exp >= exp0:
             self.gained += exp - exp0
@@ -632,10 +638,10 @@ class ExpTracker:
         if self.gained > g0:
             self._kills(self.gained - g0)
             idle = now - self.gain_t
-            if idle > EXP_IDLE:                          # back after a break: the time without EXP doesn't count
+            if idle > self.idle:                         # back after a break: the time without EXP doesn't count
                 if idle > EXP_RUN_GAP:                   # (a long one starts a new EXP log entry)
-                    self._close_run(self.gain_t + EXP_IDLE, g0)
-                self._shift(idle - EXP_IDLE)
+                    self._close_run(self.gain_t + self.idle, g0)
+                self._shift(idle - self.idle)
                 if not self.run:
                     self._open_run(now, now, g0, lv0 or level)
             self.gain_t = now
@@ -691,6 +697,14 @@ class ExpTracker:
             need = round(self.need) if self.need else None
             left = need - exp if need else None
             eta = left / per_hour * 3600 if left and per_hour and per_hour > 0 else None
+            # goals: kills per hour, kills left to the level (at the average EXP a kill gave), the next 10% mark
+            kills_total = sum(self.amounts.values())
+            kph = round(kills_total / whole * 3600) if whole >= 60 and kills_total else None
+            per_kill = self.gained / kills_total if kills_total and self.gained else None
+            kills_left = -(-left // per_kill) if left and per_kill else None
+            mark = (int(pct // 10) + 1) * 10
+            to_mark = need * mark / 100 - exp if need and mark <= 100 else None
+            next10 = to_mark / per_hour * 3600 if to_mark and per_hour and per_hour > 0 else None
             slots, hour, prev, best = self._hours(now)
             r = self.run
             run = r and {'minutes': round((now - r['t0']) / 60), 'gained': self.gained - r['g0'], 'map': r['map'], 'level': level,
@@ -700,7 +714,11 @@ class ExpTracker:
             return {'slots': slots, 'hour': hour, 'prev_hour': prev, 'best_hour': best, 'run': run, 'mesos': self.mesos,
                     'mesos_gained': self.meso_gain if self.mt0 is not None else None, 'mesos_per_hour': self._mph(self.meso_gain, self.mt0, self.mt1),
                     'last5': (self.gained - self._at(now - 300)) * 12 if whole >= 300 else None,
-                    'idle': self.paused is None and real - self.gain_t > EXP_IDLE, 'stopped': self.paused is not None,
+                    'idle': self.paused is None and real - self.gain_t > self.idle, 'stopped': self.paused is not None,
+                    'warm': whole < EXP_WARMUP, 'skipped': self.skipped,
+                    'kills_per_hour': kph, 'kills_left': int(kills_left) if kills_left else None,
+                    'next_mark': mark if to_mark else None, 'next_mark_eta': round(next10) if next10 is not None else None,
+                    'next_mark_text': _fmt_eta(next10),
                     'level': level, 'exp': exp, 'pct': pct, 'need': need, 'left': left,
                     'gained': self.gained, 'lost': self.lost, 'levels': self.levels,
                     'kills': self._kill_list(self.amounts), 'kills_total': sum(self.amounts.values()),

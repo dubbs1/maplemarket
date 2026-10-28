@@ -1,7 +1,0 @@
-room: None
-Cat Suit | 19999 | Tell me your best stock gains | 0 | 0
-Cat Hat | 19999 | Tell me your best stock gains | 0 | 0 | sold
-Kitty Chat Ring | 29999 | Tell me your best stock gains | 0 | 0
-Orange Mushroom Balloon | 34999 | Tell me your best stock gains | 0 | 0 | sold
-Angel Halo | 169999 | Tell me your best stock gains | 0 | 0
-Slime T-Shirt | 49999 | Tell me your best stock gains | 0 | 0 | sold

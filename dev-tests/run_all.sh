@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Every check in one go (Linux/macOS). Usage:  bash dev-tests/run_all.sh [--quick]
-#   --quick    skip the slow picture checks and the browser tests
-# Needs: python3 with pillow, pytesseract, mss; tesseract; node + npm install; playwright for the browser tests.
+#   --quick    skip the browser test
+# Needs: python3 with pillow, pytesseract, mss; tesseract; playwright for the browser test.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT" || exit 1
 export MAPLEREADER_UPDATE_API="${MAPLEREADER_UPDATE_API:-off}"   # checks never ask the real GitHub for updates
 QUICK=0
@@ -12,22 +12,15 @@ run() {   # run <name> <command...>: one line per check, the output only when it
   local out; out="$("$@" 2>&1)"; local code=$?
   if [[ $code == 0 ]]; then results+=("PASS  $name"); else results+=("FAIL  $name"); bad=1; printf '\n--- %s ---\n%s\n' "$name" "$out" | tail -n 40; printf '%s\n' "$out" | grep -E '^ *FAIL|Error|Traceback' | head -n 10; fi
 }
-run "market page"        npm test --silent
-run "reader: session"    bash -c 'cd MapleReader && python3 tests/test_session.py'
-run "reader: scrolling"  bash -c 'cd MapleReader && python3 tests/test_scroll.py'
-run "reader: resizing"   bash -c 'cd MapleReader && python3 tests/test_resize.py'
-run "reader: names"      bash -c 'cd MapleReader && python3 tests/test_names.py'
 run "reader: EXP tracker" bash -c 'cd MapleReader && python3 tests/test_exp.py'
 run "reader: mob pictures" bash -c 'cd MapleReader && python3 tests/test_mobpics.py'
-run "reader: revisits"   bash -c 'cd MapleReader && python3 tests/test_revisit.py'
-run "reader: app server" bash -c 'cd MapleReader && python3 tests/test_market.py'
+run "reader: app server" bash -c 'cd MapleReader && python3 tests/test_server.py'
 run "reader: updates"    bash -c 'cd MapleReader && python3 tests/test_update.py'
 if [[ $QUICK == 0 ]]; then
-  run "reader: pictures" bash -c 'cd MapleReader && python3 tests/test_pictures.py'
   if python3 -c 'import playwright' 2>/dev/null; then
-    for t in live_e2e app_e2e; do run "browser: $t" python3 "dev-tests/e2e/$t.py"; done
+    run "browser: app_e2e" python3 dev-tests/e2e/app_e2e.py
   else
-    results+=("SKIP  browser tests (pip install playwright)")
+    results+=("SKIP  browser test (pip install playwright)")
   fi
 fi
 printf '\n'; printf '%s\n' "${results[@]}"
