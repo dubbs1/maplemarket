@@ -4,141 +4,173 @@
 <title>Sapline</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
-/* Sapline look: a warm maple palette (day and night), rounded game-panel cards, pill tabs, numbers in tabular figures.
-   Every colour is a token on :root; the night set is under prefers-color-scheme and data-theme=dark. Original artwork only. */
+/* Sapline look: a left menu, one status card, cards that never touch, numbers in tabular figures.
+   Every colour is a token on :root. Night is a cool slate; gold is kept for EXP numbers and the active menu item.
+   The night set is under prefers-color-scheme and data-theme=dark. Original artwork only. */
 :root{
-  --bg:#f8efe0;--card:#fffdf8;--sf:#f5ead7;--tx:#3a2a1a;--mu:#8a7055;--bd:#eadbc3;
-  --ac:#f08a24;--acbg:#fde8cf;--sky:#b9591a;--skybg:#fbe6cf;--ok:#3f9a3a;--bad:#d2473a;
-  --gold:#d99a1e;--leaf:#4fa349;--glow:rgba(240,138,36,.18);--shadow:0 1px 2px rgba(74,45,15,.06),0 10px 24px -16px rgba(74,45,15,.35);
+  --bg:#f3f5f8;--side:#eceff3;--card:#ffffff;--sf:#eef1f5;--tx:#1b2330;--mu:#5b6778;--bd:#d9dfe7;
+  --acbg:#e3ebf7;--acbd:#c5d2e4;--gold:#9a6700;--ok:#1f8a4c;--bad:#c23b32;--warn:#9a6700;
+  --shadow:0 1px 2px rgba(20,30,45,.05),0 8px 20px -14px rgba(20,30,45,.25);
   --display:Nunito,ui-rounded,ui-sans-serif,system-ui,sans-serif;
   --body:Nunito,system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,"Cascadia Mono",Consolas,monospace}
-@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#171a24;--card:#20243a;--sf:#282d44;--tx:#f3e9d8;--mu:#a99b88;--bd:#343a52;
-  --ac:#f59a37;--acbg:#3b2a16;--sky:#f3b35f;--skybg:#3a2d1b;--ok:#7ccb6e;--bad:#f2847a;--gold:#f2c35a;--leaf:#7ccb6e;
-  --glow:rgba(245,154,55,.22);--shadow:0 1px 2px rgba(0,0,0,.25),0 10px 24px -14px rgba(0,0,0,.6);color-scheme:dark}}
-:root[data-theme=dark]{--bg:#171a24;--card:#20243a;--sf:#282d44;--tx:#f3e9d8;--mu:#a99b88;--bd:#343a52;--ac:#f59a37;--acbg:#3b2a16;
-  --sky:#f3b35f;--skybg:#3a2d1b;--ok:#7ccb6e;--bad:#f2847a;--gold:#f2c35a;--leaf:#7ccb6e;--glow:rgba(245,154,55,.22);
-  --shadow:0 1px 2px rgba(0,0,0,.25),0 10px 24px -14px rgba(0,0,0,.6);color-scheme:dark}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0f1216;--side:#12161c;--card:#171c23;--sf:#12161c;--tx:#eef2f7;--mu:#8e9aab;--bd:#28303b;
+  --acbg:#243041;--acbd:#3a4759;--gold:#f3c553;--ok:#5fcf86;--bad:#f0817a;--warn:#f3c553;
+  --shadow:0 1px 2px rgba(0,0,0,.25),0 10px 24px -16px rgba(0,0,0,.6);color-scheme:dark}}
+:root[data-theme=dark]{--bg:#0f1216;--side:#12161c;--card:#171c23;--sf:#12161c;--tx:#eef2f7;--mu:#8e9aab;--bd:#28303b;
+  --acbg:#243041;--acbd:#3a4759;--gold:#f3c553;--ok:#5fcf86;--bad:#f0817a;--warn:#f3c553;
+  --shadow:0 1px 2px rgba(0,0,0,.25),0 10px 24px -16px rgba(0,0,0,.6);color-scheme:dark}
 html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 var(--body);
-  background-image:radial-gradient(900px 360px at 12% -8%,var(--glow),transparent 70%),radial-gradient(700px 300px at 100% 0,color-mix(in srgb,var(--leaf) 10%,transparent),transparent 70%);
-  background-attachment:fixed}
-main{height:100vh;box-sizing:border-box;display:flex;flex-direction:column;padding:0 24px;max-width:1320px;margin:0 auto}
-@media(max-width:640px){main{padding:0 16px}}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 var(--body)}
 h1,h2,h3{font-family:var(--display);font-weight:800;margin:0;letter-spacing:-.01em}
-h1{font-size:18px;line-height:1.15}h2{font-size:17px}
+h1{font-size:24px;line-height:1.15}h2{font-size:16px}
+b{font-weight:800}
 .num{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums;margin:0}
-.mu{color:var(--mu);font-size:13px}.up{color:var(--ok)}.dn{color:var(--bad)}.gold{color:var(--gold)}
-.top{flex:none;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 0}
-.brand{display:flex;align-items:center;gap:10px;min-width:0}
-.brand svg{flex:none;filter:drop-shadow(0 2px 3px rgba(74,45,15,.18))}
-.brand p{margin:2px 0 0;color:var(--mu);font-size:13px}
-@media(max-width:560px){.brand p{display:none}}
-.hr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.lchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--bd);background:var(--card);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--mu);white-space:nowrap}
-.lchip i{width:8px;height:8px;border-radius:50%;background:var(--mu);flex:none}
-.lchip.on{color:var(--tx);background:color-mix(in srgb,var(--ok) 10%,var(--card))}.lchip.on i{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
-.lchip.wait i{background:var(--ac)}.lchip.off{background:color-mix(in srgb,var(--bad) 8%,var(--card));color:var(--bad)}.lchip.off i{background:var(--bad)}
-button,input,select{font:inherit;color:var(--tx)}
-button{background:var(--card);border:1px solid var(--bd);border-radius:11px;padding:8px 14px;min-height:40px;cursor:pointer;font-weight:600;box-shadow:0 1px 0 rgba(74,45,15,.05)}
-button:hover{border-color:var(--ac);background:color-mix(in srgb,var(--acbg) 45%,var(--card))}
-.go{background:linear-gradient(180deg,color-mix(in srgb,var(--ac) 82%,#fff) 0%,var(--ac) 55%,color-mix(in srgb,var(--ac) 88%,#000) 100%);
-  border:1px solid color-mix(in srgb,var(--ac) 70%,#000);color:#fff;font-weight:800;text-shadow:0 1px 0 rgba(0,0,0,.18);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 2px 0 color-mix(in srgb,var(--ac) 65%,#000),0 6px 14px -6px var(--ac)}
-.go:hover{filter:brightness(1.05);border-color:color-mix(in srgb,var(--ac) 70%,#000);
-  background:linear-gradient(180deg,color-mix(in srgb,var(--ac) 82%,#fff) 0%,var(--ac) 55%,color-mix(in srgb,var(--ac) 88%,#000) 100%)}
-.go.stop,.go.stop:hover{background:var(--sf);border:1px solid var(--bd);color:var(--tx);text-shadow:none;box-shadow:none;filter:none}
-button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
-input,select{background:var(--card);border:1px solid var(--bd);border-radius:11px;padding:8px 12px;min-height:40px;width:100%;box-sizing:border-box}
-input:focus,select:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--glow);outline:none}
-input::placeholder{color:var(--mu)}
-#theme{min-height:38px;padding:4px 12px;font-size:13px;color:var(--mu);display:inline-flex;align-items:center;gap:6px;border-radius:999px}
-#theme svg{width:16px;height:16px}
-#theme .moon{display:none}:root[data-theme=dark] #theme .moon{display:inline}:root[data-theme=dark] #theme .sun{display:none}
-@media(prefers-color-scheme:dark){:root:not([data-theme=light]) #theme .moon{display:inline}:root:not([data-theme=light]) #theme .sun{display:none}}
-@media(max-width:640px){#theme span{display:none}}
-main>nav{flex:none;display:flex;gap:2px;margin:4px 0 20px;padding:4px;background:var(--card);border:1px solid var(--bd);border-radius:999px;width:max-content;max-width:100%;overflow:auto;box-shadow:var(--shadow)}
-main>nav button{flex:0 0 auto;border:0;background:transparent;color:var(--mu);font-weight:700;font-size:14px;padding:8px 16px;min-height:36px;border-radius:999px;box-shadow:none}
-main>nav button:hover{background:var(--sf);color:var(--tx)}
-main>nav button[aria-current=page]{background:linear-gradient(180deg,color-mix(in srgb,var(--ac) 82%,#fff),var(--ac));color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.15)}
-main>nav button[data-nav=more]{margin-left:8px}
-#app{flex:1;min-height:0;overflow:auto;padding-bottom:16px}
+.mu{color:var(--mu);font-size:13px}.up{color:var(--ok)}.dn{color:var(--bad)}.gold{color:var(--gold)}.warnc{color:var(--warn)}
+/* ---- the shell: menu on the left, the page on the right ---- */
+.shell{height:100vh;display:flex}
+.side{flex:none;width:212px;box-sizing:border-box;padding:22px 14px 18px;display:flex;flex-direction:column;gap:6px;background:var(--side);border-right:1px solid var(--bd)}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px}
+.brand b{font-family:var(--display);font-size:19px}
+.side nav{display:flex;flex-direction:column;gap:6px}
+.side nav button{display:flex;align-items:center;gap:12px;padding:11px 12px;min-height:44px;border:0;border-radius:10px;background:transparent;color:var(--tx);
+  font-weight:700;font-size:15px;text-align:left;box-shadow:none;width:100%}
+.side nav button:hover{background:var(--card);color:var(--tx)}
+.side nav button[aria-current=page]{background:var(--acbg);color:var(--gold);font-weight:800}
+.side nav svg{width:20px;height:20px;flex:none}
+.side .sp{flex:1}
+.status{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow)}
+.lchip{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;color:var(--mu)}
+.lchip i{width:10px;height:10px;border-radius:50%;background:var(--mu);flex:none}
+.lchip.on{color:var(--ok)}.lchip.on i{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+.lchip.wait{color:var(--warn)}.lchip.wait i{background:var(--warn)}
+.lchip.off{color:var(--bad)}.lchip.off i{background:var(--bad)}
+#chipsub{margin:0;line-height:1.4}
+.xctl{display:flex;flex-direction:column;gap:8px}
+main{flex:1;min-width:0;height:100vh;box-sizing:border-box;display:flex;flex-direction:column}
+#app{flex:1;min-height:0;overflow:auto;padding:22px 24px 24px;display:flex;flex-direction:column;gap:14px}
 #app:focus{outline:none}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px;margin-bottom:16px;box-shadow:var(--shadow)}
-.row{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;margin-bottom:8px}
-.row>span,.row>b{min-width:0}
-.seg{display:inline-flex;gap:4px;padding:3px;background:var(--sf);border:1px solid var(--bd);border-radius:999px}
-.seg button{border:0;background:transparent;min-height:30px;padding:3px 11px;font-size:13px;border-radius:999px;color:var(--mu);box-shadow:none}
-.seg button:hover{background:color-mix(in srgb,var(--card) 60%,transparent);color:var(--tx)}
-.seg button[aria-pressed=true]{background:var(--card);color:var(--tx);box-shadow:0 1px 3px rgba(74,45,15,.18)}
-.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.tiles.t3{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px}
-.tiles.t4{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.card .tiles .tile{background:var(--sf);border:0;box-shadow:none;padding:10px 12px}.card .tiles .tile .v{font-size:22px}
-.card .tiles{margin-top:0}.card>.tiles+.tiles{margin-top:8px}
-@media(max-width:700px){.tiles.t4{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:560px){.tiles.t3{grid-template-columns:minmax(0,1fr)}}
-.tile{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px 16px;min-width:0;box-shadow:var(--shadow)}
-.tile .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);font-weight:800}
-.tile .v{font-family:var(--mono);font-size:26px;font-weight:500;line-height:1.2;margin:2px 0 6px}
-.tile .v.gold{color:var(--gold)}.tile .v small{font-size:14px;font-weight:600;color:var(--mu);font-family:var(--body)}
-.warm .tile .v,.warm .big{opacity:.55}
-.xband{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:center;justify-content:space-between}
-.xband .big{font-family:var(--mono);font-size:40px;color:var(--gold);line-height:1.1}.xband .big small{font-size:14px;color:var(--mu)}
-.xvs{font-size:13px;font-weight:700}
-.xspark{display:flex;align-items:flex-end;gap:3px;height:44px;width:140px}
-.xspark i,.xchart i{flex:1;border-radius:2px;background:color-mix(in srgb,var(--ac) 32%,transparent);min-height:2px}
-.xspark i:last-child,.xchart i:last-child{background:var(--ac)}
-.xband .tiles{flex:1 1 320px;max-width:540px}
-.xgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:start;margin-top:16px}
-.xlv{display:flex;align-items:baseline;gap:12px;margin:4px 0}.xlv b{font:800 48px/1 var(--display)}.xlv .num{font-size:22px;color:var(--gold)}
-.xbar{height:14px;border-radius:99px;background:var(--sf);overflow:hidden;margin:6px 0 10px;box-shadow:inset 0 1px 2px rgba(0,0,0,.08)}
-.xbar i{display:block;height:100%;background:linear-gradient(90deg,var(--leaf),color-mix(in srgb,var(--leaf) 70%,#ff0));border-radius:99px}
-.xchart{display:flex;align-items:flex-end;gap:6px;height:150px;margin:10px 0 6px}
-.xchart i{border-radius:5px 5px 2px 2px}
-.xline{display:block;width:100%;height:150px;margin:10px 0 6px;overflow:visible}.xline polyline{fill:none;stroke:var(--ac);stroke-width:2.5;stroke-linejoin:round}
-.xline .xa{fill:color-mix(in srgb,var(--ac) 18%,transparent)}.xline circle{fill:var(--ac)}.xopts{display:flex;gap:8px;flex-wrap:wrap}
+.ph{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.ph p{margin:4px 0 0;color:var(--mu);font-size:14px}
+.pa{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+@media(max-width:760px){
+  .shell{flex-direction:column;height:auto}
+  .side{width:auto;border-right:0;border-bottom:1px solid var(--bd);padding:12px 16px}
+  .brand{padding-bottom:8px}
+  .side nav{flex-direction:row;flex-wrap:wrap}.side nav button{width:auto;flex:1 1 auto;justify-content:center}
+  main{height:auto}#app{overflow:visible;padding:16px}
+}
+/* ---- controls ---- */
+button,input,select{font:inherit;color:var(--tx)}
+button{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:0 14px;min-height:40px;cursor:pointer;font-weight:700;font-size:14px}
+button:hover{border-color:var(--acbd);background:var(--sf)}
+.go{background:var(--acbg);border:1px solid var(--acbd);color:var(--tx);font-weight:800;min-height:44px;font-size:15px}
+.go:hover{filter:brightness(1.08);background:var(--acbg)}
+.pri{background:var(--acbg);border-color:var(--acbd);color:var(--gold);font-weight:800}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+input,select{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:0 12px;min-height:40px;width:100%;box-sizing:border-box}
+input:focus,select:focus{border-color:var(--acbd);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 20%,transparent);outline:none}
+input::placeholder{color:var(--mu)}
+input[type=checkbox]{width:22px;height:22px;min-height:0;margin:0;padding:0;accent-color:var(--gold);flex:none;cursor:pointer}
+.seg{display:inline-flex;border:1px solid var(--bd);border-radius:999px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:transparent;min-height:34px;padding:0 14px;font-size:13px;color:var(--mu)}
+.seg button:hover{background:var(--sf);color:var(--tx)}
+.seg button[aria-pressed=true]{background:var(--acbg);color:var(--gold);font-weight:800}
+/* ---- cards and grids ---- */
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px 20px;box-sizing:border-box;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;min-width:0}
+.card>p{margin:0}
+.g2,.g3,.g4{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.s2{grid-column:span 2}
+@media(max-width:1000px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.g2,.g3,.g4{grid-template-columns:minmax(0,1fr)}.s2{grid-column:auto}}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.k{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mu)}
+.v{font-family:var(--mono);font-size:26px;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums}
+.tile{padding:14px 16px;gap:4px}
+.warm .v,.warm .big{opacity:.6}
+.big{font-family:var(--mono);font-size:52px;font-weight:700;line-height:1;color:var(--gold);font-variant-numeric:tabular-nums}
+.big+span,.bl{font-size:16px;color:var(--mu);font-weight:700}
+.bline{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.facts{display:flex;gap:22px;flex-wrap:wrap;font-size:14px}
+.facts b{font-family:var(--mono);font-weight:700}
+.xlv{display:flex;align-items:baseline;gap:10px}.xlv b{font-family:var(--mono);font-size:40px;font-weight:700;line-height:1}.xlv .num{font-size:18px;color:var(--mu)}
+.xbar{height:10px;border-radius:999px;background:var(--sf);overflow:hidden;border:1px solid var(--bd)}
+.xbar i{display:block;height:100%;background:var(--gold);border-radius:999px}
+.list{display:flex;flex-direction:column}
+.list>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px solid var(--bd)}
+.list>div:last-child{border-bottom:0;padding-bottom:0}
+.list .num{font-weight:700}
+.xchart{display:flex;align-items:flex-end;gap:10px;height:150px;padding:0 2px}
+.xchart i{flex:1;border-radius:6px 6px 2px 2px;background:color-mix(in srgb,var(--gold) 45%,transparent);min-height:2px}
+.xchart i:last-child{background:var(--gold)}
+.xline{display:block;width:100%;height:150px;overflow:visible}.xline polyline{fill:none;stroke:var(--gold);stroke-width:2.5;stroke-linejoin:round}
+.xline .xa{fill:color-mix(in srgb,var(--gold) 18%,transparent)}.xline circle{fill:var(--gold)}
 .ax{display:flex;justify-content:space-between;font-size:12px;color:var(--mu)}
-.xctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
-.xctl .go{min-height:44px;padding:0 20px;font-size:15px}
-.xidle{color:var(--sky);font-weight:700}
+.xopts{display:flex;gap:8px;flex-wrap:wrap}
+.steps{display:flex;flex-direction:column;gap:16px}
+.steps>div{display:flex;gap:14px;align-items:flex-start}
+.steps i{width:36px;height:36px;flex:none;border-radius:50%;background:var(--acbg);color:var(--gold);display:inline-flex;align-items:center;justify-content:center;font:700 15px var(--mono)}
+.steps span{color:var(--mu);font-size:14px;line-height:1.45}
+.bar{border:2px solid var(--gold);background:var(--acbg);border-radius:8px;height:46px;display:flex;align-items:center;gap:12px;padding:0 14px;box-sizing:border-box;margin-top:auto}
+.bar span{height:10px;border-radius:999px}
+.sunk{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.5}
+/* ---- tables ---- */
+.tcard{padding:6px 0 0;gap:0}
 .tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}
-th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);font-weight:800;padding:6px 8px;border-bottom:1px solid var(--bd)}
-td{padding:8px;border-bottom:1px solid var(--bd);white-space:nowrap}
-tr.now td{color:var(--sky)}
-td button{min-height:32px;padding:2px 10px;font-size:13px;margin-left:4px}td input{width:170px;min-height:32px}
-td.mob{display:flex;align-items:center;gap:8px}img.mp{height:40px;max-width:72px;object-fit:contain;cursor:pointer;border-radius:6px;background:var(--sf)}
-input.mn{width:180px;min-height:32px}td.mob button{min-height:32px;padding:2px 10px;font-size:13px}
-.xlon{display:flex;align-items:center;gap:8px;font-size:14px;white-space:nowrap}.xlon input{width:18px;height:18px;min-height:0;margin:0;padding:0;flex:none}
-.upd{border:2px solid var(--ac);background:linear-gradient(135deg,var(--acbg),var(--card) 60%)}
-.oh2{margin:4px 0 10px}
-.ocards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin-bottom:20px}
-.oc{margin:0;display:flex;flex-direction:column;gap:8px}.oc p{margin:0}
-.oc .oh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.oc .oh label:first-child{cursor:pointer}
-.oc select{width:auto;align-self:flex-start}.oc .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
-.sw{position:relative;width:44px;height:26px;flex:none}
-.sw input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer;min-height:0;z-index:1;width:100%;height:100%}
-.sw span{position:absolute;inset:0;border-radius:999px;background:var(--bd);transition:background .15s;box-shadow:inset 0 1px 2px rgba(0,0,0,.12)}
-.sw span::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
-.sw input:checked+span{background:var(--ac)}.sw input:checked+span::after{transform:translateX(18px)}
-.sw input:focus-visible+span{outline:2px solid var(--ac);outline-offset:2px}
+th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);font-weight:800;padding:12px 10px}
+th:first-child,td:first-child{padding-left:18px}th:last-child,td:last-child{padding-right:18px}
+td{padding:11px 10px;border-top:1px solid var(--bd);white-space:nowrap}
+td.r,th.r{text-align:right}
+tr.now td{color:var(--gold)}
+td button{min-height:34px;padding:0 12px;font-size:13px;margin-left:6px;background:var(--sf)}td input{width:170px;min-height:34px;display:inline-block}
+.tfoot{margin:0;padding:12px 18px;border-top:1px solid var(--bd)}
+.tcard h2{padding:10px 18px 4px}
+/* ---- mobs ---- */
+.mob{flex-direction:row;gap:14px;padding:14px}
+.mob .pic{width:96px;height:96px;flex:none;border-radius:10px;background:var(--sf);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.mob .pic img{max-width:92px;max-height:92px;object-fit:contain}.mob .pic svg{width:56px;height:56px;color:var(--mu)}
+.mob .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.mob label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mu)}
+.mob input.mn{min-height:38px;font-weight:700}
+.mob .btns{display:flex;gap:6px;flex-wrap:wrap}.mob .btns button{min-height:34px;padding:0 12px;font-size:13px}
+input.mn{min-height:34px}
+/* ---- settings ---- */
+.opt{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 0}
+.opt+.opt{border-top:1px solid var(--bd)}.opt:last-child{padding-bottom:0}
+.opt>label:first-child,.opt>span:first-child{min-width:0}label.opt,.opt label{cursor:pointer}.opt b{display:block}.opt .mu{display:block}
+.opt select{width:auto;flex:none}.opt button{flex:none}
+.upd{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 10%,var(--card))}
 .notes{margin:0;padding:0;list-style:none;font-size:13px}
 .notes li{padding:6px 0;border-top:1px solid var(--bd);color:var(--mu);display:flex;gap:8px}
 .notes li:first-child{border-top:0}.notes li b{font-family:var(--mono);font-weight:500;flex:none}
-.notes li.warn{color:var(--sky)}.notes li.error{color:var(--bad)}
+.notes li.warn{color:var(--warn)}.notes li.error{color:var(--bad)}
 #live{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:20;margin:0;max-width:min(560px,calc(100vw - 32px));box-sizing:border-box;
   background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;box-shadow:var(--shadow)}
 #live:empty{display:none}
-.stance{font-size:14px}.stance p{margin:0 0 8px}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s,border-color .15s,color .15s,transform .1s}button:active{transform:translateY(1px)}}
 </style>
-<main>
-<header class="top"><div class="brand"><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="var(--acbg)"/><path d="M16 4.5l2.2 4.6 4.6-1.8-1.5 4.7 5 1.7-4 2.8 2.6 4.6-5.1-1.2L16 27.5l-3.8-7.6-5.1 1.2 2.6-4.6-4-2.8 5-1.7-1.5-4.7 4.6 1.8z" fill="var(--ac)"/><path d="M16 14v12" stroke="color-mix(in srgb,var(--ac) 70%,#000)" stroke-width="1.6" stroke-linecap="round"/></svg><div><h1>Sapline</h1><p>EXP tracker</p></div></div><div class="hr"><span id="chip" class="lchip"><i></i><span>Starting…</span></span><button id="theme" aria-label="Switch between the day and night look" title="Day or night look"><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>Theme</span></button></div></header>
-<nav aria-label="Sections"><button data-nav="exp" aria-current="page">EXP</button><button data-nav="runs">Runs</button><button data-nav="mobs">Mobs</button><button data-nav="more">Options</button></nav>
-<div id="app" tabindex="-1"></div><p id="live" role="status" aria-live="polite"></p>
-</main>
+<div class="shell">
+<aside class="side">
+  <div class="brand"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="var(--acbg)"/><path d="M16 4.5l2.2 4.6 4.6-1.8-1.5 4.7 5 1.7-4 2.8 2.6 4.6-5.1-1.2L16 27.5l-3.8-7.6-5.1 1.2 2.6-4.6-4-2.8 5-1.7-1.5-4.7 4.6 1.8z" fill="var(--gold)"/><path d="M16 14v12" stroke="color-mix(in srgb,var(--gold) 70%,#000)" stroke-width="1.6" stroke-linecap="round"/></svg><b>Sapline</b></div>
+  <nav aria-label="Sections">
+    <button data-nav="exp" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Home</button>
+    <button data-nav="runs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Runs</button>
+    <button data-nav="mobs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="7"/><path d="M8 5l-2-3M16 5l2-3M9.5 13h.01M14.5 13h.01M10 16c1 1 3 1 4 0"/></svg>Mobs</button>
+    <button data-nav="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
+  </nav>
+  <div class="sp"></div>
+  <div class="status" aria-live="polite">
+    <span id="chip" class="lchip"><i></i><span>Starting…</span></span>
+    <p id="chipsub" class="mu">Opening…</p>
+    <div class="xctl"><button class="go" data-x="go" id="go">Start recording</button></div>
+  </div>
+</aside>
+<main><div id="app" tabindex="-1"></div></main>
+</div>
+<p id="live" role="status" aria-live="polite"></p>
 <script>
 /* Sapline: the page Sapline shows. It asks the app (http://127.0.0.1:8765) for its state once a second and
    sends button presses as small requests. Nothing here talks to anything but the app on this PC. */
@@ -155,14 +187,19 @@ let view = "exp",
 const APP = { seq: 0, st: null, notes: [], lost: false };
 const segBtns = (name, cur, opts) =>
   `<span class="seg" role="group">${opts.map(([v, t]) => `<button data-${name}="${v}" aria-pressed="${v === cur}">${t}</button>`).join("")}</span>`;
-const optCard = (id, title, desc, on) => `<div class="card oc"><div class="oh"><label for="${id}"><b>${title}</b></label><label class="sw">` +
-  `<input type="checkbox" id="${id}"${on ? " checked" : ""}><span></span></label></div><p class="mu">${desc}</p></div>`;
-const mins = m => (m < 60 ? m + " min" : `${Math.floor(m / 60)} h ${m % 60} min`);
+const mins = m => (m < 60 ? m + " min" : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`);
+const tile = (k, v, sub) => `<div class="card tile"><span class="k">${k}</span><span class="v">${v}</span><span class="mu">${sub || ""}</span></div>`;
+const head = (title, sub, acts) => `<header class="ph"><div><h1>${title}</h1><p>${sub}</p></div>${acts ? `<div class="pa">${acts}</div>` : ""}</header>`;
+const MOB_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="7"/><path d="M8 5l-2-3M16 5l2-3M9.5 13h.01M14.5 13h.01M10 16c1 1 3 1 4 0"/></svg>';
 async function api(path, body) {
-  const r = await fetch(path, { method: "POST", headers: { "X-Sapline": "1", "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
-  return r.json().catch(() => ({ ok: false, error: "No answer from Sapline." }));
+  try {
+    const r = await fetch(path, { method: "POST", headers: { "X-Sapline": "1", "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+    return await r.json();
+  } catch (e) {
+    return { ok: false, error: "No answer from Sapline." };
+  }
 }
-// Short messages ("EXP tracking starts again from now") show at the bottom of the window for a few seconds
+// Short messages ("Counting again from now") show at the bottom of the window for a few seconds
 function say(m) {
   const el = $("#live");
   el.textContent = m;
@@ -172,6 +209,8 @@ function say(m) {
 function setTheme(dark) {
   document.documentElement.dataset.theme = dark ? "dark" : "light";
   try { localStorage.setItem(KEY + ":theme", dark ? "dark" : "light"); } catch (e) {}
+  const b = $("#theme");
+  if (b) b.textContent = dark ? "Switch to day" : "Switch to night";
 }
 const isDark = () => document.documentElement.dataset.theme === "dark";
 function saveCharts() {
@@ -199,17 +238,25 @@ async function appPull() {
   }
   setTimeout(appPull, 1000);
 }
-// The status pill in the header: what the recorder is doing, in a few words
+// What the recorder is doing, in a few words: the status card at the bottom of the menu
+function recState() {
+  const st = APP.st || {}, x = st.exp;
+  if (APP.lost) return { cls: "off", text: "Sapline has closed", sub: "Open Sapline again from the Start menu or the desktop icon." };
+  if (!st.exp_on) return { cls: "", text: "Not recording", sub: "Press Start recording when you are ready to hunt." };
+  if (!x) return st.exp_found
+    ? { cls: "wait", text: "Reading your EXP…", sub: "The first numbers come after two readings agree." }
+    : { cls: "wait", text: "Looking for the EXP line", sub: "Keep the game's status bar (HP, MP, EXP) on screen and uncovered." };
+  if (x.idle) return { cls: "wait", text: `Paused · Lv ${x.level || "—"}`, sub: "No EXP for a while. The clock starts again at your next gain." };
+  return { cls: "on", text: `Recording · Lv ${x.level || "—"}`,
+    sub: x.per_hour == null ? "Reading the status bar about once a second." : x.warm ? `About ${fmt(x.per_hour)} EXP an hour. Warming up.` : `${fmt(x.per_hour)} EXP an hour.` };
+}
 function drawChip() {
-  const st = APP.st || {}, x = st.exp, c = $("#chip");
-  let cls = "", text = "Starting…";
-  if (APP.lost) [cls, text] = ["off", "Sapline has closed"];
-  else if (!st.exp_on) [cls, text] = ["", "Not recording"];
-  else if (!x) [cls, text] = ["wait", st.exp_found ? "Reading your EXP…" : "Looking for the EXP line"];
-  else if (x.idle) [cls, text] = ["wait", `Paused · Lv ${x.level || "—"}`];
-  else [cls, text] = ["on", `Recording · Lv ${x.level || "—"}${x.per_hour != null && !x.warm ? " · " + fmt(x.per_hour) + "/h" : ""}`];
-  c.className = "lchip " + cls;
-  c.lastElementChild.textContent = text;
+  const s = recState(), c = $("#chip"), on = !!(APP.st && APP.st.exp_on);
+  c.className = "lchip " + s.cls;
+  c.lastElementChild.textContent = s.text;
+  $("#chipsub").textContent = s.sub;
+  $("#go").textContent = on ? "Stop recording" : "Start recording";
+  $("#go").disabled = APP.lost;
 }
 function draw() {
   document.querySelectorAll("[data-nav]").forEach(b => (b.dataset.nav === view ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
@@ -231,179 +278,236 @@ function put(html, force) {
     if (xren && $("#xrn")) $("#xrn").focus();
   }
 }
-/* ===== EXP tab ===== numbers from ExpTracker.summary in exp.py */
+/* ===== Home ===== numbers from ExpTracker.summary in exp.py */
 function drawExp(force) {
   const st = APP.st || {}, x = st.exp, on = !!st.exp_on, D = st.exp_days || [],
     today = D.length ? D[D.length - 1].gained : 0,
-    fig = (k, v, sub) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="mu">${sub}</div></div>`,
     warm = x && x.warm,
     rate = v => (v == null ? "…" : warm ? `<span title="The first 5 minutes: too early to mean much">≈${fmt(v)}</span>` : fmt(v)),
-    bars = (v, lab) => {
-      // log scale: a slow hour is still visible next to a fast one
-      const g = xlog ? n => Math.log10(1 + n) : n => n,
-        lo = xlog ? Math.min(...v.filter(n => n > 0).map(g), g(Math.max(1, ...v))) * 0.9 : 0,
-        mx = Math.max(lo + 1e-9, ...v.map(g)),
-        f = n => (n > 0 || !xlog ? Math.max(0, (g(n) - lo) / (mx - lo)) : 0);
-      if (xkind === "line") {
-        const w = 300 / Math.max(1, v.length),
-          P = v.map((n, i) => [(i * w + w / 2).toFixed(1), (96 - f(n) * 90).toFixed(1)]);
-        return `<svg class="xline" viewBox="0 0 300 100" preserveAspectRatio="none" role="img" aria-label="${lab}">` +
-          `<polygon class="xa" points="${P[0][0]},100 ${P.map(p => p.join(",")).join(" ")} ${P[P.length - 1][0]},100"/>` +
-          `<polyline points="${P.map(p => p.join(",")).join(" ")}"/>${P.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="2.5"/>`).join("")}</svg>`;
-      }
-      return `<div class="xchart" role="img" aria-label="${lab}">${v.map(n => `<i style="height:${Math.max(2, f(n) * 100).toFixed(0)}%"></i>`).join("")}</div>`;
-    },
-    status = !on ? "Not recording" : !x
-      ? st.exp_found ? "Reading…" : "Looking for the EXP line. Keep the status bar visible."
-      : x.idle ? "Paused: no EXP for a while" : warm ? "Warming up" : "Recording";
+    skipped = (st.exp_unread || 0) + ((x && x.skipped) || 0);
+  if (!x) return put(updCard(st) + firstOpen(st, on), force);
+  // the trend line under the big number
   let vs = "";
-  if (x && x.hour != null && x.prev_hour) {
+  if (x.hour != null && x.prev_hour) {
     const p = Math.round((x.hour / x.prev_hour - 1) * 100);
-    vs = Math.abs(p) < 2 ? '<div class="xvs mu">About the same as the hour before</div>' :
-      `<div class="xvs ${p > 0 ? "up" : "dn"}">${p > 0 ? "▲" : "▼"} ${Math.abs(p)}% ${p > 0 ? "faster" : "slower"} than the hour before</div>`;
+    vs = Math.abs(p) < 2 ? '<span class="mu">About the same as the hour before</span>' :
+      `<span class="${p > 0 ? "up" : "dn"}" style="font-weight:800;font-size:13px">${p > 0 ? "▲" : "▼"} ${Math.abs(p)}% ${p > 0 ? "faster" : "slower"} than the hour before</span>`;
   }
-  const sl = x && x.slots ? x.slots : [],
-    dayName = d => new Date(d.day + "T12:00:00").toLocaleDateString(undefined, { weekday: "short" }),
-    chart = xr === "week"
-      ? `<div class="row"><b>EXP per day</b><span class="num gold">${fmt(D.reduce((a, d) => a + d.gained, 0))}</span></div>` +
-        bars(D.map(d => d.gained), "EXP gained on each of the last 7 days") +
-        `<div class="ax">${D.map(d => `<span>${D.indexOf(d) === D.length - 1 ? "Today" : dayName(d)}</span>`).join("")}</div>`
-      : sl.length ? `<div class="row"><b>EXP every 10 minutes</b><span class="num gold">+${fmt(sl.reduce((a, b) => a + b, 0))}</span></div>` +
-        bars(sl, "EXP gained in each 10 minutes of this session") + `<div class="ax"><span>${sl.length * 10} min ago</span><span>now</span></div>`
-        : '<p class="mu">No readings yet</p>',
-    goals = x ? `<section class="card" aria-label="Goals"><div class="row"><b>Goals</b></div>` +
-      `<div class="tiles t3">${fig("Kills to level", x.kills_left != null ? fmt(x.kills_left) : "—",
-        x.kills_left != null && x.kills_total ? `about ${fmt(x.gained / x.kills_total)} EXP a kill` : "after the first kills")}` +
-      `${fig("Kills per hour", rate(x.kills_per_hour), "")}` +
-      `${fig(x.next_mark ? `${x.next_mark}% in` : "Next 10%", x.next_mark_text || "—", "")}</div></section>` : "",
-    html = updCard(st) + `<div class="${warm ? "warm" : ""}">` +
-      `<section class="card xband" aria-label="Your EXP trend"><div><div class="k mu">Your trend</div>` +
-      `<div class="big">${x ? rate(x.per_hour) : "…"}<small> EXP/h</small></div>${vs}` +
-      (x ? `<div class="mu">Last 5 min ${x.last5 != null ? fmt(x.last5) + "/h" : "…"} · ${x.pct_per_hour != null ? rate(x.pct_per_hour) + "%" : "…"} per hour` +
-        `${x.idle ? ' · <span class="xidle">paused</span>' : ""}</div>` +
-        (x.run && (x.run.map || x.run.party > 1) ? `<div class="mu">${esc(x.run.map || "")}${x.run.map && x.run.party > 1 ? " · " : ""}` +
-          `${x.run.party > 1 ? "party of " + x.run.party : ""}</div>` : "") : "") + `</div>` +
-      (sl.length > 1 ? `<div class="xspark" aria-hidden="true">${sl.map(n => `<i style="height:${Math.max(4, (n / Math.max(1, ...sl)) * 100).toFixed(0)}%"></i>`).join("")}</div>` : "") +
-      `<div class="tiles t3">${fig("Today", fmt(today), "EXP")}` +
-      `${fig("Best hour", x && x.best_hour != null ? fmt(x.best_hour) : "—", "")}` +
-      `${fig("Level in", (x && x.eta_text) || "—", x && x.left != null ? fmt(x.left) + " to go" : "")}</div></section>` +
-      `<div class="xgrid"><div>` +
-      (x ? `<div class="card"><div class="row"><b>Level</b><span class="mu">${x.left != null ? fmt(x.left) + " to go" : ""}</span></div>` +
+  const run = x.run || {},
+    where = [run.map ? esc(run.map) : "", run.party > 1 ? `party of ${run.party}` : "", run.minutes >= 1 ? `hunting for ${mins(run.minutes)}` : ""].filter(Boolean).join(" · "),
+    sub = !on ? "Recording is off. The numbers are from before it stopped." : x.idle ? "Paused: no EXP for a while." : warm ? "The first five minutes: the rates are still settling." : where || "This session so far",
+    sl = x.slots || [],
+    html = updCard(st) + `<div class="${warm ? "warm" : ""}" style="display:contents">` +
+      head("Right now", sub, `<button data-x="reset">Reset session</button>`) +
+      `<div class="g3">` +
+      `<section class="card s2" aria-label="EXP per hour"><div class="row"><span class="k">EXP per hour</span>${vs}</div>` +
+        `<div class="bline"><span class="big">${rate(x.per_hour)}</span><span>EXP / h</span></div>` +
+        `<div class="facts"><span>Last 5 minutes <b>${x.last5 != null ? fmt(x.last5) : "…"}</b> / h</span>` +
+        `<span>That is <b>${x.pct_per_hour != null ? rate(x.pct_per_hour) + "%" : "…"}</b> of the level every hour</span></div></section>` +
+      `<section class="card" aria-label="Level"><div class="row"><span class="k">Level</span><span class="mu">${x.left != null ? fmt(x.left) + " to go" : ""}</span></div>` +
         `<div class="xlv"><b>${x.level || "—"}</b><span class="num">${x.pct.toFixed(2)}%</span></div>` +
         `<div class="xbar" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, x.pct))}%"></i></div>` +
-        `<div class="mu num">${fmt(x.exp)}${x.need ? " of " + fmt(x.need) : ""} EXP</div></div>` +
-        `<div class="card"><div class="row"><b>This session</b><span class="mu">${mins(x.minutes)}</span></div>` +
-        `<div class="tiles t4">${fig("Gained", fmt(x.gained), "")}${fig("Lost", fmt(x.lost), x.lost ? "from dying" : "")}` +
-        `${fig("Level-ups", x.levels, "")}${fig("Kills", fmt(x.kills_total || 0), "")}</div>` +
-        `<div class="tiles t3">${fig("Damage taken", fmt(x.taken || 0), x.hits ? `${x.hits} hits · biggest ${fmt(x.big)}` : "")}` +
-        `${fig("HP", x.hp ? fmt(x.hp[0]) : "—", x.hp ? "of " + fmt(x.hp[1]) : "")}` +
-        `${fig("Mesos", x.mesos != null ? fmt(x.mesos) : "—", x.mesos_per_hour != null ? fmt(x.mesos_per_hour) + "/h" : x.mesos == null ? "open the Item window" : "")}</div></div>`
-        : `<div class="card"><b>No reading yet</b><p class="mu" style="margin:4px 0 0">${status}</p></div>`) +
-      `<div class="xctl"><button class="go${on ? " stop" : ""}" data-x="go">${on ? "Stop" : "Start"}</button><button data-x="reset">Reset</button>` +
-      `${x ? `<span class="mu">${status}${(st.exp_unread || 0) + (x.skipped || 0) ? ` · ${fmt((st.exp_unread || 0) + (x.skipped || 0))} readings skipped` : ""}</span>` : ""}</div></div>` +
-      `<div>${goals}<div class="xopts">${segBtns("xr", xr, [["session", "This session"], ["week", "Last 7 days"]])}` +
-      `${segBtns("xk", xkind, [["bars", "Bars"], ["line", "Line"]])}${segBtns("xs", xlog ? "log" : "lin", [["lin", "Normal"], ["log", "Log scale"]])}</div>` +
-      `<div class="card" style="margin-top:8px">${chart}</div>${notesHtml()}</div></div></div>`;
+        `<span style="font-size:14px">${x.level && x.eta_text ? `Level ${+x.level + 1} in about <b>${x.eta_text}</b> at this pace` : x.eta_text ? `Next level in about <b>${x.eta_text}</b>` : "Time to level: after a few readings"}</span>` +
+        `<span class="mu num">${fmt(x.exp)}${x.need ? " of " + fmt(x.need) : ""} EXP</span></section>` +
+      `</div>` +
+      `<h2>This session · ${mins(x.minutes)}</h2><div class="g4">` +
+      tile("Gained", `+${fmt(x.gained)}`, `${x.lost ? fmt(x.lost) + " lost from dying" : "0 lost"} · ${x.levels ? x.levels + " level-up" + (x.levels > 1 ? "s" : "") : "no level-ups yet"}`) +
+      tile("Kills", fmt(x.kills_total || 0), x.kills_total && x.gained > 0 ? `${x.kills_per_hour != null ? fmt(x.kills_per_hour) + " an hour · " : ""}about ${fmt(x.gained / x.kills_total)} EXP a kill` : "counted from each rise of your EXP") +
+      tile("Damage taken", fmt(x.taken || 0), x.hits ? `${x.hits} hits · biggest ${fmt(x.big)}${x.hp ? ` · HP ${fmt(x.hp[0])} of ${fmt(x.hp[1])}` : ""}` : x.hp ? `HP ${fmt(x.hp[0])} of ${fmt(x.hp[1])}` : "") +
+      tile("Mesos", x.mesos_gained != null ? (x.mesos_gained >= 0 ? "+" : "") + fmt(x.mesos_gained) : "—", x.mesos_per_hour != null ? fmt(x.mesos_per_hour) + " an hour" : x.mesos == null ? "open the Item window now and then" : "") +
+      `</div><div class="g3">` +
+      `<section class="card s2" aria-label="EXP over time"><div class="row"><b>${xr === "week" ? "EXP per day" : "EXP every 10 minutes"}</b>` +
+        `${segBtns("xr", xr, [["session", "This session"], ["week", "Last 7 days"]])}</div>` +
+        `<div class="row"><span class="xopts">${segBtns("xk", xkind, [["bars", "Bars"], ["line", "Line"]])}${segBtns("xs", xlog ? "log" : "lin", [["lin", "Normal"], ["log", "Log scale"]])}</span>` +
+        chart(xr, sl, D) + `</section>` +
+      `<section class="card" aria-label="Next up"><b>Next up</b><div class="list">` +
+        `<div><span>${x.next_mark ? x.next_mark + "% of the level" : "Next 10% of the level"}</span><span class="num">${x.next_mark_text ? "in " + x.next_mark_text : "—"}</span></div>` +
+        `<div><span>Kills to level ${x.level ? +x.level + 1 : "up"}</span><span class="num">${x.kills_left != null ? "about " + fmt(x.kills_left) : "—"}</span></div>` +
+        `<div><span>Kills per hour</span><span class="num">${x.kills_per_hour != null ? rate(x.kills_per_hour) : "—"}</span></div>` +
+        `<div><span>Best hour today</span><span class="num">${x.best_hour != null ? fmt(x.best_hour) : "—"}</span></div>` +
+        `<div><span>Gained today</span><span class="num">${fmt(today)}</span></div></div>` +
+        `<span class="mu">${skipped ? `${fmt(skipped)} readings skipped (the bar was covered or unreadable). A few is normal.` : "Every reading so far was clear."}</span></section>` +
+      `</div>${notesHtml()}</div>`;
   put(html, force);
+}
+// The chart card's body: bars or a line, this session's 10-minute slots or the last 7 days
+function chart(which, sl, D) {
+  const bars = (v, lab) => {
+    // log scale: a slow hour is still visible next to a fast one
+    const g = xlog ? n => Math.log10(1 + n) : n => n,
+      lo = xlog ? Math.min(...v.filter(n => n > 0).map(g), g(Math.max(1, ...v))) * 0.9 : 0,
+      mx = Math.max(lo + 1e-9, ...v.map(g)),
+      f = n => (n > 0 || !xlog ? Math.max(0, (g(n) - lo) / (mx - lo)) : 0);
+    if (xkind === "line") {
+      const w = 300 / Math.max(1, v.length),
+        P = v.map((n, i) => [(i * w + w / 2).toFixed(1), (96 - f(n) * 90).toFixed(1)]);
+      return `<svg class="xline" viewBox="0 0 300 100" preserveAspectRatio="none" role="img" aria-label="${lab}">` +
+        `<polygon class="xa" points="${P[0][0]},100 ${P.map(p => p.join(",")).join(" ")} ${P[P.length - 1][0]},100"/>` +
+        `<polyline points="${P.map(p => p.join(",")).join(" ")}"/>${P.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="2.5"/>`).join("")}</svg>`;
+    }
+    return `<div class="xchart" role="img" aria-label="${lab}">${v.map(n => `<i style="height:${Math.max(2, f(n) * 100).toFixed(0)}%" title="${fmt(n)}"></i>`).join("")}</div>`;
+  },
+    dayName = d => new Date(d.day + "T12:00:00").toLocaleDateString(undefined, { weekday: "short" });
+  if (which === "week") return `<span class="mu">${fmt(D.reduce((a, d) => a + d.gained, 0))} EXP in the last 7 days</span></div>` +
+    bars(D.map(d => d.gained), "EXP gained on each of the last 7 days") +
+    `<div class="ax">${D.map((d, i) => `<span>${i === D.length - 1 ? "Today" : dayName(d)}</span>`).join("")}</div>`;
+  return sl.length ? `<span class="mu">+${fmt(sl.reduce((a, b) => a + b, 0))} EXP in these ${sl.length * 10} minutes</span></div>` +
+    bars(sl, "EXP gained in each 10 minutes of this session") + `<div class="ax"><span>${sl.length * 10} min ago</span><span>now</span></div>`
+    : '<span class="mu">The first bar appears after 10 minutes.</span></div>';
+}
+// No reading yet: what to check, and where Sapline looks
+function firstOpen(st, on) {
+  const se = st.settings || {}, title = !on ? "Recording is off" : st.exp_found ? "Reading your EXP…" : "Welcome to Sapline",
+    sub = !on ? "Press Start recording in the menu when you are ready to hunt." : "It reads your EXP from the game's status bar. Nothing to set up; just keep the bar visible.";
+  return head(title, sub) + `<div class="g2">` +
+    `<section class="card" aria-label="What to check"><h2>Three things to check</h2><div class="steps">` +
+    `<div><i>1</i><div><b>The game is open on screen ${se.monitor || 1}</b><br><span>On another monitor? Change <b>Game screen</b> under Settings.</span></div></div>` +
+    `<div><i>2</i><div><b>The status bar is showing</b><br><span>The strip at the bottom with your level, HP, MP and EXP. Nothing may cover it.</span></div></div>` +
+    `<div><i>3</i><div><b>Wait a moment</b><br><span>The dot at the bottom left turns green and this page fills in. EXP per hour means something after about five minutes.</span></div></div>` +
+    `</div><div class="sunk" style="margin-top:auto"><b>Still nothing after a minute?</b> Set the game's interface size to 1.0 or larger. Very small text cannot be read.</div></section>` +
+    `<section class="card" aria-label="Where Sapline looks"><h2>Where Sapline looks</h2>` +
+    `<div role="img" aria-label="A game window; the status bar along the bottom is highlighted" style="flex:1;min-height:170px;border-radius:12px;border:1px solid var(--bd);background:var(--sf);position:relative;display:flex;flex-direction:column;padding:14px;box-sizing:border-box">` +
+    `<div style="display:flex;justify-content:space-between"><span style="width:110px;height:60px;border-radius:6px;border:1px solid var(--bd);background:var(--card)"></span><span style="width:150px;height:26px;border-radius:6px;border:1px solid var(--bd);background:var(--card)"></span></div>` +
+    `<div class="bar"><span class="num" style="height:auto;font-size:13px;font-weight:700">Lv. 39</span><span style="flex:1;background:#d9534f"></span><span style="flex:1;background:#4a7bd9"></span><span style="flex:2;background:var(--gold)"></span><span class="num mu" style="height:auto;font-size:12px">61.37%</span></div></div>` +
+    `<span class="mu">Sapline looks for the red HP and blue MP bars, then reads the numbers beside them. It takes a picture of your screen about once a second and keeps nothing but the numbers and a small picture of each mob.</span></section></div>` + notesHtml();
 }
 // Messages from the app (an update, a problem): the last few
 function notesHtml() {
   return APP.notes.length ? `<div class="card"><b>Messages</b><ul class="notes">${APP.notes.slice(0, 6).map(n =>
     `<li class="${n.level || ""}"><b>${new Date((n.t || 0) * 1000).toTimeString().slice(0, 5)}</b><span>${esc(n.text)}</span></li>`).join("")}</ul></div>` : "";
 }
-// A newer Sapline: a card at the top of the EXP tab (only when there's something to do) and a line in Options
+// A newer Sapline: a card at the top of Home (only when there's something to do) and a line in Settings
 function updCard(st) {
   const u = st.update || {}, v = esc(u.version || ""), busy = u.state === "downloading" || u.state === "installing";
   if (APP.lost || !(u.state === "available" || busy)) return "";
   return `<div class="card upd" id="upd">` + (busy
-    ? `<b>Updating to ${v}…</b><p class="mu" style="margin:4px 0 0">${u.state === "downloading" ? "Downloading." : "Installing. The app restarts by itself."}</p>`
-    : `<div class="row" style="margin:0"><span><b>New version ${v}</b><br><span class="mu">` +
+    ? `<b>Updating to ${v}…</b><p class="mu">${u.state === "downloading" ? "Downloading." : "Installing. The app restarts by itself."}</p>`
+    : `<div class="row"><span><b>New version ${v}</b><br><span class="mu">` +
       `${u.error ? `<span class="dn">${esc(u.error)}</span>` : "Your runs and settings stay."}</span></span>` +
-      (u.can_install ? `<button class="go" data-upd="now" style="width:auto;min-height:44px;font-size:15px;padding:0 18px">Update now</button>` :
-        `<button data-page="${esc(u.page || "")}">Download page</button>`) + `</div>`) + `</div>`;
+      (u.can_install ? `<button class="go" data-upd="now">Update now</button>` : `<button data-page="${esc(u.page || "")}">Download page</button>`) + `</div>`) + `</div>`;
 }
-/* ===== Runs tab ===== one line per hunt (a map and a level, until a level-up, a new map or 30 minutes without EXP) */
+/* ===== Runs ===== one line per hunt (a map and a level, until a level-up, a new map or 30 minutes without EXP) */
 function drawRuns(force) {
   const st = APP.st || {}, x = st.exp, L = st.exp_log || [],
     r = x && x.run && x.run.minutes >= 1 ? x.run : null,
     logOn = (st.settings || {}).exp_log !== false,
     dt = t => new Date(t * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-    row = (e, now) => `<tr${now ? ' class="now"' : ""}><td>${now ? "Now" : dt(e.date)}</td><td>${esc(e.name || e.map || "—")}</td>` +
-      `<td class="num">${e.level || "—"}</td><td>${e.party > 1 ? e.party + " in party" : "—"}</td><td class="num">${mins(e.minutes)}</td>` +
-      `<td class="num">${e.per_hour == null ? "…" : fmt(e.per_hour)}</td><td class="num">${e.mesos_per_hour == null ? "—" : fmt(e.mesos_per_hour)}</td>` +
-      `<td class="num" title="${esc((e.kills || []).map(k => `${k.name || k.exp + " EXP"} ×${k.n}`).join(", "))}">${e.kills_total == null ? "—" : fmt(e.kills_total)}</td>` +
-      `<td class="num">${e.taken == null ? "—" : fmt(e.taken)}</td><td>` +
+    row = (e, now) => `<tr${now ? ' class="now"' : ""}><td>${now ? "Now" : dt(e.date)}</td><td><b>${esc(e.name || e.map || "—")}</b></td>` +
+      `<td class="num">${e.level || "—"}</td><td>${e.party > 1 ? e.party + " in party" : "solo"}</td><td class="num">${mins(e.minutes)}</td>` +
+      `<td class="num r gold">${e.per_hour == null ? "…" : fmt(e.per_hour)}</td><td class="num r">${e.mesos_per_hour == null ? "—" : fmt(e.mesos_per_hour)}</td>` +
+      `<td class="num r" title="${esc((e.kills || []).map(k => `${k.name || k.exp + " EXP"} ×${k.n}`).join(", "))}">${e.kills_total == null ? "—" : fmt(e.kills_total)}</td>` +
+      `<td class="num r">${e.taken == null ? "—" : fmt(e.taken)}</td><td class="r">` +
       (now ? "" : xren === e.id
         ? `<input id="xrn" maxlength="40" value="${esc(e.name || e.map || "")}" aria-label="Name"><button data-xl="save" data-id="${e.id}">Save</button>`
         : `<button data-xl="rename" data-id="${e.id}">Rename</button><button data-xl="delete" data-id="${e.id}">Delete</button>`) + `</td></tr>`;
-  put(`<section class="card xlog" aria-label="Runs"><div class="row"><b>Your runs</b><label class="xlon"><input type="checkbox" data-xl="on"${logOn ? " checked" : ""}> Log my runs</label></div>` +
-    `<p class="mu">A new line at a level-up, a new map, or after a long break.</p>` +
-    (r || L.length ? `<div class="tw"><table><thead><tr><th>Date</th><th>Map</th><th>Lv</th><th>Party</th><th>Time</th><th>EXP/h</th><th>Mesos/h</th>` +
-      `<th>Kills</th><th>Dmg taken</th><th></th></tr></thead><tbody>${r ? row(r, true) : ""}${L.map(e => row(e)).join("")}</tbody></table></div>`
-      : '<p class="mu">No runs yet</p>') + `</section>`, force);
+  put(head("Your runs", "One line per hunt. A run ends when you change map, level up, or stop for 30 minutes.",
+    `<label class="card" style="flex-direction:row;align-items:center;gap:10px;padding:8px 12px;font-weight:700;font-size:14px;cursor:pointer"><input type="checkbox" data-xl="on"${logOn ? " checked" : ""}> Log my runs</label>`) +
+    weekTiles(L) +
+    `<section class="card tcard xlog" aria-label="Runs">` +
+    (r || L.length ? `<div class="tw"><table><thead><tr><th>When</th><th>Map</th><th>Level</th><th>Party</th><th>Time</th><th class="r">EXP / h</th><th class="r">Mesos / h</th>` +
+      `<th class="r">Kills</th><th class="r">Dmg taken</th><th></th></tr></thead><tbody>${r ? row(r, true) : ""}${L.map(e => row(e)).join("")}</tbody></table></div>`
+      : '<p class="mu" style="padding:12px 18px">No runs yet. Your first line appears after a hunt of at least a minute.</p>') +
+    `<p class="mu tfoot">Map names and mesos need the free text reader (Settings). Without it those two columns stay empty; everything else still works.</p></section>`, force);
 }
-/* ===== Mobs tab ===== the kills, told apart by the EXP one kill gives, with the pictures cut from the screen */
+// Three answers above the run log: the best map, the week's total, the longest run (the last 7 days of the log)
+function weekTiles(L) {
+  const week = L.filter(e => e.date > Date.now() / 1000 - 7 * 86400 && e.minutes > 0);
+  if (!week.length) return "";
+  const gained = e => (e.gained != null ? e.gained : (e.per_hour || 0) * e.minutes / 60),
+    byMap = {};
+  for (const e of week) {
+    const k = e.map || e.name || "—", m = byMap[k] || (byMap[k] = { g: 0, min: 0, n: 0 });
+    m.g += gained(e); m.min += e.minutes; m.n++;
+  }
+  const best = Object.entries(byMap).filter(([, m]) => m.min >= 10).sort((a, b) => b[1].g / b[1].min - a[1].g / a[1].min)[0],
+    tot = week.reduce((a, e) => a + gained(e), 0), tmin = week.reduce((a, e) => a + e.minutes, 0),
+    lon = week.slice().sort((a, b) => b.minutes - a.minutes)[0];
+  return `<div class="g3">` +
+    (best ? `<div class="card tile"><span class="k">Best map this week</span><span style="font-size:20px;font-weight:800;line-height:1.2">${esc(best[0])}</span>` +
+      `<span class="mu"><b class="num gold">${fmt(best[1].g / best[1].min * 60)}</b> EXP / h over ${best[1].n} run${best[1].n > 1 ? "s" : ""}</span></div>`
+      : tile("Best map this week", "—", "after a run of 10 minutes or more")) +
+    tile("This week", fmt(tot), `EXP in ${week.length} run${week.length > 1 ? "s" : ""} · ${mins(tmin)}`) +
+    tile("Longest run", mins(lon.minutes), `${esc(lon.name || lon.map || "—")}, ${new Date(lon.date * 1000).toLocaleDateString(undefined, { weekday: "long" })}`) + `</div>`;
+}
+/* ===== Mobs ===== the kills, told apart by the EXP one kill gives, with the pictures cut from the screen */
 function drawMobs(force) {
   const st = APP.st || {}, x = st.exp,
-    table = (title, all, sub) => {
-      const K = all.filter(k => k.name || k.n > 1),
-        other = all.filter(k => !(k.name || k.n > 1)).reduce((a, k) => a + k.n, 0), // amounts seen once: shared mobs, quests
-        pic = k => (k.pic ? `<img class="mp" src="/api/mobpic/${k.exp}.png" alt="" title="Click to drop this picture" data-mnx="${k.exp}">` : ""),
-        row = k => `<tr><td class="mob">${pic(k)}${k.name ? esc(k.name) : `<input class="mn" data-mn="${k.exp}" maxlength="40" ` +
-          `placeholder="Name this mob" aria-label="Name this mob"><button data-mns="${k.exp}">Save</button>`}</td>` +
-          `<td class="num">${fmt(k.n)}</td><td class="num mu">${k.exp ? fmt(k.exp) : "—"}</td></tr>`;
-      return `<section class="card xmobs" aria-label="${title}"><div class="row"><b>${title}</b><span class="num">${all.length ? fmt(all.reduce((a, k) => a + k.n, 0)) + " kills" : ""}</span></div>` +
-        (sub ? `<p class="mu">${sub}</p>` : "") +
-        (all.length ? `<div class="tw"><table><thead><tr><th>Mob</th><th>Kills</th><th>EXP each</th></tr></thead><tbody>${K.map(row).join("")}` +
-          `${other ? `<tr><td class="mu">Other gains</td><td class="num">${fmt(other)}</td><td class="num mu">—</td></tr>` : ""}</tbody></table></div>`
-          : "") + `</section>`;
-    },
-    hunt = x && x.run && x.run.kills && x.run.kills.length ? x.run.kills : [],
-    sess = (x && x.kills) || [];
-  put((hunt.length ? table("This hunt", hunt, "") : "") + (sess.length && sess !== hunt ? table("This session", sess, "") : "") +
-    (hunt.length || sess.length ? `<p class="mu">Mobs are told apart by the EXP a kill gives. Name one and it stays named. Wrong picture? Click it to drop it.</p>`
-      : `<div class="card"><b>No kills yet</b><p class="mu" style="margin:4px 0 0">Kills show here as your EXP goes up.</p></div>`), force);
+    hunt = (x && x.run && x.run.kills) || [],
+    sess = (x && x.kills) || [],
+    cards = hunt.length ? hunt : sess,                       // the cards: this hunt, or the session when no hunt is going
+    shown = new Set(cards.map(k => k.exp)),
+    sum = all => fmt(all.reduce((a, k) => a + k.n, 0)),
+    nameBox = k => `<label><span>Name</span><input class="mn" data-mn="${k.exp}" maxlength="40" placeholder="Type the mob's name" aria-label="Name this mob"></label>`,
+    card = k => `<article class="card mob"><div class="pic">${k.pic ? `<img src="/api/mobpic/${k.exp}.png" alt="Picture of the mob, cut from your screen">` : MOB_ICON}</div><div class="body">` +
+      `<div class="row"><span class="num gold" style="font-weight:700">${fmt(k.exp)} EXP</span><span class="mu"><b class="num" style="color:var(--tx)">${fmt(k.n)}</b> kill${k.n > 1 ? "s" : ""}</span></div>` +
+      (k.name ? `<b style="font-size:16px">${esc(k.name)}</b>` : nameBox(k)) +
+      `<div class="btns">${k.name ? "" : `<button class="pri" data-mns="${k.exp}">Save</button>`}${k.pic ? `<button data-mnx="${k.exp}">Not this mob</button>` : ""}</div></div></article>`,
+    // amounts seen once in a party are shared mobs or quests: one "Other gains" line
+    named = all => all.filter(k => k.name || k.n > 1), other = all => all.filter(k => !(k.name || k.n > 1)).reduce((a, k) => a + k.n, 0),
+    trow = k => `<tr><td>${k.name ? `<b>${esc(k.name)}</b>` : shown.has(k.exp) ? '<span class="mu">Not named yet</span>'
+        : `<input class="mn" data-mn="${k.exp}" maxlength="40" placeholder="Name this mob" aria-label="Name this mob"><button class="pri" data-mns="${k.exp}">Save</button>`}</td>` +
+      `<td class="num r">${fmt(k.exp)}</td><td class="num r">${fmt(k.n)}</td><td class="num r gold">${fmt(k.exp * k.n)}</td></tr>`;
+  put(head("Mobs", "Sapline tells mobs apart by the EXP they give. Name one once and the name stays.",
+      sess.length ? `<span class="card" style="padding:8px 12px;font-size:13px;font-weight:700">${sum(sess)} kills this session</span>` : "") +
+    (cards.length
+      ? `<div class="row"><h2>${hunt.length ? "This hunt" + (x.run.map ? " · " + esc(x.run.map) : "") : "This session"}</h2>` +
+        `<span class="mu">Wrong picture? Press <b>Not this mob</b> and the next clear kill takes a new one.</span></div>` +
+        `<div class="g3">${named(cards).map(card).join("")}</div>` +
+        (other(cards) ? `<p class="mu"><b>Other gains</b>: ${fmt(other(cards))}, of amounts seen once (shared mobs in a party, or quest rewards).</p>` : "")
+      : `<section class="card"><b>No kills yet</b><p class="mu">Kills show here as your EXP goes up.</p></section>`) +
+    (hunt.length && sess !== hunt && sess.length ? `<section class="card tcard" aria-label="This session"><h2>This session</h2><div class="tw"><table><thead><tr><th>Mob</th><th class="r">EXP each</th><th class="r">Kills</th><th class="r">EXP from it</th></tr></thead><tbody>` +
+      `${named(sess).map(trow).join("")}${other(sess) ? `<tr><td class="mu">Other gains</td><td class="num r">—</td><td class="num r">${fmt(other(sess))}</td><td class="num r">—</td></tr>` : ""}</tbody></table></div>` +
+      `<p class="mu tfoot">Kills are counted from each rise of your EXP. Two mobs that give the same EXP are counted as one.</p></section>` : ""), force);
 }
-/* ===== Options tab ===== */
+/* ===== Settings ===== */
+const PAUSE = [1, 2, 3, 5, 10, 15, 20, 30];
+const sw = (id, title, desc, on) => `<label class="opt" for="${id}"><span><b>${title}</b><span class="mu">${desc}</span></span><input type="checkbox" id="${id}"${on ? " checked" : ""}></label>`;
 function drawMore() {
-  const st = APP.st || {}, se = st.settings || {};
-  $("#app").innerHTML = `<h2 class="oh2">Recording</h2><div class="ocards">` +
-    optCard("ox", "Start on open", "Record as soon as the app opens.", se.exp !== false) +
-    optCard("ol", "Log my runs", "Keep a line per hunt on the Runs tab.", se.exp_log !== false) +
-    `<div class="card oc"><label for="oi"><b>Pause after</b></label><p class="mu">Minutes without EXP before the clock stops.</p>` +
-    `<select id="oi">${[1, 2, 3, 5, 10, 15].map(n => `<option value="${n}"${+(se.idle_min || 1) === n ? " selected" : ""}>${n} min</option>`).join("")}</select></div>` +
-    `<div class="card oc"><label for="om"><b>Game screen</b></label><p class="mu">Which monitor the game is on.</p>` +
-    `<select id="om">${[1, 2, 3].map(n => `<option value="${n}"${+se.monitor === n ? " selected" : ""}>Screen ${n}</option>`).join("")}</select></div>` +
-    `</div><h2 class="oh2">App</h2><div class="ocards">` +
-    `<div class="card oc"><b>Updates</b><p class="mu" id="updline">Updates</p><p class="mu" id="eng"></p><button id="updcheck" style="align-self:flex-start">Check now</button></div>` +
-    `<div class="card oc"><b>Map names and mesos</b><p class="mu" id="tess"></p><button id="tessgo" style="align-self:flex-start" hidden>Install Tesseract</button></div>` +
-    `<div class="card oc"><b>Data</b><p class="mu">Run log, day totals and mob pictures.</p><div class="btns"><button id="oscans">Open folder</button></div></div>` +
-    optCard("ofp", "Save fight pictures", "For troubleshooting mob pictures. Off again at the next start.", !!se.fight_pics) +
-    `</div><div class="card stance"><p><b>Sapline only reads your screen.</b> It takes screenshots and reads the status bar from them. It never clicks, types, reads the game's memory or sends anything anywhere.</p>` +
-    `<p class="mu">Nexon has not said whether screen readers are allowed. Use at your own risk. Fan project, not affiliated with Nexon.</p></div>`;
-  $("#ox").onchange = e => api("/api/set", { exp: e.target.checked });
-  $("#ol").onchange = e => api("/api/set", { exp_log: e.target.checked });
-  $("#oi").onchange = e => api("/api/set", { idle_min: +e.target.value });
-  $("#om").onchange = e => api("/api/set", { monitor: +e.target.value });
-  $("#ofp").onchange = e => api("/api/set", { fight_pics: e.target.checked });
-  $("#oscans").onclick = () => api("/api/open-scans");
+  const st = APP.st || {}, se = st.settings || {}, idle = +(se.idle_min || 1),
+    pauses = PAUSE.includes(idle) ? PAUSE : [...PAUSE, idle].sort((a, b) => a - b);
+  $("#app").innerHTML = head("Settings", "Changes save as you make them.") + `<div class="g2">` +
+    `<section class="card" aria-label="Recording"><h2>Recording</h2>` +
+    sw("ox", "Start when Sapline opens", "Otherwise press Start recording yourself.", se.exp !== false) +
+    sw("ol", "Log my runs", "Keep one line per hunt on the Runs page.", se.exp_log !== false) +
+    `<div class="opt"><label for="oi"><b>Pause after</b><span class="mu">Minutes without EXP before the clock stops, so a break does not drag your EXP per hour down.</span></label>` +
+    `<select id="oi">${pauses.map(n => `<option value="${n}"${idle === n ? " selected" : ""}>${n} min</option>`).join("")}</select></div>` +
+    `<div class="opt"><label for="om"><b>Game screen</b><span class="mu">The monitor the game is on.</span></label>` +
+    `<select id="om">${[1, 2, 3].map(n => `<option value="${n}"${+se.monitor === n ? " selected" : ""}>Screen ${n}${n === 1 ? " (main)" : ""}</option>`).join("")}</select></div>` +
+    sw("ofp", "Save fight pictures", "Only for fixing wrong mob pictures: keeps the screenshots around each kill. Off again at the next start.", !!se.fight_pics) +
+    `</section><div style="display:flex;flex-direction:column;gap:14px;min-width:0">` +
+    `<section class="card" aria-label="Map names and mesos"><h2>Map names and mesos</h2><p style="font-size:14px">EXP works on its own. Reading the map's name and your meso count needs <b>Tesseract</b>, a free text reader.</p>` +
+    `<div class="row"><span id="tess" class="mu"></span><button id="tessgo" class="pri" hidden>Install Tesseract</button></div></section>` +
+    `<section class="card" aria-label="App"><h2>App</h2>` +
+    `<div class="opt"><span><b>Updates</b><span class="mu" id="updline"></span></span><button id="updcheck">Check now</button></div>` +
+    `<div class="opt"><span><b>Your data</b><span class="mu">Runs, day totals and mob pictures, in the folder next to Sapline.</span></span><button id="oscans">Open folder</button></div>` +
+    `<div class="opt"><span><b>Look</b><span class="mu">Night or day colours.</span></span><button id="theme">${isDark() ? "Switch to day" : "Switch to night"}</button></div></section>` +
+    `<section class="card" aria-label="What Sapline does" style="background:var(--sf)"><p style="font-size:14px"><b>Sapline only looks at your screen.</b> It never clicks, types, reads the game's memory or sends anything anywhere. ` +
+    `Nexon has not said whether screen readers are allowed; on a private server, ask a GM first. Fan project, not affiliated with Nexon.</p></section></div></div>`;
+  const done = r => r.ok || say(r.error || "Could not save that setting.");
+  $("#ox").onchange = e => api("/api/set", { exp: e.target.checked }).then(done);
+  $("#ol").onchange = e => api("/api/set", { exp_log: e.target.checked }).then(done);
+  $("#oi").onchange = e => api("/api/set", { idle_min: +e.target.value }).then(done);
+  $("#om").onchange = e => api("/api/set", { monitor: +e.target.value }).then(done);
+  $("#ofp").onchange = e => api("/api/set", { fight_pics: e.target.checked }).then(done);
+  $("#oscans").onclick = () => api("/api/open-scans").then(r => r.ok || say(r.error || "Could not open the folder."));
   $("#tessgo").onclick = () => api("/api/install-tesseract").then(r => say(r.ok ? "Installing Tesseract. Click Yes if Windows asks." : r.error || "Could not start the installer."));
   $("#updcheck").onclick = async () => {
     $("#updline").textContent = "Checking…";
     await api("/api/update-check");
   };
+  $("#theme").onclick = () => setTheme(!isDark());
   updOpts(st);
 }
 function updOpts(st) {
   const line = $("#updline");
   if (!line) return;
-  const u = st.update || {};
-  line.textContent = {
-    none: "Up to date", available: `${u.version} is ready (see the EXP tab)`, downloading: "Downloading…", installing: "Installing…",
-    checking: "Checking…", offline: "Can't reach GitHub right now", unavailable: "No release to check yet", off: "Switched off"
-  }[u.state] || "";
-  $("#eng").textContent = `Sapline ${st.version || ""}`;
-  $("#tess").textContent = st.tesseract ? "Read for the run log (Tesseract is installed)." : "Needs Tesseract, a free text reader. EXP works without it.";
+  const u = st.update || {}, v = st.version ? `You have ${st.version}.` : "";
+  line.textContent = v + " " + ({
+    none: "That is the newest.", available: `${u.version} is ready: see Home.`, downloading: "Downloading the new version…", installing: "Installing…",
+    checking: "Checking…", offline: "Can't reach GitHub right now.", unavailable: "No release to check yet.", off: "Update checks are switched off."
+  }[u.state] || "");
+  $("#tess").textContent = st.tesseract ? "✓ Installed. Map names and mesos are read for the run log." : "Not installed. EXP works without it.";
+  $("#tess").className = st.tesseract ? "up" : "mu";
   $("#tessgo").hidden = !!st.tesseract;
 }
 /* ===== Buttons ===== */
@@ -420,8 +524,8 @@ document.addEventListener("click", e => {
   } else if (d.mns !== undefined || d.mnx !== undefined) {
     const exp = +(d.mns !== undefined ? d.mns : d.mnx),
       body = d.mns !== undefined ? { exp, name: ($(`[data-mn="${exp}"]`) || {}).value || "" } : { exp, action: "forget" };
-    if (d.mnx !== undefined && !confirm("Drop this picture?")) return;
-    api("/api/mob-name", body).then(r => (r.ok ? drawMobs(true) : say(r.error || "Could not save that.")));
+    if (d.mns !== undefined && !body.name.trim()) return say("Type the mob's name first.");
+    api("/api/mob-name", body).then(r => (r.ok ? (drawMobs(true), d.mnx !== undefined && say("Picture dropped. The next clear kill takes a new one.")) : say(r.error || "Could not save that.")));
   } else if (d.xr || d.xk || d.xs) {
     if (d.xr) xr = d.xr;
     if (d.xk) xkind = d.xk;
@@ -429,19 +533,20 @@ document.addEventListener("click", e => {
     saveCharts();
     drawExp(true);
   } else if (d.x === "go") api("/api/set", { exp: !(APP.st && APP.st.exp_on) }).then(r => r.ok || say(r.error || "Could not change EXP recording."));
-  else if (d.x === "reset") api("/api/exp-reset").then(() => say("Counting again from now"));
-  else if (d.upd) api("/api/update").then(r => r.ok || say(r.error));
+  else if (d.x === "reset") api("/api/exp-reset").then(r => say(r.ok ? "Counting again from now" : r.error || "Could not reset."));
+  else if (d.upd) api("/api/update").then(r => r.ok || say(r.error || "Could not start the update."));
   else if (d.page) window.open(d.page, "_blank", "noopener");
 });
 document.querySelectorAll("[data-nav]").forEach(b => (b.onclick = () => { view = b.dataset.nav; xren = null; draw(); }));
-$("#theme").onclick = () => setTheme(!isDark());
 try {
   const t = localStorage.getItem(KEY + ":theme"), c = JSON.parse(localStorage.getItem(KEY + ":charts") || "{}");
-  // night first: the game window is dark and the app sits beside it; the Theme button remembers a change
+  // night first: the game window is dark and the app sits beside it; the Look setting remembers a change
   document.documentElement.dataset.theme = t === "dark" || t === "light" ? t : "dark";
   if (c.xk === "line") xkind = "line";
   xlog = !!c.xs;
-} catch (e) {}
+} catch (e) {
+  document.documentElement.dataset.theme = "dark";
+}
 draw();
 if (LOCAL) appPull();
 </script>
