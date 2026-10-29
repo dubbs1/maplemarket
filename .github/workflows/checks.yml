@@ -128,10 +128,13 @@ jobs:
           if (-not (Test-Path "$app\Sapline.exe")) { throw "The app was not moved to Programs\Sapline" }
           if (-not ((Get-Content "$app\scans\exp_log.json" -Raw) -match "old")) { throw "The run log did not come along with the move" }
           if (-not (Test-Path "$app\scans\mobs\22.png") -or -not ((Get-Content "$app\settings.json" -Raw) -match "7")) { throw "Pictures or settings did not come along" }
-          Start-Sleep 20     # the app removes the old folder a few seconds after its start
+          # the app removes the old folder about 30 s after its start: give it up to 90
+          $t0 = Get-Date
+          while (((Get-Date) - $t0).TotalSeconds -lt 90 -and (Test-Path $old)) { Start-Sleep 3 }
           Get-Process Sapline, msedge -ErrorAction SilentlyContinue | Stop-Process -Force
           Start-Sleep 2
           if (Test-Path $old) { throw "The old folder is still there after the move" }
+          if (Test-Path "$old.gone") { throw "The old folder was renamed but not removed" }
           if (Test-Path "$app\moved_from.txt") { throw "The move marker was not cleared" }
           "moved from $old to $app with its data; old folder gone"
           if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Sapline.lnk")) { throw "No Start-menu icon" }
