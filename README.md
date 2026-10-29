@@ -12,16 +12,18 @@ It only looks at your screen. It never clicks, types, reads the game's memory or
 2. Double-click it. If Windows says "Windows protected your PC", click **More info**, then **Run anyway**.
 3. The app opens by itself and starts recording. Keep the game's status bar visible.
 
-Optional: **Tesseract**, a free text reader, lets the app also read the map's name and your meso count for the run log. Options has a button that installs it.
+Optional: **Tesseract**, a free text reader, lets the app also read the map's name and your meso count for the run log. Settings has a button that installs it.
 
 ## What you see
 
-| Tab | What it shows |
+The menu on the left has four pages. The card under it always says what Sapline is doing, with the Start / Stop button.
+
+| Page | What it shows |
 |---|---|
-| **EXP** | EXP per hour and the last 5 minutes, level and progress, time to level, kills left to level, kills per hour, the next 10 % mark, damage taken, a chart of this session or the last 7 days |
-| **Runs** | One line per hunt: map, level, party, time, EXP/h, mesos/h, kills, damage taken. Rename or delete lines |
-| **Mobs** | Your kills by mob, with the picture cut from your screen; name a mob once and it is remembered |
-| **Options** | Record on open, log my runs, pause after N minutes, game screen, updates, and what the app does and never does |
+| **Home** | EXP per hour and the last 5 minutes, level and progress, time to level, this session's gains, kills, damage taken and mesos, a chart of this session or the last 7 days, and **Next up**: the next 10 % mark, kills to level, kills per hour. Before the first reading it shows what to check |
+| **Runs** | The best map, the week's total and the longest run, then one line per hunt: map, level, party, time, EXP/h, mesos/h, kills, damage taken. Rename or delete lines |
+| **Mobs** | Your kills by mob as cards, with the picture cut from your screen; name a mob once and it is remembered |
+| **Settings** | Start when Sapline opens, log my runs, pause after N minutes, game screen, the text reader, updates, your data, night or day look, and what the app does and never does |
 
 The step-by-step guide, with what you should see at each step, is in [the Guide](Sapline/GUIDE.md).
 

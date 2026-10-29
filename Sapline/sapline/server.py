@@ -83,7 +83,7 @@ class _Handler(BaseHTTPRequestHandler):
             if name.isascii() and name.isdigit():    # '²' is a digit too, but int() refuses it
                 try:
                     with open(c.mobpics.path(int(name)), 'rb') as f:
-                        return self._send(200, f.read(), 'image/png', 'max-age=60')
+                        return self._send(200, f.read(), 'image/png', 'no-store')   # a dropped picture must not linger
                 except OSError:
                     pass
             return self._send(404, 'Not found', 'text/plain')
