@@ -4,7 +4,7 @@ import hashlib, json, os, sys, tempfile, threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
-work = tempfile.mkdtemp(prefix='maplereader_update_')
+work = tempfile.mkdtemp(prefix='sapline_update_')
 import sapline.config as C                           # noqa: E402
 C.APP_DIR = work
 from sapline import update, migrate                  # noqa: E402
@@ -139,15 +139,15 @@ def main():
     del os.environ['SAPLINE_UPDATE_API']
 
     # --- first run of the installed app: the old data comes along ---
-    home = tempfile.mkdtemp(prefix='maplereader_home_')
-    old = os.path.join(home, 'OneDrive', 'Desktop', 'MapleReader')   # (the app's old name)
+    home = tempfile.mkdtemp(prefix='sapline_home_')
+    old = os.path.join(home, 'OneDrive', 'Desktop', 'Sapline')   # the zip version's folder
     os.makedirs(os.path.join(old, 'scans', 'mobs'))
     for rel, text in (('scans/exp_log.json', '[{"id": "1", "date": 1}]'), ('scans/mobs/22.png', 'png'), ('scans/exp_days.json', '{}'),
                       ('settings.json', '{"monitor": 2}'), ('mobs.txt', 'Evil Eye | 22\n')):
         with open(os.path.join(old, rel), 'w') as f:
             f.write(text)
     before = sorted(os.walk(old))
-    app = tempfile.mkdtemp(prefix='maplereader_installed_')
+    app = tempfile.mkdtemp(prefix='sapline_installed_')
     env = {'USERPROFILE': home, 'OneDrive': os.path.join(home, 'OneDrive')}
     msg = migrate.first_run(app, env)
     ok(f'first run brings the old data over ({msg})', msg and 'Brought over' in msg and

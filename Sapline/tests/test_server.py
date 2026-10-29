@@ -3,7 +3,7 @@ named, pictures are served safely, and requests that don't come from this PC's o
 import json, os, socket, sys, tempfile, urllib.error, urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
-work = tempfile.mkdtemp(prefix='maplereader_server_')
+work = tempfile.mkdtemp(prefix='sapline_server_')
 os.environ.setdefault('SAPLINE_UPDATE_API', 'off')    # these checks never ask GitHub (test_update.py does that)
 os.chdir(work)
 import sapline.config as C                           # noqa: E402

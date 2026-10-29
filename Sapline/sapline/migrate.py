@@ -1,7 +1,7 @@
-"""First run of the installed app: bring over the data from an older MapleReader folder (the app's old name).
+"""First run of the installed app: bring over the data from an older zip-version folder.
 
 The installed app keeps its data next to itself (in AppData). People who used the zip version have their
-scans folder (the run log, day totals, mob pictures) in a folder like Desktop\\MapleReader. On the very first
+scans folder (the run log, day totals, mob pictures) in a folder like Desktop\\Sapline. On the very first
 run, if that folder is found, that folder, settings.json and mobs.txt are copied over, so nothing is lost.
 The old folder is left exactly as it was.
 """
@@ -13,17 +13,15 @@ MARK = 'exp_log.json'                            # in scans/: its being here mea
 
 
 def candidates(env=None):
-    """Folders where an older MapleReader (the app's old name) may live, most likely first."""
+    """Folders where an older zip version may live, most likely first."""
     env = os.environ if env is None else env
     home = env.get('USERPROFILE') or os.path.expanduser('~')
     out = []
-    if env.get('LOCALAPPDATA'):                  # the installed MapleReader, before the rename
-        out.append(os.path.normpath(os.path.join(env['LOCALAPPDATA'], 'Programs', 'MapleReader')))
     bases = [env.get('OneDrive'), env.get('OneDriveConsumer'), os.path.join(home, 'OneDrive'), home]
     for base in bases:
         for sub in ('Desktop', 'Documents', 'Downloads', ''):
             if base:
-                p = os.path.normpath(os.path.join(base, sub, 'MapleReader'))
+                p = os.path.normpath(os.path.join(base, sub, 'Sapline'))
                 if p not in out:
                     out.append(p)
     return out

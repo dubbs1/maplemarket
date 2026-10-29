@@ -163,7 +163,7 @@ def self_check(result_path):
     import traceback
     lines, good = [], False
     try:
-        work = tempfile.mkdtemp(prefix='maplereader_check_')
+        work = tempfile.mkdtemp(prefix='sapline_check_')
         os.environ.setdefault('SAPLINE_UPDATE_API', 'off')
         from . import config, controller, server
         from .ocr import find_tesseract

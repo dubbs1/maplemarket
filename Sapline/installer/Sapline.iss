@@ -1,7 +1,7 @@
 ; Sapline's Windows installer (Inno Setup 6). The automatic build makes it:
 ;   iscc /DAppVersion=2026-10-20g /DSrc=<folder with Sapline.exe and _internal> /O<out> installer\Sapline.iss
 ; It installs for the current user only (no admin rights needed) into %LOCALAPPDATA%\Programs\Sapline.
-; The AppId is the one MapleReader (the app's old name) used, so an update over it keeps its folder and data.
+; The AppId never changes, so an update over an installed copy keeps its folder and data.
 ; The run log, pictures and settings live next to the app and are kept on updates and on uninstall.
 #ifndef AppVersion
   #define AppVersion "0-dev"
@@ -35,10 +35,6 @@ Name: "desktopicon"; Description: "Put a Sapline icon on the desktop"; Flags: ch
 [InstallDelete]
 ; the program's libraries are replaced as a whole on every update (the data and settings are not in here)
 Type: filesandordirs; Name: "{app}\_internal"
-; the old name's program and shortcuts (an update of MapleReader)
-Type: files; Name: "{app}\MapleReader.exe"
-Type: files; Name: "{userprograms}\MapleReader.lnk"
-Type: files; Name: "{userdesktop}\MapleReader.lnk"
 
 [Files]
 Source: "{#Src}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
