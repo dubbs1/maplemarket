@@ -7,9 +7,12 @@ The old folder is left exactly as it was.
 """
 import os
 import shutil
+import threading
+import time
 
 KEEP = ('settings.json', 'mobs.txt')             # files next to the app
 MARK = 'exp_log.json'                            # in scans/: its being here means the data came over (or was made here)
+MOVED = 'moved_from.txt'                         # written by the installer when it moved the app to a new folder
 
 
 def candidates(env=None):
@@ -79,3 +82,73 @@ def first_run(app_dir, env=None):
     except OSError as e:
         return f'Could not bring over your data from {old}: {e}. It tries again next time.'
     return f'Brought over your EXP log and pictures from {old} ({n} files). The old folder was not changed.'
+
+
+def sync_newer(src, dst):
+    """Copy the data files (scans/**, settings.json, mobs.txt) that src has and dst lacks, or that are newer in
+    src: the old copy may have kept running and writing after the installer copied the data."""
+    n = 0
+    pairs = [(os.path.join(src, k), os.path.join(dst, k)) for k in KEEP]
+    s_scans = os.path.join(src, 'scans')
+    for root, _, files in os.walk(s_scans):
+        rel = os.path.relpath(root, s_scans)
+        pairs += [(os.path.join(root, f), os.path.join(dst, 'scans', rel, f)) for f in files]
+    for a, b in pairs:
+        try:
+            if os.path.isfile(a) and (not os.path.exists(b) or os.path.getmtime(a) > os.path.getmtime(b) + 1):
+                os.makedirs(os.path.dirname(b), exist_ok=True)
+                shutil.copy2(a, b)
+                n += 1
+        except OSError:
+            pass
+    return n
+
+
+def finish_move(app_dir, delay=30, tries=8):
+    """The installer moved the app into this folder (the data came along) and left the old folder's path in
+    moved_from.txt. The data is synced once more right away (the old copy may have run on for a while after
+    the installer's copy), then, once nothing holds the old folder any more, it is renamed (Windows refuses
+    that while a file in it is open or a program runs from it) and removed. Tried again at the next start if
+    it would not let go. Returns a message or None."""
+    marker = os.path.join(app_dir, MOVED)
+    try:
+        with open(marker, encoding='utf-8-sig') as f:
+            old = f.read().strip().rstrip('\\/')
+    except OSError:
+        return None
+    except ValueError:                               # not text: drop it rather than read it every start
+        old = ''
+    gone = old + '.gone'                             # a half-removed folder from an earlier try
+    here = os.path.normcase(os.path.abspath(app_dir))
+    old_abs = os.path.normcase(os.path.abspath(old)) if old else ''
+
+    def drop_marker():
+        try:
+            os.remove(marker)
+        except OSError:
+            pass
+    if not old_abs or old_abs == here or not (os.path.isdir(old) or os.path.isdir(gone)):
+        drop_marker()
+        return None
+    # only a sister folder of the app's own (both under Programs): anything elsewhere is the owner's to delete
+    if os.path.dirname(old_abs) != os.path.dirname(here):
+        drop_marker()
+        return f'Your data came over from {old}. That folder is not needed any more; you can delete it by hand.'
+    sync_newer(old, app_dir)                         # before the app reads its files
+
+    def work():
+        for _ in range(tries):
+            time.sleep(delay)
+            if os.path.isdir(gone):
+                shutil.rmtree(gone, ignore_errors=True)
+            if os.path.isdir(old):
+                try:
+                    os.rename(old, gone)             # refused while anything in it is open or running
+                except OSError:
+                    continue
+                shutil.rmtree(gone, ignore_errors=True)
+            if not os.path.isdir(old) and not os.path.isdir(gone):
+                drop_marker()
+                return
+    threading.Thread(target=work, daemon=True, name='move').start()
+    return f'Sapline now lives in {app_dir}. The old folder {old} is being removed.'

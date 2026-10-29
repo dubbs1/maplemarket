@@ -116,11 +116,13 @@ def run():
         return
     from .controller import Controller
     from .server import AppServer
-    from .migrate import first_run
-    moved = first_run(APP_DIR) if getattr(sys, 'frozen', False) else None   # the installed app's first run
+    from .migrate import first_run, finish_move
+    frozen = getattr(sys, 'frozen', False)
+    notes = [first_run(APP_DIR), finish_move(APP_DIR)] if frozen else []   # the installed app's first run, or a moved one
     ctl = Controller()
-    if moved:
-        ctl.note(moved)
+    for m in notes:
+        if m:
+            ctl.note(m)
     srv = AppServer(controller=ctl)
     url = srv.start()
     if not url:
