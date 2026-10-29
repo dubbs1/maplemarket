@@ -22,6 +22,7 @@
 :root[data-theme=dark]{--bg:#0f1216;--side:#12161c;--card:#171c23;--sf:#12161c;--tx:#eef2f7;--mu:#8e9aab;--bd:#28303b;
   --acbg:#243041;--acbd:#3a4759;--gold:#f3c553;--ok:#5fcf86;--bad:#f0817a;--warn:#f3c553;
   --shadow:0 1px 2px rgba(0,0,0,.25),0 10px 24px -16px rgba(0,0,0,.6);color-scheme:dark}
+:root[data-theme=light]{color-scheme:light}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 var(--body)}
 h1,h2,h3{font-family:var(--display);font-weight:800;margin:0;letter-spacing:-.01em}
@@ -86,7 +87,7 @@ input[type=checkbox]{width:22px;height:22px;min-height:0;margin:0;padding:0;acce
 .s2{grid-column:span 2}
 @media(max-width:1000px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.g2,.g3,.g4{grid-template-columns:minmax(0,1fr)}.s2{grid-column:auto}}
-.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}.row.wrap{flex-wrap:wrap}
 .k{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mu)}
 .v{font-family:var(--mono);font-size:26px;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums}
 .tile{padding:14px 16px;gap:4px}
@@ -273,9 +274,13 @@ function put(html, force) {
   const el = $("#app"), ae = document.activeElement || {};
   if (!force && (ae.id === "xrn" || (ae.classList && ae.classList.contains("mn")))) return;
   if (force || el.dataset.html !== html) {
+    const typed = $("#xrn") ? $("#xrn").value : null;        // a name being typed survives the redraw
     el.innerHTML = html;
     el.dataset.html = html;
-    if (xren && $("#xrn")) $("#xrn").focus();
+    if (xren && $("#xrn")) {
+      if (typed != null) $("#xrn").value = typed;
+      if (ae.id === "xrn") $("#xrn").focus();
+    }
   }
 }
 /* ===== Home ===== numbers from ExpTracker.summary in exp.py */
@@ -283,7 +288,7 @@ function drawExp(force) {
   const st = APP.st || {}, x = st.exp, on = !!st.exp_on, D = st.exp_days || [],
     today = D.length ? D[D.length - 1].gained : 0,
     warm = x && x.warm,
-    rate = v => (v == null ? "…" : warm ? `<span title="The first 5 minutes: too early to mean much">≈${fmt(v)}</span>` : fmt(v)),
+    rate = (v, dec) => (v == null ? "…" : (warm ? "≈" : "") + (dec ? v.toLocaleString("en-US", { maximumFractionDigits: 2 }) : fmt(v))),
     skipped = (st.exp_unread || 0) + ((x && x.skipped) || 0);
   if (!x) return put(updCard(st) + firstOpen(st, on), force);
   // the trend line under the big number
@@ -303,7 +308,7 @@ function drawExp(force) {
       `<section class="card s2" aria-label="EXP per hour"><div class="row"><span class="k">EXP per hour</span>${vs}</div>` +
         `<div class="bline"><span class="big">${rate(x.per_hour)}</span><span>EXP / h</span></div>` +
         `<div class="facts"><span>Last 5 minutes <b>${x.last5 != null ? fmt(x.last5) : "…"}</b> / h</span>` +
-        `<span>That is <b>${x.pct_per_hour != null ? rate(x.pct_per_hour) + "%" : "…"}</b> of the level every hour</span></div></section>` +
+        `<span>That is <b>${x.pct_per_hour != null ? rate(x.pct_per_hour, true) + "%" : "…"}</b> of the level every hour</span></div></section>` +
       `<section class="card" aria-label="Level"><div class="row"><span class="k">Level</span><span class="mu">${x.left != null ? fmt(x.left) + " to go" : ""}</span></div>` +
         `<div class="xlv"><b>${x.level || "—"}</b><span class="num">${x.pct.toFixed(2)}%</span></div>` +
         `<div class="xbar" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, x.pct))}%"></i></div>` +
@@ -314,11 +319,11 @@ function drawExp(force) {
       tile("Gained", `+${fmt(x.gained)}`, `${x.lost ? fmt(x.lost) + " lost from dying" : "0 lost"} · ${x.levels ? x.levels + " level-up" + (x.levels > 1 ? "s" : "") : "no level-ups yet"}`) +
       tile("Kills", fmt(x.kills_total || 0), x.kills_total && x.gained > 0 ? `${x.kills_per_hour != null ? fmt(x.kills_per_hour) + " an hour · " : ""}about ${fmt(x.gained / x.kills_total)} EXP a kill` : "counted from each rise of your EXP") +
       tile("Damage taken", fmt(x.taken || 0), x.hits ? `${x.hits} hits · biggest ${fmt(x.big)}${x.hp ? ` · HP ${fmt(x.hp[0])} of ${fmt(x.hp[1])}` : ""}` : x.hp ? `HP ${fmt(x.hp[0])} of ${fmt(x.hp[1])}` : "") +
-      tile("Mesos", x.mesos_gained != null ? (x.mesos_gained >= 0 ? "+" : "") + fmt(x.mesos_gained) : "—", x.mesos_per_hour != null ? fmt(x.mesos_per_hour) + " an hour" : x.mesos == null ? "open the Item window now and then" : "") +
+      tile("Mesos", x.mesos_gained != null ? (x.mesos_gained >= 0 ? "+" : "") + fmt(x.mesos_gained) : "—", x.mesos_per_hour != null ? fmt(x.mesos_per_hour) + " an hour" : !st.tesseract ? "needs the text reader (Settings)" : x.mesos == null ? "open the Item window now and then" : "") +
       `</div><div class="g3">` +
-      `<section class="card s2" aria-label="EXP over time"><div class="row"><b>${xr === "week" ? "EXP per day" : "EXP every 10 minutes"}</b>` +
+      `<section class="card s2" aria-label="EXP over time"><div class="row wrap"><b>${xr === "week" ? "EXP per day" : "EXP every 10 minutes"}</b>` +
         `${segBtns("xr", xr, [["session", "This session"], ["week", "Last 7 days"]])}</div>` +
-        `<div class="row"><span class="xopts">${segBtns("xk", xkind, [["bars", "Bars"], ["line", "Line"]])}${segBtns("xs", xlog ? "log" : "lin", [["lin", "Normal"], ["log", "Log scale"]])}</span>` +
+        `<div class="row wrap"><span class="xopts">${segBtns("xk", xkind, [["bars", "Bars"], ["line", "Line"]])}${segBtns("xs", xlog ? "log" : "lin", [["lin", "Normal"], ["log", "Log scale"]])}</span>` +
         chart(xr, sl, D) + `</section>` +
       `<section class="card" aria-label="Next up"><b>Next up</b><div class="list">` +
         `<div><span>${x.next_mark ? x.next_mark + "% of the level" : "Next 10% of the level"}</span><span class="num">${x.next_mark_text ? "in " + x.next_mark_text : "—"}</span></div>` +
@@ -384,7 +389,7 @@ function updCard(st) {
     ? `<b>Updating to ${v}…</b><p class="mu">${u.state === "downloading" ? "Downloading." : "Installing. The app restarts by itself."}</p>`
     : `<div class="row"><span><b>New version ${v}</b><br><span class="mu">` +
       `${u.error ? `<span class="dn">${esc(u.error)}</span>` : "Your runs and settings stay."}</span></span>` +
-      (u.can_install ? `<button class="go" data-upd="now">Update now</button>` : `<button data-page="${esc(u.page || "")}">Download page</button>`) + `</div>`) + `</div>`;
+      (u.can_install ? `<button class="go" data-upd="now">Update now</button>` : `<button data-page="${esc(u.page || "https://github.com/dubbs1/maplemarket/releases")}">Download page</button>`) + `</div>`) + `</div>`;
 }
 /* ===== Runs ===== one line per hunt (a map and a level, until a level-up, a new map or 30 minutes without EXP) */
 function drawRuns(force) {
@@ -435,7 +440,7 @@ function drawMobs(force) {
     hunt = (x && x.run && x.run.kills) || [],
     sess = (x && x.kills) || [],
     cards = hunt.length ? hunt : sess,                       // the cards: this hunt, or the session when no hunt is going
-    shown = new Set(cards.map(k => k.exp)),
+    shown = new Set(cards.filter(k => k.name || k.n > 1).map(k => k.exp)),   // the ones that got a card
     sum = all => fmt(all.reduce((a, k) => a + k.n, 0)),
     nameBox = k => `<label><span>Name</span><input class="mn" data-mn="${k.exp}" maxlength="40" placeholder="Type the mob's name" aria-label="Name this mob"></label>`,
     card = k => `<article class="card mob"><div class="pic">${k.pic ? `<img src="/api/mobpic/${k.exp}.png" alt="Picture of the mob, cut from your screen">` : MOB_ICON}</div><div class="body">` +
@@ -493,7 +498,8 @@ function drawMore() {
   $("#tessgo").onclick = () => api("/api/install-tesseract").then(r => say(r.ok ? "Installing Tesseract. Click Yes if Windows asks." : r.error || "Could not start the installer."));
   $("#updcheck").onclick = async () => {
     $("#updline").textContent = "Checking…";
-    await api("/api/update-check");
+    const r = await api("/api/update-check");
+    say(r.ok === false ? r.error || "Could not check." : "Checked for updates.");
   };
   $("#theme").onclick = () => setTheme(!isDark());
   updOpts(st);
@@ -506,6 +512,9 @@ function updOpts(st) {
     none: "That is the newest.", available: `${u.version} is ready: see Home.`, downloading: "Downloading the new version…", installing: "Installing…",
     checking: "Checking…", offline: "Can't reach GitHub right now.", unavailable: "No release to check yet.", off: "Update checks are switched off."
   }[u.state] || "");
+  const se = st.settings || {}, ae = document.activeElement || {};
+  for (const [id, v] of [["ox", se.exp !== false], ["ol", se.exp_log !== false], ["ofp", !!se.fight_pics]]) if (ae.id !== id) $("#" + id).checked = v;
+  for (const [id, v] of [["oi", +(se.idle_min || 1)], ["om", +se.monitor]]) if (ae.id !== id && [...$("#" + id).options].some(o => +o.value === v)) $("#" + id).value = v;
   $("#tess").textContent = st.tesseract ? "✓ Installed. Map names and mesos are read for the run log." : "Not installed. EXP works without it.";
   $("#tess").className = st.tesseract ? "up" : "mu";
   $("#tessgo").hidden = !!st.tesseract;
@@ -536,6 +545,12 @@ document.addEventListener("click", e => {
   else if (d.x === "reset") api("/api/exp-reset").then(r => say(r.ok ? "Counting again from now" : r.error || "Could not reset."));
   else if (d.upd) api("/api/update").then(r => r.ok || say(r.error || "Could not start the update."));
   else if (d.page) window.open(d.page, "_blank", "noopener");
+});
+// Enter in a name box presses its Save button (never return false: that would eat the key)
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter" || !(e.target.id === "xrn" || e.target.classList.contains("mn"))) return;
+  const box = e.target.closest(".mob,td"), b = box && box.querySelector("[data-xl=save],[data-mns]");
+  if (b) { e.preventDefault(); b.click(); }
 });
 document.querySelectorAll("[data-nav]").forEach(b => (b.onclick = () => { view = b.dataset.nav; xren = null; draw(); }));
 try {
