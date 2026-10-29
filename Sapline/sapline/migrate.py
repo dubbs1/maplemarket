@@ -106,49 +106,49 @@ def sync_newer(src, dst):
 
 def finish_move(app_dir, delay=30, tries=8):
     """The installer moved the app into this folder (the data came along) and left the old folder's path in
-    moved_from.txt. Remove that folder once nothing holds it any more: the data is synced once more (the old
-    copy may have run on for a while), the folder is renamed first (Windows refuses that while a file in it is
-    open or a program runs from it), then removed. Tried again at the next start if it would not let go.
-    Returns a message or None."""
+    moved_from.txt. The data is synced once more right away (the old copy may have run on for a while after
+    the installer's copy), then, once nothing holds the old folder any more, it is renamed (Windows refuses
+    that while a file in it is open or a program runs from it) and removed. Tried again at the next start if
+    it would not let go. Returns a message or None."""
     marker = os.path.join(app_dir, MOVED)
     try:
         with open(marker, encoding='utf-8-sig') as f:
-            old = f.read().strip()
+            old = f.read().strip().rstrip('\\/')
     except OSError:
         return None
     except ValueError:                               # not text: drop it rather than read it every start
         old = ''
+    gone = old + '.gone'                             # a half-removed folder from an earlier try
     here = os.path.normcase(os.path.abspath(app_dir))
     old_abs = os.path.normcase(os.path.abspath(old)) if old else ''
-    if not old_abs or old_abs == here or not os.path.isdir(old):
+
+    def drop_marker():
         try:
             os.remove(marker)
         except OSError:
             pass
+    if not old_abs or old_abs == here or not (os.path.isdir(old) or os.path.isdir(gone)):
+        drop_marker()
         return None
     # only a sister folder of the app's own (both under Programs): anything elsewhere is the owner's to delete
     if os.path.dirname(old_abs) != os.path.dirname(here):
-        try:
-            os.remove(marker)
-        except OSError:
-            pass
+        drop_marker()
         return f'Your data came over from {old}. That folder is not needed any more; you can delete it by hand.'
+    sync_newer(old, app_dir)                         # before the app reads its files
 
     def work():
-        gone = old.rstrip('\\/') + '.gone'
         for _ in range(tries):
             time.sleep(delay)
-            sync_newer(old, app_dir)
-            try:
-                os.rename(old, gone)                    # refused while anything in it is open or running
-            except OSError:
-                continue
-            shutil.rmtree(gone, ignore_errors=True)
-            if not os.path.isdir(gone):
+            if os.path.isdir(gone):
+                shutil.rmtree(gone, ignore_errors=True)
+            if os.path.isdir(old):
                 try:
-                    os.remove(marker)
+                    os.rename(old, gone)             # refused while anything in it is open or running
                 except OSError:
-                    pass
+                    continue
+                shutil.rmtree(gone, ignore_errors=True)
+            if not os.path.isdir(old) and not os.path.isdir(gone):
+                drop_marker()
                 return
     threading.Thread(target=work, daemon=True, name='move').start()
     return f'Sapline now lives in {app_dir}. The old folder {old} is being removed.'

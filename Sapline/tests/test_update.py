@@ -1,6 +1,6 @@
 """Checks updates (against a pretend GitHub on this PC) and the installed app's first run (bringing old data over).
 Run with run_tests.bat (or: py -3.13 tests/test_update.py)."""
-import hashlib, json, os, sys, tempfile, threading, time
+import hashlib, json, os, shutil, sys, tempfile, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
@@ -169,14 +169,40 @@ def main():
     with open(os.path.join(new, 'scans', 'exp_log.json'), 'w') as f:
         f.write('[]')
     os.utime(os.path.join(new, 'scans', 'exp_log.json'), (1, 1))
+    os.makedirs(gone + '.gone'); open(os.path.join(gone + '.gone', 'left.txt'), 'w').close()   # a half-removed try before
     with open(os.path.join(new, migrate.MOVED), 'w', encoding='utf-8-sig') as f:
-        f.write(gone + '\n')                             # (the installer writes it as UTF-8 with a BOM)
+        f.write(gone + os.sep + '\n')                    # (the installer writes it as UTF-8 with a BOM; a trailing slash is fine)
     msg = migrate.finish_move(new, delay=0.1)
     time.sleep(1.5)
     ok(f'the old folder is removed after a move ({msg})', msg and 'being removed' in msg and not os.path.isdir(gone)
        and not os.path.isdir(gone + '.gone') and not os.path.exists(os.path.join(new, migrate.MOVED)))
     ok('what the old copy wrote after the move came over first', open(os.path.join(new, 'scans', 'exp_log.json')).read() == '[{"id": "newer"}]'
        and os.path.isfile(os.path.join(new, 'scans', 'mobs', '22.png')))
+    # only a half-removed folder left from an earlier try: it goes too
+    os.makedirs(os.path.join(gone + '.gone', '_internal'))
+    with open(os.path.join(new, migrate.MOVED), 'w') as f:
+        f.write(gone)
+    migrate.finish_move(new, delay=0.1); time.sleep(1)
+    ok('a half-removed old folder is finished off', not os.path.isdir(gone + '.gone') and not os.path.exists(os.path.join(new, migrate.MOVED)))
+    # the new copy's own newer file is never overwritten by an older one
+    os.makedirs(os.path.join(gone, 'scans')); open(os.path.join(gone, 'scans', 'exp_log.json'), 'w').write('[{"id": "stale"}]')
+    os.utime(os.path.join(gone, 'scans', 'exp_log.json'), (1, 1))
+    with open(os.path.join(new, migrate.MOVED), 'w') as f:
+        f.write(gone)
+    migrate.finish_move(new, delay=0.1); time.sleep(1)
+    ok('an older file in the old folder never replaces a newer one', open(os.path.join(new, 'scans', 'exp_log.json')).read() == '[{"id": "newer"}]'
+       and not os.path.isdir(gone))
+    # a folder that will not let go: the marker stays for the next start
+    os.makedirs(gone)
+    with open(os.path.join(new, migrate.MOVED), 'w') as f:
+        f.write(gone)
+    real = os.rename; os.rename = lambda a, b: (_ for _ in ()).throw(PermissionError('held'))
+    try:
+        migrate.finish_move(new, delay=0.05, tries=3); time.sleep(0.6)
+    finally:
+        os.rename = real
+    ok('a held folder is left for the next start, with the marker', os.path.isdir(gone) and os.path.exists(os.path.join(new, migrate.MOVED)))
+    shutil.rmtree(gone); os.remove(os.path.join(new, migrate.MOVED))
     elsewhere = tempfile.mkdtemp(prefix='sapline_elsewhere_')
     with open(os.path.join(new, migrate.MOVED), 'w') as f:
         f.write(elsewhere)

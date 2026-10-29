@@ -99,6 +99,7 @@ end;
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   NewDir: String;
+  Lines: TArrayOfString;
 begin
   if CurStep <> ssPostInstall then
     exit;
@@ -113,5 +114,7 @@ begin
   CopyOne(OldDir + '\updates\pending.json', NewDir + '\updates\pending.json');
   CopyOne(OldDir + '\updates\install.log', NewDir + '\updates\install.log');
   // UTF-8 (a user name may carry any letter); the app reads it with utf-8-sig
-  SaveStringsToUTF8File(NewDir + '\moved_from.txt', [OldDir], False);
+  SetArrayLength(Lines, 1);
+  Lines[0] := OldDir;
+  SaveStringsToUTF8File(NewDir + '\moved_from.txt', Lines, False);
 end;
