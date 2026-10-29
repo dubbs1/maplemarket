@@ -59,7 +59,7 @@ When a new version is out, a card at the top of Home says **New version …**. C
 
 - If it comes back on the same version, the Messages box says the update did not install and why. The details are in `install.log` and `setup.log` in the folder `updates` next to `Sapline.exe` (`%LOCALAPPDATA%\Programs\Sapline\updates`). You can always install a version by hand from the Releases page.
 - **Settings** shows which version you have and has a **Check now** button.
-- If an older version lived in another folder under `Programs`, an update moves Sapline to `%LOCALAPPDATA%\Programs\Sapline` with your data and removes the old folder a few seconds after the start.
+- If an older version lived in another folder under `Programs`, an update moves Sapline to `%LOCALAPPDATA%\Programs\Sapline` with your data and removes the old folder about half a minute after the start. On that one update a second Sapline window may open; close either one.
 - To remove Sapline: Windows Settings > Apps > Sapline > Uninstall. Your data stays in `%LOCALAPPDATA%\Programs\Sapline\scans` until you delete that folder.
 
 ## 7. If something goes wrong

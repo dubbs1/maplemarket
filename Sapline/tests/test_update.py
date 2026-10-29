@@ -161,18 +161,31 @@ def main():
     # --- the installer moved the app to a new folder: the old one is removed after the start ---
     programs = tempfile.mkdtemp(prefix='sapline_programs_')
     new, gone = os.path.join(programs, 'Sapline'), os.path.join(programs, 'OlderFolder')
-    os.makedirs(os.path.join(gone, '_internal')); os.makedirs(new)
-    with open(os.path.join(new, migrate.MOVED), 'w') as f:
-        f.write(gone + '\n')
+    os.makedirs(os.path.join(gone, '_internal')); os.makedirs(os.path.join(gone, 'scans', 'mobs')); os.makedirs(os.path.join(new, 'scans'))
+    with open(os.path.join(gone, 'scans', 'exp_log.json'), 'w') as f:
+        f.write('[{"id": "newer"}]')                     # the old copy wrote on after the installer's copy
+    with open(os.path.join(gone, 'scans', 'mobs', '22.png'), 'w') as f:
+        f.write('png')
+    with open(os.path.join(new, 'scans', 'exp_log.json'), 'w') as f:
+        f.write('[]')
+    os.utime(os.path.join(new, 'scans', 'exp_log.json'), (1, 1))
+    with open(os.path.join(new, migrate.MOVED), 'w', encoding='utf-8-sig') as f:
+        f.write(gone + '\n')                             # (the installer writes it as UTF-8 with a BOM)
     msg = migrate.finish_move(new, delay=0.1)
     time.sleep(1.5)
     ok(f'the old folder is removed after a move ({msg})', msg and 'being removed' in msg and not os.path.isdir(gone)
-       and not os.path.exists(os.path.join(new, migrate.MOVED)))
+       and not os.path.isdir(gone + '.gone') and not os.path.exists(os.path.join(new, migrate.MOVED)))
+    ok('what the old copy wrote after the move came over first', open(os.path.join(new, 'scans', 'exp_log.json')).read() == '[{"id": "newer"}]'
+       and os.path.isfile(os.path.join(new, 'scans', 'mobs', '22.png')))
     elsewhere = tempfile.mkdtemp(prefix='sapline_elsewhere_')
     with open(os.path.join(new, migrate.MOVED), 'w') as f:
         f.write(elsewhere)
-    ok('a folder that is not a sister of the app is never removed', migrate.finish_move(new, delay=0.1) is None and os.path.isdir(elsewhere)
+    msg = migrate.finish_move(new, delay=0.1)
+    ok(f'a folder that is not a sister of the app is never removed, only named ({msg})', msg and 'delete it by hand' in msg and os.path.isdir(elsewhere)
        and not os.path.exists(os.path.join(new, migrate.MOVED)))
+    with open(os.path.join(new, migrate.MOVED), 'wb') as f:
+        f.write(b'\xe9\xff not utf-8')
+    ok('a marker that cannot be read is dropped, not a crash', migrate.finish_move(new, delay=0.1) is None and not os.path.exists(os.path.join(new, migrate.MOVED)))
     with open(os.path.join(new, migrate.MOVED), 'w') as f:
         f.write(new)
     ok('nor the app\'s own folder', migrate.finish_move(new, delay=0.1) is None and os.path.isdir(new))

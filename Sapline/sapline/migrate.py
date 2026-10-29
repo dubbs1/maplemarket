@@ -84,31 +84,67 @@ def first_run(app_dir, env=None):
     return f'Brought over your EXP log and pictures from {old} ({n} files). The old folder was not changed.'
 
 
-def finish_move(app_dir, delay=10, tries=6):
+def sync_newer(src, dst):
+    """Copy the data files (scans/**, settings.json, mobs.txt) that src has and dst lacks, or that are newer in
+    src: the old copy may have kept running and writing after the installer copied the data."""
+    n = 0
+    pairs = [(os.path.join(src, k), os.path.join(dst, k)) for k in KEEP]
+    s_scans = os.path.join(src, 'scans')
+    for root, _, files in os.walk(s_scans):
+        rel = os.path.relpath(root, s_scans)
+        pairs += [(os.path.join(root, f), os.path.join(dst, 'scans', rel, f)) for f in files]
+    for a, b in pairs:
+        try:
+            if os.path.isfile(a) and (not os.path.exists(b) or os.path.getmtime(a) > os.path.getmtime(b) + 1):
+                os.makedirs(os.path.dirname(b), exist_ok=True)
+                shutil.copy2(a, b)
+                n += 1
+        except OSError:
+            pass
+    return n
+
+
+def finish_move(app_dir, delay=30, tries=8):
     """The installer moved the app into this folder (the data came along) and left the old folder's path in
-    moved_from.txt. Remove that folder once the setup and its script have let go of it (a few seconds after
-    the start; tried again next start if something still held a file). Returns a message or None."""
+    moved_from.txt. Remove that folder once nothing holds it any more: the data is synced once more (the old
+    copy may have run on for a while), the folder is renamed first (Windows refuses that while a file in it is
+    open or a program runs from it), then removed. Tried again at the next start if it would not let go.
+    Returns a message or None."""
     marker = os.path.join(app_dir, MOVED)
     try:
-        with open(marker, encoding='utf-8') as f:
+        with open(marker, encoding='utf-8-sig') as f:
             old = f.read().strip()
     except OSError:
         return None
+    except ValueError:                               # not text: drop it rather than read it every start
+        old = ''
     here = os.path.normcase(os.path.abspath(app_dir))
     old_abs = os.path.normcase(os.path.abspath(old)) if old else ''
-    # only a sister folder of the app's own (both under Programs), never itself or anything elsewhere
-    if not old_abs or old_abs == here or os.path.dirname(old_abs) != os.path.dirname(here) or not os.path.isdir(old):
+    if not old_abs or old_abs == here or not os.path.isdir(old):
         try:
             os.remove(marker)
         except OSError:
             pass
         return None
+    # only a sister folder of the app's own (both under Programs): anything elsewhere is the owner's to delete
+    if os.path.dirname(old_abs) != os.path.dirname(here):
+        try:
+            os.remove(marker)
+        except OSError:
+            pass
+        return f'Your data came over from {old}. That folder is not needed any more; you can delete it by hand.'
 
     def work():
+        gone = old.rstrip('\\/') + '.gone'
         for _ in range(tries):
             time.sleep(delay)
-            shutil.rmtree(old, ignore_errors=True)
-            if not os.path.isdir(old):
+            sync_newer(old, app_dir)
+            try:
+                os.rename(old, gone)                    # refused while anything in it is open or running
+            except OSError:
+                continue
+            shutil.rmtree(gone, ignore_errors=True)
+            if not os.path.isdir(gone):
                 try:
                     os.remove(marker)
                 except OSError:
