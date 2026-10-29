@@ -63,7 +63,7 @@ Game window --screenshots (~1/s)--> recorder.ExpRunner (thread "exp")
 - To release: bump `__version__` in `sapline/__init__.py` and merge to main. (A Claude Code session can't push tags.)
 - **On GitHub, plain and short.** A pull request description is one or two sentences saying what changed and why: no headings, bullet lists, checklists, badges, "generated with" lines or session links. Commit messages the same, with only the `Co-Authored-By` line at the end. No comments on pull requests unless there is something to answer. Release notes are GitHub's automatic list of titles.
 - Lessons: in the Windows steps never use `Start-Process -Wait` (it also waits for the Sapline the setup starts); wait with `$p.WaitForExit(ms)`. A session's network can't download run artifacts. A private repo's Actions minutes can run out (Windows counts 2×): both jobs then stop 2–4 s after starting with no log.
-- **The owner tests a change before it is merged** (asked 2026-10-29): push the branch, open the PR, point the owner at the Windows job's `Sapline-Setup-<v>` artifact, merge only when they say so.
+- **When the owner asks for a mockup or a test build first**, push the branch, open the PR as a draft, point them at the Windows job's `Sapline-Setup-<v>` artifact, and merge only when they say so. Otherwise merge once the checks pass ("merge, review and retest as always": merge, then confirm main's run and the release, and rerun the checks on main).
 - **The repository is private:** release downloads need a GitHub login, so the app's updater only works for the owner's own login-free case when releases are public. Making the repo public (or a public releases-only repo pointed at by `UPDATE_REPO`) is the owner's call.
 
 ## Checks (run before handing anything over)
