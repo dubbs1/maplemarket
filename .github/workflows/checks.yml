@@ -107,15 +107,33 @@ jobs:
             return $p.ExitCode
           }
           $v = "${{ steps.ver.outputs.version }}"
+          # first, a copy installed in another folder (as an earlier version's install would be), with data in it
+          $old = "$env:LOCALAPPDATA\Programs\OlderFolder"
+          $code = Run-And-Wait "out\Sapline-Setup-$v.exe" @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/DIR=$old") "The first install"
+          if ($code -ne 0) { throw "The first install failed ($code)" }
+          Start-Sleep 8
+          Get-Process Sapline, msedge -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep 2
+          if (-not (Test-Path "$old\Sapline.exe")) { throw "The first install did not land in the folder asked for" }
+          New-Item -ItemType Directory -Force "$old\scans\mobs" | Out-Null
+          Set-Content "$old\scans\exp_log.json" '[{"id": "old"}]'; Set-Content "$old\scans\mobs\22.png" "x"; Set-Content "$old\settings.json" '{"idle_min": 7}'
+          # the installer without a folder: the app moves to Programs\Sapline, the data comes along, the old folder goes
           $code = Run-And-Wait "out\Sapline-Setup-$v.exe" @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART") "The installer"
           if ($code -ne 0) { throw "The installer failed ($code)" }
           Start-Sleep 8
           $started = @(Get-Process Sapline -ErrorAction SilentlyContinue).Count
           "Sapline started by the installer: $started"
           if ($started -lt 1) { throw "The installer didn't start Sapline (updates rely on that)" }
+          $app = "$env:LOCALAPPDATA\Programs\Sapline"
+          if (-not (Test-Path "$app\Sapline.exe")) { throw "The app was not moved to Programs\Sapline" }
+          if (-not ((Get-Content "$app\scans\exp_log.json" -Raw) -match "old")) { throw "The run log did not come along with the move" }
+          if (-not (Test-Path "$app\scans\mobs\22.png") -or -not ((Get-Content "$app\settings.json" -Raw) -match "7")) { throw "Pictures or settings did not come along" }
+          Start-Sleep 20     # the app removes the old folder a few seconds after its start
           Get-Process Sapline, msedge -ErrorAction SilentlyContinue | Stop-Process -Force
           Start-Sleep 2
-          $app = "$env:LOCALAPPDATA\Programs\Sapline"
+          if (Test-Path $old) { throw "The old folder is still there after the move" }
+          if (Test-Path "$app\moved_from.txt") { throw "The move marker was not cleared" }
+          "moved from $old to $app with its data; old folder gone"
           if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Sapline.lnk")) { throw "No Start-menu icon" }
           $code = Run-And-Wait "$app\Sapline.exe" @("--self-check", "$pwd\installed_check.txt") "The installed copy's self-check"
           Get-Content installed_check.txt

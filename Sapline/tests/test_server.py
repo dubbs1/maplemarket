@@ -61,6 +61,8 @@ def main():
        and json.load(open(CT.SETTINGS))['idle_min'] == 5)
     ok('settings: out-of-range minutes are clamped', post(url + 'api/set', {'idle_min': 99})['ok'] and ctl.settings['idle_min'] == 30)
     ok('settings: the run log switch', post(url + 'api/set', {'exp_log': False})['ok'] and ctl.settings['exp_log'] is False)
+    ok('settings: start on open is off until switched on, and old keys are dropped', ctl.settings['autostart'] is False
+       and 'monitor' not in ctl.settings and 'exp' not in ctl.settings and post(url + 'api/set', {'autostart': True})['ok'] and ctl.settings['autostart'] is True)
     ok('naming a mob writes mobs.txt', post(url + 'api/mob-name', {'exp': 22, 'name': 'Evil Eye'})['ok'] and ctl.mobs.name(22) == 'Evil Eye')
     ok('a bad name is refused', not post(url + 'api/mob-name', {'exp': 22, 'name': 'a|b'})['ok'])
     ok('the mob picture is served', get(url + 'api/mobpic/22.png')[0] == 200)

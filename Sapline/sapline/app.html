@@ -243,7 +243,7 @@ async function appPull() {
 function recState() {
   const st = APP.st || {}, x = st.exp;
   if (APP.lost) return { cls: "off", text: "Sapline has closed", sub: "Open Sapline again from the Start menu or the desktop icon." };
-  if (!st.exp_on) return { cls: "", text: "Not recording", sub: "Press Start recording when you are ready to hunt." };
+  if (!st.exp_on) return { cls: "", text: "Not recording", sub: "Press Start recording when you are ready to hunt. Nothing is read until then." };
   if (!x) return st.exp_found
     ? { cls: "wait", text: "Reading your EXP…", sub: "The first numbers come after two readings agree." }
     : { cls: "wait", text: "Looking for the EXP line", sub: "Keep the game's status bar (HP, MP, EXP) on screen and uncovered." };
@@ -362,11 +362,11 @@ function chart(which, sl, D) {
 }
 // No reading yet: what to check, and where Sapline looks
 function firstOpen(st, on) {
-  const se = st.settings || {}, title = !on ? "Recording is off" : st.exp_found ? "Reading your EXP…" : "Welcome to Sapline",
-    sub = !on ? "Press Start recording in the menu when you are ready to hunt." : "It reads your EXP from the game's status bar. Nothing to set up; just keep the bar visible.";
+  const title = !on ? "Ready when you are" : st.exp_found ? "Reading your EXP…" : "Looking for the EXP line",
+    sub = !on ? "Press Start recording at the bottom left when you are ready to hunt. Sapline reads your EXP from the game's status bar." : "Nothing to set up; just keep the status bar visible.";
   return head(title, sub) + `<div class="g2">` +
     `<section class="card" aria-label="What to check"><h2>Three things to check</h2><div class="steps">` +
-    `<div><i>1</i><div><b>The game is open on screen ${se.monitor || 1}</b><br><span>On another monitor? Change <b>Game screen</b> under Settings.</span></div></div>` +
+    `<div><i>1</i><div><b>The game is open on your main screen</b><br><span>Sapline reads the main screen, in a window or full screen.</span></div></div>` +
     `<div><i>2</i><div><b>The status bar is showing</b><br><span>The strip at the bottom with your level, HP, MP and EXP. Nothing may cover it.</span></div></div>` +
     `<div><i>3</i><div><b>Wait a moment</b><br><span>The dot at the bottom left turns green and this page fills in. EXP per hour means something after about five minutes.</span></div></div>` +
     `</div><div class="sunk" style="margin-top:auto"><b>Still nothing after a minute?</b> Set the game's interface size to 1.0 or larger. Very small text cannot be read.</div></section>` +
@@ -472,12 +472,10 @@ function drawMore() {
     pauses = PAUSE.includes(idle) ? PAUSE : [...PAUSE, idle].sort((a, b) => a - b);
   $("#app").innerHTML = head("Settings", "Changes save as you make them.") + `<div class="g2">` +
     `<section class="card" aria-label="Recording"><h2>Recording</h2>` +
-    sw("ox", "Start when Sapline opens", "Otherwise press Start recording yourself.", se.exp !== false) +
+    sw("ox", "Start when Sapline opens", "Off: Sapline waits until you press Start recording.", !!se.autostart) +
     sw("ol", "Log my runs", "Keep one line per hunt on the Runs page.", se.exp_log !== false) +
     `<div class="opt"><label for="oi"><b>Pause after</b><span class="mu">Minutes without EXP before the clock stops, so a break does not drag your EXP per hour down.</span></label>` +
     `<select id="oi">${pauses.map(n => `<option value="${n}"${idle === n ? " selected" : ""}>${n} min</option>`).join("")}</select></div>` +
-    `<div class="opt"><label for="om"><b>Game screen</b><span class="mu">The monitor the game is on.</span></label>` +
-    `<select id="om">${[1, 2, 3].map(n => `<option value="${n}"${+se.monitor === n ? " selected" : ""}>Screen ${n}${n === 1 ? " (main)" : ""}</option>`).join("")}</select></div>` +
     sw("ofp", "Save fight pictures", "Only for fixing wrong mob pictures: keeps the screenshots around each kill. Off again at the next start.", !!se.fight_pics) +
     `</section><div style="display:flex;flex-direction:column;gap:14px;min-width:0">` +
     `<section class="card" aria-label="Map names and mesos"><h2>Map names and mesos</h2><p style="font-size:14px">EXP works on its own. Reading the map's name and your meso count needs <b>Tesseract</b>, a free text reader.</p>` +
@@ -489,10 +487,9 @@ function drawMore() {
     `<section class="card" aria-label="What Sapline does" style="background:var(--sf)"><p style="font-size:14px"><b>Sapline only looks at your screen.</b> It never clicks, types, reads the game's memory or sends anything anywhere. ` +
     `Nexon has not said whether screen readers are allowed; on a private server, ask a GM first. Fan project, not affiliated with Nexon.</p></section></div></div>`;
   const done = r => r.ok || say(r.error || "Could not save that setting.");
-  $("#ox").onchange = e => api("/api/set", { exp: e.target.checked }).then(done);
+  $("#ox").onchange = e => api("/api/set", { autostart: e.target.checked }).then(done);
   $("#ol").onchange = e => api("/api/set", { exp_log: e.target.checked }).then(done);
   $("#oi").onchange = e => api("/api/set", { idle_min: +e.target.value }).then(done);
-  $("#om").onchange = e => api("/api/set", { monitor: +e.target.value }).then(done);
   $("#ofp").onchange = e => api("/api/set", { fight_pics: e.target.checked }).then(done);
   $("#oscans").onclick = () => api("/api/open-scans").then(r => r.ok || say(r.error || "Could not open the folder."));
   $("#tessgo").onclick = () => api("/api/install-tesseract").then(r => say(r.ok ? "Installing Tesseract. Click Yes if Windows asks." : r.error || "Could not start the installer."));
@@ -513,8 +510,8 @@ function updOpts(st) {
     checking: "Checking…", offline: "Can't reach GitHub right now.", unavailable: "No release to check yet.", off: "Update checks are switched off."
   }[u.state] || "");
   const se = st.settings || {}, ae = document.activeElement || {};
-  for (const [id, v] of [["ox", se.exp !== false], ["ol", se.exp_log !== false], ["ofp", !!se.fight_pics]]) if (ae.id !== id) $("#" + id).checked = v;
-  for (const [id, v] of [["oi", +(se.idle_min || 1)], ["om", +se.monitor]]) if (ae.id !== id && [...$("#" + id).options].some(o => +o.value === v)) $("#" + id).value = v;
+  for (const [id, v] of [["ox", !!se.autostart], ["ol", se.exp_log !== false], ["ofp", !!se.fight_pics]]) if (ae.id !== id) $("#" + id).checked = v;
+  if (ae.id !== "oi" && [...$("#oi").options].some(o => +o.value === +se.idle_min)) $("#oi").value = +se.idle_min;
   $("#tess").textContent = st.tesseract ? "✓ Installed. Map names and mesos are read for the run log." : "Not installed. EXP works without it.";
   $("#tess").className = st.tesseract ? "up" : "mu";
   $("#tessgo").hidden = !!st.tesseract;

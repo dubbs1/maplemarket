@@ -1,6 +1,6 @@
 """Checks updates (against a pretend GitHub on this PC) and the installed app's first run (bringing old data over).
 Run with run_tests.bat (or: py -3.13 tests/test_update.py)."""
-import hashlib, json, os, sys, tempfile, threading
+import hashlib, json, os, sys, tempfile, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
@@ -157,6 +157,26 @@ def main():
     ok('the old folder is left as it was', sorted(os.walk(old)) == before)
     ok('it only happens once', migrate.first_run(app, env) is None)
     ok('no old folder: nothing happens', migrate.first_run(tempfile.mkdtemp(), {'USERPROFILE': tempfile.mkdtemp()}) is None)
+
+    # --- the installer moved the app to a new folder: the old one is removed after the start ---
+    programs = tempfile.mkdtemp(prefix='sapline_programs_')
+    new, gone = os.path.join(programs, 'Sapline'), os.path.join(programs, 'OlderFolder')
+    os.makedirs(os.path.join(gone, '_internal')); os.makedirs(new)
+    with open(os.path.join(new, migrate.MOVED), 'w') as f:
+        f.write(gone + '\n')
+    msg = migrate.finish_move(new, delay=0.1)
+    time.sleep(1.5)
+    ok(f'the old folder is removed after a move ({msg})', msg and 'being removed' in msg and not os.path.isdir(gone)
+       and not os.path.exists(os.path.join(new, migrate.MOVED)))
+    elsewhere = tempfile.mkdtemp(prefix='sapline_elsewhere_')
+    with open(os.path.join(new, migrate.MOVED), 'w') as f:
+        f.write(elsewhere)
+    ok('a folder that is not a sister of the app is never removed', migrate.finish_move(new, delay=0.1) is None and os.path.isdir(elsewhere)
+       and not os.path.exists(os.path.join(new, migrate.MOVED)))
+    with open(os.path.join(new, migrate.MOVED), 'w') as f:
+        f.write(new)
+    ok('nor the app\'s own folder', migrate.finish_move(new, delay=0.1) is None and os.path.isdir(new))
+    ok('no marker: nothing happens', migrate.finish_move(new) is None)
     srv.shutdown()
     print('UPDATE CHECK PASSED' if not fails else 'UPDATE CHECK FAILED')
     return 1 if fails else 0

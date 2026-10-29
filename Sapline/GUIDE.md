@@ -10,8 +10,8 @@ Nexon has not said whether screen readers are allowed. On a private server, ask 
 2. Double-click it.
    - If Windows says "Windows protected your PC": click **More info**, then **Run anyway**. (The installer isn't signed with a paid certificate; it was built automatically from this project's code.)
    - You should see "Setup - Sapline". Click **Next**, then **Install**, then **Finish** with "Start Sapline" ticked.
-3. The window opens on **Home**. The card at the bottom left says **Looking for the EXP line** until the game's status bar is on screen, then **Recording · Lv 39**. Until then, Home shows the three things to check.
-   - If it keeps saying "Looking for the EXP line": make sure the status bar (HP, MP, EXP) is visible and not covered. Check **Game screen** in Settings if the game is on another monitor.
+3. The window opens on **Home** and waits for you: the card at the bottom left says **Not recording**. Press **Start recording** there. It then says **Looking for the EXP line** until the game's status bar is on screen, then **Recording · Lv 39**. Until then, Home shows the three things to check.
+   - If it keeps saying "Looking for the EXP line": make sure the status bar (HP, MP, EXP) is visible and not covered, and that the game is on your main screen (Sapline reads only that one).
 4. From now on, open Sapline from the Start menu or the desktop icon.
 
 **Tesseract** (optional). A free text reader. With it installed, the app also reads the map's name and your meso count for the run log. Open **Settings**, and under **Map names and mesos** click **Install Tesseract**. Click **Yes** if Windows asks, wait for "Done" in the black window and close it. The app notices by itself.
@@ -23,7 +23,7 @@ Nexon has not said whether screen readers are allowed. On a private server, ask 
 - **This session**: gained (with EXP lost from dying and level-ups), kills, damage taken (with your HP), mesos.
 - **Next up**: when you reach the next 10 % mark, kills left to the next level (at the average EXP a kill has given), kills per hour, your best hour and today's total.
 - **The chart**: EXP every 10 minutes, or the last 7 days. Bars or a line, normal or log scale.
-- **Start recording / Stop recording** is in the card at the bottom left, on every page. **Reset session** (top right) starts counting again, for a new hunting trip.
+- **Start recording / Stop recording** is in the card at the bottom left, on every page. Sapline never records until you press Start (unless you switch **Start when Sapline opens** on in Settings). **Reset session** (top right) starts counting again, for a new hunting trip.
 - With no EXP for a minute (in town, selling, a break), the clock pauses by itself, so EXP per hour stays honest. It carries on at your next EXP gain. Settings sets how long to wait.
 - EXP lost from dying is shown apart, not taken off what you gained.
 - **Readings skipped** under Next up counts the seconds the bar could not be read (covered by the mouse or a window). A few now and then is normal.
@@ -44,10 +44,9 @@ In a party, a shared mob gives a different amount each time (the EXP is split by
 
 ## 5. Settings
 
-- **Start when Sapline opens**: start recording as soon as the app opens.
+- **Start when Sapline opens**: off to begin with. On, Sapline records as soon as it opens.
 - **Log my runs**: keep the Runs page's log (also a switch at the top of Runs).
 - **Pause after**: how long without EXP before the clock stops (1 to 30 minutes).
-- **Game screen**: which monitor the game is on.
 - **Save fight pictures**: only for tuning mob pictures. It stores the screenshots around each kill in `scans\fight` (30 kills at most) and turns itself off when the app next opens. Turn it on for one hunt, zip that folder and send it, if mob pictures come out wrong on your screen.
 - **Your data**: opens the `scans` folder (the run log, the day totals, the mob pictures).
 - **Map names and mesos**: whether the text reader is installed, with the install button.
@@ -60,11 +59,12 @@ When a new version is out, a card at the top of Home says **New version …**. C
 
 - If it comes back on the same version, the Messages box says the update did not install and why. The details are in `install.log` and `setup.log` in the folder `updates` next to `Sapline.exe` (`%LOCALAPPDATA%\Programs\Sapline\updates`). You can always install a version by hand from the Releases page.
 - **Settings** shows which version you have and has a **Check now** button.
+- If an older version lived in another folder under `Programs`, an update moves Sapline to `%LOCALAPPDATA%\Programs\Sapline` with your data and removes the old folder a few seconds after the start.
 - To remove Sapline: Windows Settings > Apps > Sapline > Uninstall. Your data stays in `%LOCALAPPDATA%\Programs\Sapline\scans` until you delete that folder.
 
 ## 7. If something goes wrong
 
-- **"Looking for the EXP line" for a long time**: keep the status bar visible and uncovered; try **Game screen** in Settings. If it still won't read, take a screenshot of the whole game window and send it.
+- **"Looking for the EXP line" for a long time**: keep the status bar visible and uncovered, on your main screen. If it still won't read, take a screenshot of the whole game window and send it.
 - **The numbers look wrong** (a huge jump, a level that isn't yours): press **Reset**. Readings that don't fit are dropped by themselves, but a bad run of them can take a moment to clear.
 - **The window is empty or white**: close it and open Sapline again. It needs Microsoft Edge (every Windows 10/11 PC has it).
 - **A wrong mob picture**: press **Not this mob** under it.

@@ -70,8 +70,9 @@ class Controller:
                 s = json.load(f)
         except (OSError, ValueError):
             s = {}
-        s.setdefault('monitor', 1)
-        s.setdefault('exp', True)                    # record EXP as soon as the app opens
+        for old in ('monitor', 'exp'):               # settings of earlier versions: the screen is always the main one,
+            s.pop(old, None)                         # and whether to record is asked each time the app opens
+        s.setdefault('autostart', False)             # start recording as soon as the app opens (off: press Start)
         s.setdefault('exp_log', True)                # keep the run log (the Runs tab's "Log my runs" switch)
         s.setdefault('idle_min', EXP_IDLE // 60)     # minutes without EXP before the clock pauses
         s['fight_pics'] = False                      # save whole screenshots around each kill (for tuning): off at every start
@@ -204,7 +205,7 @@ class Controller:
         with self._start_lock:
             if self.exp_runner:
                 return {'ok': True}
-            r = self.exp_runner = ExpRunner(self.exp, monitor=int(self.settings['monitor']), events=_Feed(self), mobpics=self.mobpics,
+            r = self.exp_runner = ExpRunner(self.exp, events=_Feed(self), mobpics=self.mobpics,
                                             fight=lambda: bool(self.settings.get('fight_pics')))
             self.exp.resume()                            # (the time it was stopped doesn't count)
 
@@ -261,13 +262,14 @@ class Controller:
         return {'ok': True}
 
     def autostart(self):
-        """When the app opens: start recording EXP, unless switched off in Options."""
-        if self.settings.get('exp', True):
+        """When the app opens: start recording EXP only if the owner switched that on in Settings."""
+        if self.settings.get('autostart'):
             self.exp_start()
 
     def update(self, d):
-        """Settings from the window: monitor, exp, exp_log, idle_min, fight_pics."""
-        for k, conv in (('monitor', int), ('exp', bool), ('exp_log', bool), ('idle_min', int), ('fight_pics', bool)):
+        """From the window: the settings autostart, exp_log, idle_min, fight_pics; and exp = record now or stop
+        (not a setting: whether to record is asked each time the app opens)."""
+        for k, conv in (('autostart', bool), ('exp_log', bool), ('idle_min', int), ('fight_pics', bool)):
             if k in d:
                 self.settings[k] = conv(d[k])
         if 'idle_min' in d:
@@ -275,14 +277,12 @@ class Controller:
                 self.settings['idle_min'] = min(30, max(1, self.settings['idle_min']))
             self.exp.idle = self.settings['idle_min'] * 60
         if 'exp' in d:
-            if self.settings['exp']:
+            if d['exp']:
                 self.exp_start()
                 self.note('Recording your EXP.')
             else:
                 self.exp_stop()
                 self.note('EXP recording stopped.')
-        if 'monitor' in d and self.exp_runner:
-            self.note('The new screen is used next time you press Start.')
         self._save()
         return {'ok': True}
 

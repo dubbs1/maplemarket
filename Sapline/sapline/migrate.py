@@ -7,9 +7,12 @@ The old folder is left exactly as it was.
 """
 import os
 import shutil
+import threading
+import time
 
 KEEP = ('settings.json', 'mobs.txt')             # files next to the app
 MARK = 'exp_log.json'                            # in scans/: its being here means the data came over (or was made here)
+MOVED = 'moved_from.txt'                         # written by the installer when it moved the app to a new folder
 
 
 def candidates(env=None):
@@ -79,3 +82,37 @@ def first_run(app_dir, env=None):
     except OSError as e:
         return f'Could not bring over your data from {old}: {e}. It tries again next time.'
     return f'Brought over your EXP log and pictures from {old} ({n} files). The old folder was not changed.'
+
+
+def finish_move(app_dir, delay=10, tries=6):
+    """The installer moved the app into this folder (the data came along) and left the old folder's path in
+    moved_from.txt. Remove that folder once the setup and its script have let go of it (a few seconds after
+    the start; tried again next start if something still held a file). Returns a message or None."""
+    marker = os.path.join(app_dir, MOVED)
+    try:
+        with open(marker, encoding='utf-8') as f:
+            old = f.read().strip()
+    except OSError:
+        return None
+    here = os.path.normcase(os.path.abspath(app_dir))
+    old_abs = os.path.normcase(os.path.abspath(old)) if old else ''
+    # only a sister folder of the app's own (both under Programs), never itself or anything elsewhere
+    if not old_abs or old_abs == here or os.path.dirname(old_abs) != os.path.dirname(here) or not os.path.isdir(old):
+        try:
+            os.remove(marker)
+        except OSError:
+            pass
+        return None
+
+    def work():
+        for _ in range(tries):
+            time.sleep(delay)
+            shutil.rmtree(old, ignore_errors=True)
+            if not os.path.isdir(old):
+                try:
+                    os.remove(marker)
+                except OSError:
+                    pass
+                return
+    threading.Thread(target=work, daemon=True, name='move').start()
+    return f'Sapline now lives in {app_dir}. The old folder {old} is being removed.'

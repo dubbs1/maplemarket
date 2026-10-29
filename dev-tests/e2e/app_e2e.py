@@ -47,8 +47,8 @@ async def main():
                 ok('A1b night first', await pg.evaluate("document.documentElement.dataset.theme") == 'dark')
                 ok('A2 says not recording', 'Not recording' in await pg.inner_text('#chip') and 'Start' in await pg.inner_text('.xctl'))
                 ok('A2b no update card when there is nothing to update', await pg.locator('#upd').count() == 0)
-                ok('A2e before any reading, Home explains what to check', 'Three things to check' in await pg.inner_text('#app')
-                   and 'Press Start recording' in await pg.inner_text('#chipsub'))
+                ok('A2e before any reading, Home explains what to check and nothing records by itself', 'Three things to check' in await pg.inner_text('#app')
+                   and 'Press Start recording' in await pg.inner_text('#chipsub') and ctl.settings.get('autostart') is False)
                 ctl.update_info = {'state': 'available', 'version': '2099-01-01', 'can_install': False, 'page': 'https://example.com/r'}
                 await pg.wait_for_timeout(1600)
                 ok('A2c a new version shows at the top of EXP', await pg.locator('#upd').count() == 1 and
@@ -117,15 +117,17 @@ async def main():
                 await pg.screenshot(path=OUT + '_mobs.png')
                 # Options
                 await pg.click('[data-nav=more]'); await pg.wait_for_timeout(500)
-                ok('A9 Settings: every setting is a row with a sentence, with the stance text', await pg.locator('#app .opt').count() >= 8 and
-                   'only looks at your screen' in await pg.inner_text('#app') and 'You have' in await pg.inner_text('#updline'))
-                await pg.select_option('#oi', '5'); await pg.select_option('#om', '2'); await pg.uncheck('#ox'); await pg.wait_for_timeout(1500)
+                ok('A9 Settings: every setting is a row with a sentence, no screen choice, with the stance text', await pg.locator('#app .opt').count() >= 7 and
+                   await pg.locator('#om').count() == 0 and 'only looks at your screen' in await pg.inner_text('#app') and 'You have' in await pg.inner_text('#updline'))
+                await pg.select_option('#oi', '5'); await pg.check('#ox'); await pg.wait_for_timeout(1500)
                 st = json.load(open(os.path.join(work, 'settings.json')))
-                ok('A9b options saved (pause after 5, screen 2, no recording on open)', st['idle_min'] == 5 and st['monitor'] == 2 and st['exp'] is False
-                   and ctl.exp.idle == 300)
-                ok('A9c switching recording off in Options stops it', ctl.exp_runner is None)
+                ok('A9b settings saved (pause after 5, start on open), and nothing else is stored', st['idle_min'] == 5 and st['autostart'] is True
+                   and 'monitor' not in st and 'exp' not in st and ctl.exp.idle == 300)
+                ok('A9c the start-on-open switch does not touch the recording going on', ctl.exp_runner is not None)
                 await pg.click('[data-x=go]'); await pg.wait_for_timeout(1500)
-                ok('A9d Start recording in the menu starts it, and the Settings switch follows', ctl.exp_runner is not None and await pg.is_checked('#ox'))
+                ok('A9d Stop recording in the menu stops it; the switch stays as set', ctl.exp_runner is None and await pg.is_checked('#ox'))
+                await pg.click('[data-x=go]'); await pg.uncheck('#ox'); await pg.wait_for_timeout(1500)
+                ok('A9e and Start starts it again', ctl.exp_runner is not None and ctl.settings['autostart'] is False)
                 await pg.click('#theme'); await pg.wait_for_timeout(200)     # this browser asks for dark, so the first click gives day
                 lt = await pg.evaluate("document.documentElement.dataset.theme"); await pg.screenshot(path=OUT + '_day.png')
                 await pg.click('#theme'); await pg.wait_for_timeout(200)
@@ -134,8 +136,7 @@ async def main():
                 await pg.screenshot(path=OUT + '_options.png')
                 await pg.click('[data-nav=exp]'); await pg.wait_for_timeout(800)
                 await pg.click('[data-x=go]'); await pg.wait_for_timeout(1500)
-                ok('A11 Stop stops, and is remembered', ctl.exp_runner is None and 'Start' in await pg.inner_text('.xctl')
-                   and json.load(open(os.path.join(work, 'settings.json')))['exp'] is False)
+                ok('A11 Stop stops', ctl.exp_runner is None and 'Start' in await pg.inner_text('.xctl'))
                 await pg.reload(); await pg.wait_for_timeout(2000)
                 ok('A12 reload: still the EXP tab, still not recording', 'Not recording' in await pg.inner_text('#chip'))
             else:
