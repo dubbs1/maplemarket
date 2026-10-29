@@ -2,7 +2,7 @@
 
 Your EXP, read from your own screen.
 
-**Sapline** is a small Windows app. While you hunt, it looks at the status bar on your screen about once a second and keeps count: EXP per hour, time to the next level, kills by mob (with a picture of each), damage taken, mesos per hour, and a log of every hunt. (It was called MapleReader until October 2026.)
+**Sapline** is a small Windows app. While you hunt, it looks at the status bar on your screen about once a second and keeps count: EXP per hour, time to the next level, kills by mob (with a picture of each), damage taken, mesos per hour, and a log of every hunt.
 
 It only looks at your screen. It never clicks, types, reads the game's memory or sends anything anywhere.
 

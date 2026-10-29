@@ -61,7 +61,6 @@ When a new version is out, a card at the top of Home says **New version …**. C
 - If it comes back on the same version, the Messages box says the update did not install and why. The details are in `install.log` and `setup.log` in the folder `updates` next to `Sapline.exe` (`%LOCALAPPDATA%\Programs\Sapline\updates`). You can always install a version by hand from the Releases page.
 - **Settings** shows which version you have and has a **Check now** button.
 - To remove Sapline: Windows Settings > Apps > Sapline > Uninstall. Your data stays in `%LOCALAPPDATA%\Programs\Sapline\scans` until you delete that folder.
-- If you installed the app while it was still called MapleReader, its folder keeps that name (`%LOCALAPPDATA%\Programs\MapleReader`); everything else says Sapline.
 
 ## 7. If something goes wrong
 

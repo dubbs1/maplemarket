@@ -4,9 +4,9 @@ import sys, os, types, time, json, tempfile, asyncio, urllib.request, urllib.err
 os.environ.setdefault('SAPLINE_UPDATE_API', 'off')   # never ask the real GitHub from a test
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the repository
 R = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_ROOT, 'Sapline')
-OUT = sys.argv[2] if len(sys.argv) > 2 else tempfile.mkdtemp(prefix='mr_shots_')   # screenshots go here
+OUT = sys.argv[2] if len(sys.argv) > 2 else tempfile.mkdtemp(prefix='sapline_shots_')   # screenshots go here
 sys.path.insert(0, R)
-work = tempfile.mkdtemp(prefix='mr_app_'); os.chdir(work)
+work = tempfile.mkdtemp(prefix='sapline_app_'); os.chdir(work)
 import sapline.config as C; C.APP_DIR = work
 from PIL import Image
 BAR = Image.open(os.path.join(R, 'tests', 'fixtures', 'live_shop.png')).convert('RGB')   # a screen with the status bar: 93,499 (43.17%), level 37

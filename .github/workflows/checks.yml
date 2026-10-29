@@ -95,9 +95,6 @@ jobs:
           $name = "Sapline-Setup-$v.exe"
           $hash = (Get-FileHash "out\$name" -Algorithm SHA256).Hash.ToLower()
           [IO.File]::WriteAllText("$pwd\out\$name.sha256", "$hash  $name`n")
-          # the same installer under the app's old name, so a MapleReader (2026-10-28b and earlier) can update itself into Sapline
-          Copy-Item "out\$name" "out\MapleReader-Setup-$v.exe"
-          [IO.File]::WriteAllText("$pwd\out\MapleReader-Setup-$v.exe.sha256", "$hash  MapleReader-Setup-$v.exe`n")
           Get-ChildItem out
       - name: Install it quietly, self-check the installed copy, uninstall
         timeout-minutes: 20
@@ -130,9 +127,9 @@ jobs:
           Start-Sleep 10
           Copy-Item "out\Sapline-Setup-$v.exe" "$app\updates\"     # after the start: the app drops old setup files as it starts
           $env:PYTHONPATH = "$pwd\Sapline"
-          # app_exe is the OLD name's path (as the script of a MapleReader being updated would carry): it must not exist, and
-          # the setup's own [Run] step must bring Sapline back
-          python -c "from sapline import update; update.start_install(r'$app\updates\Sapline-Setup-$v.exe', pid=$($run.Id), app_exe=r'$app\MapleReader.exe')"
+          # app_exe is a path that does not exist (an older install script could carry one): the setup's own [Run] step
+          # must bring Sapline back on its own
+          python -c "from sapline import update; update.start_install(r'$app\updates\Sapline-Setup-$v.exe', pid=$($run.Id), app_exe=r'$app\gone.exe')"
           # PowerShell takes a while to start on a busy runner: give the script's first log line up to a minute
           $t0 = Get-Date
           while (((Get-Date) - $t0).TotalSeconds -lt 60 -and -not (Test-Path "$app\updates\install.log")) { Start-Sleep 2 }

@@ -241,7 +241,7 @@ def hours_and_days():
     s2 = t.summary(now=end + 2 * 3600 + 600)
     check(s2['minutes'] == s['minutes'] + 10 and s2['slots'][-1] == 3000 and s2['hour'] == 18000 and s2['per_hour'] == 18000,
           f'Start again: the stopped time is left out ({s2["minutes"]} min, last 10 min {s2["slots"][-1]}, {s2["per_hour"]}/h)')
-    path = os.path.join(tempfile.mkdtemp(prefix='maplereader_expdays_'), 'scans', 'exp_days.json')
+    path = os.path.join(tempfile.mkdtemp(prefix='sapline_expdays_'), 'scans', 'exp_days.json')
     d = E.ExpDays(path)
     day = 86400
     noon = day // 2                                         # (midday, so any time zone keeps the same dates)
@@ -291,7 +291,7 @@ def breaks_and_log():
     t.add({'exp': 3000, 'pct': 1.2, 'level': 39}, now=2403 + 600 + 7200 + 450)
     check(len(runs) == 3 and runs[2]['level'] == 38 and t.summary(now=2403 + 600 + 7200 + 450)['run']['level'] == 39,
           'a level-up starts a new entry at the new level')
-    path = os.path.join(tempfile.mkdtemp(prefix='maplereader_explog_'), 'scans', 'exp_log.json')
+    path = os.path.join(tempfile.mkdtemp(prefix='sapline_explog_'), 'scans', 'exp_log.json')
     log = E.ExpLog(path)
     for e in runs:
         log.add(e)
@@ -390,7 +390,7 @@ def loop():
         def exp(self, summary): seen.append(summary)
 
     t = E.ExpTracker()
-    work = os.path.join(os.environ.get('TMPDIR', '/tmp'), 'maplereader_exp_test')
+    work = os.path.join(os.environ.get('TMPDIR', '/tmp'), 'sapline_exp_test')
     os.makedirs(work, exist_ok=True)
     old = os.getcwd()
     os.chdir(work)
