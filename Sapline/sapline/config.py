@@ -22,7 +22,6 @@ UPDATE_EVERY = 6 * 3600        # look for a new version this often while the app
 # --- EXP tracker ---
 EXP_EVERY = 1                  # re-read the EXP line this often (seconds; ~0.1 s of work: a kill is then pinned to the second)
 EXP_IDLE = 60                  # no EXP for this long (seconds): the EXP clock stops until the next gain (Options: "Pause after")
-EXP_LOOK_EVERY = 20            # read the map's name, the party window and the meso box this often (seconds)
 EXP_RUN_GAP = 30 * 60          # no EXP for this long: the EXP log starts a new entry
 EXP_SEARCH_EVERY = 5           # look for the status bar this often while it is not found (colour only: fast)
 EXP_WARMUP = 5 * 60            # the first minutes of a session: the rates are shown faded (too few readings to mean much)

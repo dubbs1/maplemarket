@@ -56,6 +56,7 @@ async def main():
                 ctl.update_info = {'state': 'none'}; await pg.wait_for_timeout(1600)
                 ok('A2d and goes away again', await pg.locator('#upd').count() == 0)
                 await pg.screenshot(path=OUT + '_idle.png')
+                ctl.exp.map = 'Free Market <1>'          # (what the pretend screen's minimap says: read every 10 s, no run restart)
                 await pg.click('[data-x=go]'); await pg.wait_for_timeout(1500)
                 ok('A3 Start starts the recorder', ctl.exp_runner is not None and 'Stop' in await pg.inner_text('.xctl'))
                 # the tracker starts once two readings (a second apart) agree
@@ -144,7 +145,7 @@ async def main():
                 ht = await pg.inner_text('#app')
                 ok('A10a Home compares this hunt with earlier maps once it has a rate: before that it says so', 'Is this hunt worth it?' in ht and 'After a few minutes here' in ht and '1 other map.' in ht)
                 with ctl.exp.lock:                                           # as if this hunt had run 20 minutes at 60,000 EXP / h
-                    ctl.exp.run['t0'] -= 1200; ctl.exp.gained += 20000; ctl.exp.history.append((time.time(), ctl.exp.gained))
+                    ctl.exp.run['t0'] = time.time() - 1200; ctl.exp.gained = ctl.exp.run['g0'] + 20000; ctl.exp.history.append((time.time(), ctl.exp.gained))
                 await pg.wait_for_timeout(1500)
                 ht = await pg.inner_text('#app')
                 ok('A10b the comparison: each earlier map with its EXP / h and the difference from now', 'This is your best EXP an hour so far' in ht and

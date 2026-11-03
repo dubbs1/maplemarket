@@ -413,6 +413,19 @@ def loop():
         os.chdir(old)
     s = t.summary()
     check(bool(seen) and s and (s['exp'], s['pct'], s['level']) == TRUE, f'the EXP recorder got {s and (s["exp"], s["pct"], s["level"])}')
+    # the slow reads: a new map name counts once read the same twice, and the next look comes sooner while it waits
+    from sapline import location
+    names, got = [], []
+    location.read_map, t2 = (lambda img: names.pop(0) if names else None), E.ExpTracker()
+    t2.set_map = lambda name, now=None: got.append(name)
+    r2 = recorder.ExpRunner(t2)
+    names[:] = ['Kerning City', 'Kerning City']
+    check(r2.look_map(None) is True and got == [] and r2.look_map(None) is False and got == ['Kerning City'],
+          'a new map name waits for a second read (the look thread then looks again in 3 s, not 10), then counts')
+    t2.map = 'Kerning City'
+    names[:] = ['Kerming City', 'Ant Tunnel I', None, 'Ant Tunnel I']
+    r2.look_map(None); a = r2.look_map(None); b = r2.look_map(None); r2.look_map(None)
+    check(got == ['Kerning City', 'Ant Tunnel I'] and a and b, 'a slightly different read of the same map is the same map; an unreadable look keeps waiting')
 
 
 if __name__ == '__main__':
