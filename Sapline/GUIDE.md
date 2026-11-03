@@ -18,15 +18,15 @@ Nexon has not said whether screen readers are allowed. On a private server, ask 
 
 ## 2. Home
 
-- **EXP per hour**: EXP per hour (the last 10 minutes), the last 5 minutes, and how this hour compares with the hour before. For the first 5 minutes the numbers show faded with a ≈ in front: too early to mean much.
-- **Level**: your level, the percentage, how much EXP is left and when you reach the next level at this pace.
-- **This session**: gained (with EXP lost from dying and level-ups), kills, damage taken (with your HP), mesos.
-- **Next up**: when you reach the next 10 % mark, kills left to the next level (at the average EXP a kill has given), kills per hour, your best hour and today's total.
-- **The chart**: EXP every 10 minutes, or the last 7 days. Bars or a line, normal or log scale.
+- **The top card**, left to right: EXP per hour (the last 10 minutes), the last 5 minutes and how this hour compares with the hour before; your level, the percentage and how much EXP is left; **Next up**: when you reach the next level at this pace, when you reach the next 10 % mark, and kills left to the level (at the average EXP a kill has given). For the first 5 minutes the numbers show faded with a ≈ in front: too early to mean much.
+- **Four tiles**: gained this session (with EXP lost from dying, level-ups and the minutes), kills, damage taken (with your HP), mesos.
+- **The chart**: EXP every 10 minutes, or the last 7 days.
+- **Today**: today's total, your best hour, kills per hour, readings skipped.
 - **Start recording / Stop recording** is in the card at the bottom left, on every page. Sapline never records until you press Start (unless you switch **Start when Sapline opens** on in Settings). **Reset session** (top right) starts counting again, for a new hunting trip.
 - With no EXP for a minute (in town, selling, a break), the clock pauses by itself, so EXP per hour stays honest. It carries on at your next EXP gain. Settings sets how long to wait.
 - EXP lost from dying is shown apart, not taken off what you gained.
-- **Readings skipped** under Next up counts the seconds the bar could not be read (covered by the mouse or a window). A few now and then is normal.
+- **Readings skipped** in the Today card counts the seconds the bar could not be read (covered by the mouse or a window). A few now and then is normal.
+- The latest message from Sapline (an update, a problem) is one line at the bottom of Home; the last few are in the **Messages** card on the Runs page.
 
 ## 3. Runs
 
@@ -59,7 +59,7 @@ In a party, a shared mob gives a different amount each time (the EXP is split by
 
 When a new version is out, a card at the top of Home says **New version …**. Click **Update now**. Sapline closes, updates and opens again by itself within a minute. Your log, pictures and settings stay.
 
-- If it comes back on the same version, the Messages box says the update did not install and why. The details are in `install.log` and `setup.log` in the folder `updates` next to `Sapline.exe` (`%LOCALAPPDATA%\Programs\Sapline\updates`). You can always install a version by hand from the Releases page.
+- If it comes back on the same version, the Messages card on the Runs page says the update did not install and why. The details are in `install.log` and `setup.log` in the folder `updates` next to `Sapline.exe` (`%LOCALAPPDATA%\Programs\Sapline\updates`). You can always install a version by hand from the Releases page.
 - **Settings** shows which version you have and has a **Check now** button.
 - If an older version lived in another folder under `Programs`, an update moves Sapline to `%LOCALAPPDATA%\Programs\Sapline` with your data and removes the old folder about half a minute after the start. On that one update a second Sapline window may open; close either one.
 - To remove Sapline: Windows Settings > Apps > Sapline > Uninstall. Your data stays in `%LOCALAPPDATA%\Programs\Sapline\scans` until you delete that folder.
