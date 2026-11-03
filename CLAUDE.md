@@ -7,7 +7,7 @@ How the project works and the decisions behind it, so new work picks up where th
 - The owner is a beginner on Windows. Give **step-by-step instructions**, one action per step, each with "You should see …" and "If … then …". Plain words; avoid jargon or explain it once.
 - Their PC: Windows, Python 3.13 as `py -3.13`, Tesseract 5.5.3 in `C:\Program Files\Tesseract-OCR`; the app installs per user from the Releases page.
 - **Updates** reach them through the installer on the Releases page (the app offers them itself); a zip over the folder also works.
-- They also run **Rev Market** (vendormarket.app), a separate Ragnarok Online market site on its own server. It must never be touched by this work. Rev Market's design language (clean, everything visible, no hover-only controls, cards never touching) is the standard for this UI too.
+- The UI standard: clean, everything visible, no hover-only controls, cards never touching.
 
 ## What it is now (2026-10-28)
 
@@ -18,7 +18,7 @@ How the project works and the decisions behind it, so new work picks up where th
 - **Passive only.** No packet sniffing, no auto-clicking, scrolling or typing, no game-memory reading. Screenshots only. Nexon has not said screen readers are allowed; the guide and the Settings page say so honestly.
 - **Don't copy other sites' data** (MeowDB, MesoWatch and others; EXP tables included: the tracker learns each level's EXP from two agreeing readings). Link only.
 - **No "MapleStory" in product or domain names** (Nexon's trademark). "Maple" and "meso" are fine. No Nexon artwork.
-- **Never edit Rev Market's files, service or server.**
+- **This project stands alone.** Do not reference, compare with or touch the owner's other projects, sites or servers unless the owner brings them up. Nothing of this project runs anywhere but the owner's PC.
 - **Nothing leaves the PC.** No uploads, no telemetry, no cloud.
 
 ## How it fits together
