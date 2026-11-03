@@ -452,7 +452,7 @@ function drawRuns(force) {
     (r || L.length ? `<div class="tw"><table><thead><tr><th>When</th><th>Map</th><th>Level</th><th>Party</th><th>Time</th><th class="r">EXP / h</th><th class="r">Mesos / h</th>` +
       `<th class="r">Kills</th><th class="r">Dmg taken</th><th></th></tr></thead><tbody>${r ? row(r, true) : ""}${L.map(e => row(e)).join("")}</tbody></table></div>`
       : '<p class="mu" style="padding:12px 18px">No runs yet. Your first line appears after a hunt of at least a minute.</p>') +
-    (st.tesseract ? "" : `<p class="mu tfoot">Map names and mesos need the free text reader (Settings). Without it those two columns stay empty; everything else still works.</p>`) +
+    `<p class="mu tfoot">${st.tesseract ? "Mesos / h needs the Item window open at least once in a hunt (at its end is enough): a run without a look at it shows —." : "Map names and mesos need the free text reader (Settings). Without it those two columns stay empty; everything else still works."}</p>` +
     `</section>` + notesHtml(), force);
 }
 // Three answers above the run log: the best map, the week's total, the longest run (the last 7 days of the log)

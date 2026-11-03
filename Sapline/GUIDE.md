@@ -32,7 +32,7 @@ Nexon has not said whether screen readers are allowed. On a private server, ask 
 
 Above the log: the best map this week (EXP per hour over its runs), the week's total and the longest run. Then one line per hunt: a new line at a level-up, a new map, or 30 minutes without EXP. Each line keeps the date, map, level, party size, time, EXP/h, mesos/h, kills (hover for which mobs) and damage taken. **Rename** a line to call it what you like, **Delete** to drop it. **Log my runs** switches the log off.
 
-The map and the party are read when the minimap and the party window are on screen. Mesos come from the **Item** window: open it now and then, at least at the start and the end of a hunt. (Both need Tesseract.)
+The map and the party are read when the minimap and the party window are on screen. Mesos come from the **Item** window: open it at least once in every hunt (at the end is enough: what came in since the last look counts for that hunt), and now and then if you want the rate to follow you during the hunt. A run with no look at it shows — for mesos. (Both need Tesseract.)
 
 **Is this hunt worth it?** Once this hunt has a rate (a few minutes in), a card under the chart puts its EXP an hour and mesos an hour beside your earlier hunts on other maps (from the Runs page, the last 30 days), with the difference from now, and says in one line which map gave the most. If the map name is not read (no Tesseract), the line says "This hunt".
 

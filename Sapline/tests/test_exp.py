@@ -370,6 +370,20 @@ def mesos():
           f'gained {s["mesos_gained"]} (spending not taken off, a misread jump ignored), {s["mesos_per_hour"]}/h')   # spend shows -4,400)
     t.end_run(now=3 + 650)
     check(runs and runs[0]['mesos'] == 5400 and runs[0]['mesos_per_hour'] == mph, f'the EXP log line has mesos/h: {runs and runs[0]}')
+    # the Item window opened once per hunt (at its end): the gain since the last look, over the run
+    t.set_map('Next map', now=3 + 650)
+    for i in range(1, 21):
+        t.add(r(60000 + i * 500), now=3 + 650 + i * 60)
+    check(t.summary(now=3 + 650 + 1200)['run']['mesos_per_hour'] is None, 'no look at the Item window in this run yet: no rate')
+    t.set_mesos(1_031_000, now=3 + 650 + 1200)                # +30,000 since the look at the end of the last run, 20 min in
+    m1 = t.summary(now=3 + 650 + 1200)['run']['mesos_per_hour']
+    check(m1 is not None and 90_000 <= m1 <= 96_000, f'one look at the end of a 20-minute run: 30,000 over the run (the idle minute shifted out) = about 94,000/h ({m1})')
+    t.end_run(now=3 + 650 + 1200)
+    check(runs[-1]['mesos'] == 30000 and runs[-1]['mesos_per_hour'] == m1, f'and the EXP log line has it: {runs[-1]["mesos_per_hour"]}')
+    t3 = E.ExpTracker()
+    t3.add(r(50000), now=0); t3.add(r(50000), now=3); t3.add(r(50500), now=400)
+    t3.set_mesos(500, now=400)
+    check(t3.summary(now=400)['mesos_per_hour'] is None, 'the first look of a session only sets where mesos stand: no rate from it')
 
 
 def loop():

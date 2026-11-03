@@ -424,7 +424,7 @@ class ExpTracker:
         if mins >= 1 and got > 0 and self.on_run:
             self.on_run({'date': r['wall'], 'minutes': round(mins), 'gained': got, 'per_hour': round(got / mins * 60),
                          'level': r['level'], 'map': r['map'], 'party': r['party'], 'mesos': r['mg'] if r['mt0'] is not None else None,
-                         'mesos_per_hour': self._mph(r['mg'], r['mt0'], r['mt1']), 'kills': self._kill_list(r['kills']),
+                         'mesos_per_hour': self._mph(r['mg'], r['mt0'], r['mt1'], end - r['t0']), 'kills': self._kill_list(r['kills']),
                          'kills_total': sum(r['kills'].values()), 'taken': r['taken'], 'hits': r['hits']})
 
     def _open_run(self, t, wall, gained, level):
@@ -534,8 +534,17 @@ class ExpTracker:
                 self.run['mt1'] = t
 
     @staticmethod
-    def _mph(gain, t0, t1):
-        return round(gain / (t1 - t0) * 3600) if t0 is not None and t1 - t0 >= 300 else None
+    def _mph(gain, t0, t1, span=None):
+        """Mesos an hour: the gain over the time between the first and the last look at the Item window, or, when
+        that is under 5 minutes but mesos came in (the window opened once, at the end of the hunt, say), over the
+        whole `span` (the run, or the session) if that is 5 minutes or more."""
+        if t0 is None:
+            return None
+        if t1 - t0 >= 300:
+            return round(gain / (t1 - t0) * 3600)
+        if gain > 0 and span is not None and span >= 300:
+            return round(gain / span * 3600)
+        return None
 
     def set_party(self, n):
         """The party window showed n members: the EXP log keeps the most seen in a run (None = solo or not shown)."""
@@ -720,11 +729,11 @@ class ExpTracker:
             slots, hour, prev, best = self._hours(now)
             r = self.run
             run = r and {'minutes': round((now - r['t0']) / 60), 'gained': self.gained - r['g0'], 'map': r['map'], 'level': level,
-                         'party': r['party'], 'mesos_per_hour': self._mph(r['mg'], r['mt0'], r['mt1']),
+                         'party': r['party'], 'mesos_per_hour': self._mph(r['mg'], r['mt0'], r['mt1'], now - r['t0']),
                          'kills': self._kill_list(r['kills']), 'kills_total': sum(r['kills'].values()), 'taken': r['taken'], 'hits': r['hits'],
                          'per_hour': round((self.gained - r['g0']) / (now - r['t0']) * 3600) if now - r['t0'] >= 60 else None}
             return {'slots': slots, 'hour': hour, 'prev_hour': prev, 'best_hour': best, 'run': run, 'mesos': self.mesos,
-                    'mesos_gained': self.meso_gain if self.mt0 is not None else None, 'mesos_per_hour': self._mph(self.meso_gain, self.mt0, self.mt1),
+                    'mesos_gained': self.meso_gain if self.mt0 is not None else None, 'mesos_per_hour': self._mph(self.meso_gain, self.mt0, self.mt1, whole),
                     'last5': (self.gained - self._at(now - 300)) * 12 if whole >= 300 else None,
                     'idle': self.paused is None and real - self.gain_t > self.idle, 'stopped': self.paused is not None,
                     'warm': whole < EXP_WARMUP, 'skipped': self.skipped,
