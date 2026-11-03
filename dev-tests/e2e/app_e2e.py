@@ -144,6 +144,15 @@ async def main():
                    await pg.evaluate("document.documentElement.dataset.theme") == 'dark')
                 await pg.screenshot(path=OUT + '_options.png')
                 await pg.click('[data-nav=exp]'); await pg.wait_for_timeout(800)
+                ht = await pg.inner_text('#app')
+                ok('A10a Home compares this hunt with earlier maps once it has a rate: before that it says so', 'Is this hunt worth it?' in ht and 'After a few minutes here' in ht and '1 other map.' in ht)
+                with ctl.exp.lock:                                           # as if this hunt had run 20 minutes at 60,000 EXP / h
+                    ctl.exp.run['t0'] -= 1200; ctl.exp.gained += 20000; ctl.exp.history.append((time.time(), ctl.exp.gained))
+                await pg.wait_for_timeout(1500)
+                ht = await pg.inner_text('#app')
+                ok('A10b the comparison: each earlier map with its EXP / h and the difference from now', 'This is your best EXP an hour so far' in ht and
+                   'Ant Tunnel I' in ht and '53,333' in ht and '▼ 11%' in ht and 'vs now' in ht)
+                await pg.locator('[aria-label="Compared with your other hunts"]').screenshot(path=OUT + '_compare.png')
                 await pg.click('[data-x=go]'); await pg.wait_for_timeout(1500)
                 ok('A11 Stop stops', ctl.exp_runner is None and 'Start' in await pg.inner_text('.xctl'))
                 await pg.reload(); await pg.wait_for_timeout(2000)
