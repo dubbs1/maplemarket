@@ -4,7 +4,6 @@ import threading
 import time
 from collections import deque
 from PIL import Image
-from .config import EXP_LOOK_EVERY
 from .exp import ExpWatcher
 
 
@@ -18,9 +17,10 @@ class Events:
 
 
 class ExpRunner:
-    """Records EXP: a screenshot about once a second, the status bar's EXP line read from it (exp.py), the map's
-    name, party and mesos now and then (location.py, mesos.py), and the pictures around each kill kept for the mob
-    pictures (mobpics.py). Runs on its own thread until stop()."""
+    """Records EXP: a screenshot once a second, the status bar's EXP line read from it (exp.py) and the party window
+    every other second (location.py); the map's name and the mesos (location.py, mesos.py: Tesseract, slow) on a
+    second thread from the newest screenshot; and the pictures around each kill kept for the mob pictures
+    (mobpics.py). Runs on its own thread until stop()."""
     FRAMES = 5                                         # screenshots kept (the last few seconds) for the mob pictures
 
     def __init__(self, tracker, monitor=1, events=None, every=1.0, mobpics=None, fight=None):
@@ -28,9 +28,10 @@ class ExpRunner:
         self.events = events or Events()
         self.watcher = ExpWatcher()
         self._stop = threading.Event()
-        self.looked, self.seen_map = 0, None          # the map's name must be read the same twice before it counts
+        self.seen_map = None                          # the map's name must be read the same twice before it counts
         self.mobpics, self.fight = mobpics, fight     # mobpics.MobPics (a picture of each mob killed); fight() = save whole pictures?
         self.frames = deque(maxlen=self.FRAMES)       # (time, screenshot), newest last
+        self.latest, self.party_t = None, 0           # the newest screenshot (for the slow reads' thread); the last party look
         self.pending = []                             # kills waiting for their "after" pictures: {'exp', 'before', 't', 'after'}
 
     def saw(self, img, now):
@@ -58,22 +59,41 @@ class ExpRunner:
                 done.append(p)
         self.pending = [p for p in self.pending if p not in done]
 
+    LOOK_PARTY, LOOK_MESOS, LOOK_MAP, LOOK_CONFIRM = 2, 5, 10, 3   # seconds between looks (the party window is cheap; the
+                                                                 # map and mesos need Tesseract: their own thread, see _looks)
+
     def look(self, img):
-        """Every EXP_LOOK_EVERY s: the map's name (minimap title) and the party (its window's HP bars), for the EXP log."""
+        """The map's name (minimap title), the party (its window's HP bars) and the meso box, all at once."""
+        self.look_party(img)
+        self.look_mesos(img)
+        self.look_map(img)
+
+    def look_party(self, img):
         from . import location
         n = location.party_size(img)
         if n:
             self.tracker.set_party(n)
+
+    def look_mesos(self, img):
+        """The meso box, when the Item window is open (Tesseract)."""
         try:
             from .mesos import read_mesos
-            m = read_mesos(img)                        # (only while the Item window is open)
+            m = read_mesos(img)
             if m is not None:
                 self.tracker.set_mesos(m)
-            name = location.read_map(img)              # (both need Tesseract; EXP itself doesn't)
+        except Exception:
+            pass
+
+    def look_map(self, img):
+        """The map's name (Tesseract): a new name counts once read the same twice. True when a name is waiting
+        for its second read (the next look comes sooner)."""
+        from . import location
+        try:
+            name = location.read_map(img)
         except Exception:
             name = None
         if not name:
-            return
+            return bool(self.seen_map)
         known = self.tracker.map
         if known and difflib.SequenceMatcher(None, name.lower(), known.lower()).ratio() >= 0.85:
             self.seen_map = None                       # the same map, read slightly differently
@@ -82,6 +102,26 @@ class ExpRunner:
             self.seen_map = None
         else:
             self.seen_map = name
+        return bool(self.seen_map)
+
+    def _looks(self):
+        """The thread for the slow reads (Tesseract takes a second or two): the newest screenshot's meso box every
+        LOOK_MESOS s and map name every LOOK_MAP s (LOOK_CONFIRM s while a new name waits for its second read), so
+        the EXP line is never held up."""
+        next_mesos = next_map = 0
+        while not self._stop.is_set():
+            img, now = self.latest, time.time()
+            if img is None or (now < next_mesos and now < next_map):
+                time.sleep(0.25)
+                continue
+            try:
+                if now >= next_mesos:
+                    next_mesos = now + self.LOOK_MESOS
+                    self.look_mesos(img)
+                if now >= next_map:
+                    next_map = now + (self.LOOK_CONFIRM if self.look_map(img) else self.LOOK_MAP)
+            except Exception:
+                time.sleep(5)                          # (never stops for good)
 
     @property
     def found(self):
@@ -93,10 +133,12 @@ class ExpRunner:
 
     def run(self):
         import mss
-        sct, fails, pause = None, 0, 0
+        sct, fails, pause, spent = None, 0, 0, 0
+        threading.Thread(target=self._looks, daemon=True, name='look').start()
         try:
             while not self._stop.is_set():
-                time.sleep(self.every)
+                time.sleep(max(0, self.every - spent))   # (the work of the last round counts: one reading a second)
+                t0 = time.time()
                 try:
                     if sct is None:
                         sct = (getattr(mss, 'MSS', None) or mss.mss)()
@@ -114,16 +156,18 @@ class ExpRunner:
                     continue
                 try:
                     img = Image.frombytes('RGB', shot.size, shot.bgra, 'raw', 'BGRX')
-                    if time.time() - self.looked >= EXP_LOOK_EVERY:
-                        self.looked = time.time()
-                        self.look(img)
+                    self.latest = img
                     reading = self.watcher.update(img)
                     now = time.time()
                     if reading and self.tracker.add(reading, now=now):
                         self.events.exp(self.tracker.summary())
                     self.saw(img, now)
+                    if now - self.party_t >= self.LOOK_PARTY:
+                        self.party_t = now
+                        self.look_party(img)
                 except Exception:
                     pause = time.time() + 30          # a reading that went wrong: never stop for good
+                spent = time.time() - t0
         finally:
             if sct is not None:
                 getattr(sct, 'close', lambda: None)()
