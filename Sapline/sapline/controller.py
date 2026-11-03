@@ -194,11 +194,12 @@ class Controller:
 
     # --- EXP: Start/Stop (the `exp` setting) ---
     def _with_pics(self, x):
-        """The EXP summary with `pic` on each mob (is there a picture of it in scans/mobs?)."""
+        """The EXP summary with `pic` on each mob: a stamp that changes with its picture in scans/mobs (the page
+        reloads the picture when it changes), or None without one."""
         if x:
             for ks in (x.get('kills') or [], (x.get('run') or {}).get('kills') or []):
                 for k in ks:
-                    k['pic'] = k['exp'] in self.mobpics.have
+                    k['pic'] = self.mobpics.have.get(k['exp'])
         return x
 
     def exp_start(self):

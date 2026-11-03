@@ -198,6 +198,18 @@ def kills_and_damage():
     t.set_party(2)
     t.add(r(x + 37, (1200, 1340)), now=n + 3)                 # a shared mob: an amount of its own
     check([k for k in t.summary(now=n + 3)['kills'] if k['exp'] == 37][0]['n'] == 1, 'in a party a shared kill is a gain of its own')
+    t3 = E.ExpTracker()
+    t3.add(r(1000, None), now=0)
+    t3.add(r(1000, None), now=3)
+    x3, n3 = 1000, 3
+    for gain in (44, 44, 22, 66, 22, 44, 88):                  # two at a time before one at a time
+        x3, n3 = x3 + gain, n3 + 3
+        t3.add(r(x3, None), now=n3)
+        if gain == 44 and n3 == 9:
+            check(t3.last_kills == [(44, 1)] and t3.amounts == {44: 2}, 'a gain seen twice is a mob at first: 44')
+    ks = {k['exp']: k['n'] for k in t3.summary(now=n3)['kills']}
+    check(ks == {22: 15} and t3.last_kills == [(22, 4)], f'once 22 is a mob, the 44s before and after are two of it, 66 three, 88 four: {ks}')
+    check(t3.summary(now=n3)['run']['kills'] == [{'exp': 22, 'n': 15, 'name': None}], 'the run counts them the same way')
     runs = []
     t2 = E.ExpTracker(on_run=runs.append)
     t2.add(r(1000, (100, 100)), now=0)
