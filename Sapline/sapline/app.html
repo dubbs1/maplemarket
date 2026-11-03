@@ -225,9 +225,9 @@ async function pull(force) {
     const j = await r.json();
     APP.st = j;
     APP.lost = false;
-    for (const e of j.events) APP.notes.unshift(e);
+    for (const e of j.events) if (e.seq > APP.seq) APP.notes.unshift(e);   // (two polls can overlap after Save)
     APP.notes.length = Math.min(APP.notes.length, 12);
-    APP.seq = j.seq;
+    APP.seq = Math.max(APP.seq, j.seq);
     drawChip();
     if (view === "exp") drawExp(force);
     else if (view === "runs") drawRuns(force);

@@ -18,6 +18,7 @@ picture to scans/mobs/not/, and anything alike to it is never kept again.
 With the `fight_pics` setting on, the five screenshots around each kill are saved whole in scans/fight (at most
 FIGHT_KEEP kills, oldest replaced; the setting is off again when the app next opens): for tuning on a real screen."""
 import os
+import threading
 import time
 from PIL import Image, ImageChops
 
@@ -143,13 +144,14 @@ class MobPics:
             pass
         self.cands = {}                            # exp -> [[crop, times caught, is the kept picture], ...]
         self.nots = {}                             # exp -> [crop, ...] from "not this mob" (read when first needed)
+        self.lock = threading.Lock()               # offer() runs on the recorder's thread, forget() on the page's
 
     @staticmethod
     def _stamp(path):
         try:
-            return os.stat(path).st_mtime_ns // 1_000_000 % 10_000_000
+            return os.stat(path).st_mtime_ns // 1_000_000 % 10_000_000 or 1
         except OSError:
-            return 0
+            return 1                               # (never 0: the page takes the stamp as "there is a picture")
 
     def path(self, exp):
         return os.path.join(self.folder, f'{int(exp)}.png')
@@ -184,13 +186,21 @@ class MobPics:
     def offer(self, exp, img):
         """A clear catch of the mob giving `exp`: the picture shown is the look caught most often (ties: the one
         kept already). Nothing alike to a "not this mob" picture is kept. True when the kept picture changed."""
+        with self.lock:
+            return self._offer(exp, img)
+
+    def _offer(self, exp, img):
         if any(alike(img, n) for n in self._nots(exp)):
             return False
         c = self.cands.setdefault(exp, [])
         if exp in self.have and not any(x[2] for x in c):
             try:                                   # the picture from an earlier run starts as the one to beat
                 with Image.open(self.path(exp)) as im:
-                    c.insert(0, [im.convert('RGB').copy(), 1, True])
+                    old = im.convert('RGB').copy()
+                if any(alike(old, n) for n in self._nots(exp)):
+                    self._drop(exp)                # (a "not this mob" that couldn't be deleted last time)
+                else:
+                    c.insert(0, [old, 1, True])
             except OSError:
                 self.have.pop(exp, None)
         for x in c:
@@ -221,23 +231,33 @@ class MobPics:
 
     def forget(self, exp):
         """"Not this mob": the picture goes to scans/mobs/not/ and nothing alike to it is kept again."""
-        nots = self._nots(exp)
-        try:
-            with Image.open(self.path(exp)) as im:
-                nots.append(im.convert('RGB').copy())
-            del nots[:-NOT_KEEP]
-            os.makedirs(self._not_dir(), exist_ok=True)
-            for f in sorted(os.listdir(self._not_dir()))[::-1]:
-                if f.startswith(f'{int(exp)}_') and f.endswith('.png'):
-                    os.remove(os.path.join(self._not_dir(), f))
-            for k, im in enumerate(nots):
-                im.save(os.path.join(self._not_dir(), f'{int(exp)}_{k}.png'), 'PNG')
-            os.remove(self.path(exp))
-        except OSError:
+        with self.lock:
+            nots = self._nots(exp)
             try:
-                os.remove(self.path(exp))
+                with Image.open(self.path(exp)) as im:
+                    nots.append(im.convert('RGB').copy())
+                del nots[:-NOT_KEEP]
+                os.makedirs(self._not_dir(), exist_ok=True)
+                for f in sorted(os.listdir(self._not_dir()))[::-1]:
+                    if f.startswith(f'{int(exp)}_') and f.endswith('.png'):
+                        os.remove(os.path.join(self._not_dir(), f))
+                for k, im in enumerate(nots):
+                    im.save(os.path.join(self._not_dir(), f'{int(exp)}_{k}.png'), 'PNG')
             except OSError:
                 pass
+            self._drop(exp)
+
+    def _drop(self, exp):
+        """The picture file goes (moved aside first: Windows won't delete a file the page is just reading)."""
+        gone = self.path(exp) + '.gone'
+        try:
+            os.replace(self.path(exp), gone)
+        except OSError:
+            pass
+        try:
+            os.remove(gone)
+        except OSError:
+            pass
         self.have.pop(exp, None)
         self.cands.pop(exp, None)
 

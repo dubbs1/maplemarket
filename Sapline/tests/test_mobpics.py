@@ -125,6 +125,11 @@ def confirming(d, bg):
     fresh = MP.MobPics(os.path.join(d, 'mobs2'))
     fresh.forget(12)
     check(not fresh.offer(12, lamp) and not fresh.offer(12, mob) and fresh.offer(12, crop(5)), 'the "not" pictures are remembered across restarts')
+    lamp.save(fresh.path(12))                                 # the rejected picture left on disk (Windows: the page was reading it)
+    held = MP.MobPics(os.path.join(d, 'mobs2'))
+    check(12 in held.have and held.offer(12, crop(5)) and MP.alike(Image.open(held.path(12)).convert('RGB'), crop(5)),
+          'a rejected picture that could not be deleted is dropped at the next start: the next catch takes its place')
+    check(held._stamp(os.path.join(d, 'nowhere.png')) == 1, 'a stamp is never 0 (the page takes 0 as "no picture")')
 
 
 def _sprite(seed, size):
