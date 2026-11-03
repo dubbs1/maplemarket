@@ -97,6 +97,9 @@ input[type=checkbox]{width:22px;height:22px;min-height:0;margin:0;padding:0;acce
 .bline{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .facts{display:flex;gap:22px;flex-wrap:wrap;font-size:14px}
 .facts b{font-family:var(--mono);font-weight:700}
+.hero{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:0;padding:18px 20px}.hero>div{display:flex;flex-direction:column;gap:6px;min-width:0}.hero>div+div{border-left:1px solid var(--bd);padding-left:22px;margin-left:22px}.hero>div>span:not(.k){font-size:15px}.hero .facts span,.hero .mu{font-size:14px}
+@media(max-width:1000px){.hero{grid-template-columns:minmax(0,1fr)}.hero>div+div{border-left:0;padding-left:0;margin-left:0;border-top:1px solid var(--bd);padding-top:14px}}
+.notes.line{padding:0 4px}.notes.line li{border:0;padding:0}
 .xlv{display:flex;align-items:baseline;gap:10px}.xlv b{font-family:var(--mono);font-size:40px;font-weight:700;line-height:1}.xlv .num{font-size:18px;color:var(--mu)}
 .xbar{height:10px;border-radius:999px;background:var(--sf);overflow:hidden;border:1px solid var(--bd)}
 .xbar i{display:block;height:100%;background:var(--gold);border-radius:999px}
@@ -309,36 +312,36 @@ function drawExp(force) {
     sub = !on ? "Recording is off. The numbers are from before it stopped." : x.idle ? "Paused: no EXP for a while." : warm ? "The first five minutes: the rates are still settling." : where || "This session so far",
     sl = x.slots || [],
     html = updCard(st) + `<div class="${warm ? "warm" : ""}" style="display:contents">` +
-      head("Right now", sub, `<button data-x="reset">Reset session</button>`) +
-      `<div class="g3">` +
-      `<section class="card s2" aria-label="EXP per hour"><div class="row"><span class="k">EXP per hour</span>${vs}</div>` +
-        `<div class="bline"><span class="big">${rate(x.per_hour)}</span><span>EXP / h</span></div>` +
-        `<div class="facts"><span>Last 5 minutes <b>${x.last5 != null ? fmt(x.last5) : "…"}</b> / h</span>` +
-        `<span>That is <b>${x.pct_per_hour != null ? rate(x.pct_per_hour, true) + "%" : "…"}</b> of the level every hour</span></div></section>` +
-      `<section class="card" aria-label="Level"><div class="row"><span class="k">Level</span><span class="mu">${x.left != null ? fmt(x.left) + " to go" : ""}</span></div>` +
+      head("Home", sub, `<button data-x="reset">Reset session</button>`) +
+      `<section class="card hero" aria-label="Right now">` +
+      `<div><div class="row"><span class="k">EXP per hour</span></div>` +
+        `<div class="bline"><span class="big">${rate(x.per_hour)}</span><span>EXP / h</span></div>${vs}` +
+        `<div class="facts"><span>Last 5 minutes <b>${x.last5 != null ? fmt(x.last5) : "…"}</b> / h · <b>${x.pct_per_hour != null ? rate(x.pct_per_hour, true) + "%" : "…"}</b> of the level an hour</span></div></div>` +
+      `<div><span class="k">Level</span>` +
         `<div class="xlv"><b>${x.level || "—"}</b><span class="num">${x.pct.toFixed(2)}%</span></div>` +
         `<div class="xbar" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, x.pct))}%"></i></div>` +
-        `<span style="font-size:14px">${x.level && x.eta_text ? `Level ${+x.level + 1} in about <b>${x.eta_text}</b> at this pace` : x.eta_text ? `Next level in about <b>${x.eta_text}</b>` : "Time to level: after a few readings"}</span>` +
-        `<span class="mu num">${fmt(x.exp)}${x.need ? " of " + fmt(x.need) : ""} EXP</span></section>` +
-      `</div>` +
-      `<h2>This session · ${mins(x.minutes)}</h2><div class="g4">` +
-      tile("Gained", `+${fmt(x.gained)}`, `${x.lost ? fmt(x.lost) + " lost from dying" : "0 lost"} · ${x.levels ? x.levels + " level-up" + (x.levels > 1 ? "s" : "") : "no level-ups yet"}`) +
-      tile("Kills", fmt(x.kills_total || 0), x.kills_total && x.gained > 0 ? `${x.kills_per_hour != null ? fmt(x.kills_per_hour) + " an hour · " : ""}about ${fmt(x.gained / x.kills_total)} EXP a kill` : "counted from each rise of your EXP") +
-      tile("Damage taken", fmt(x.taken || 0), x.hits ? `${x.hits} hits · biggest ${fmt(x.big)}${x.hp ? ` · HP ${fmt(x.hp[0])} of ${fmt(x.hp[1])}` : ""}` : x.hp ? `HP ${fmt(x.hp[0])} of ${fmt(x.hp[1])}` : "") +
+        `<span class="mu num">${x.left != null ? `<b style="color:var(--tx)">${fmt(x.left)}</b> to go` : fmt(x.exp) + " EXP"}</span></div>` +
+      `<div aria-label="Next up"><span class="k">Next up</span>` +
+        `<span>${x.level && x.eta_text ? `Level ${+x.level + 1} in about <b>${x.eta_text}</b>` : x.eta_text ? `Next level in about <b>${x.eta_text}</b>` : "Time to level: after a few readings"}</span>` +
+        `<span>${x.next_mark ? `${x.next_mark}% of the level` : "Next 10% of the level"} in about <b>${x.next_mark_text || "…"}</b></span>` +
+        `<span>About <b class="num">${x.kills_left != null ? fmt(x.kills_left) : "…"}</b> kills to level ${x.level ? +x.level + 1 : "up"}</span></div>` +
+      `</section>` +
+      `<div class="g4">` +
+      tile("Gained this session", `+${fmt(x.gained)}`, `${x.lost ? fmt(x.lost) + " lost from dying" : "0 lost"} · ${x.levels ? x.levels + " level-up" + (x.levels > 1 ? "s" : "") : "no level-ups"} · ${mins(x.minutes)}`) +
+      tile("Kills", fmt(x.kills_total || 0), x.kills_total && x.gained > 0 ? `${x.kills_per_hour != null ? fmt(x.kills_per_hour) + " an hour · " : ""}${fmt(x.gained / x.kills_total)} EXP a kill` : "counted from each rise of your EXP") +
+      tile("Damage taken", fmt(x.taken || 0), x.hits ? `${x.hits} hits · biggest ${fmt(x.big)}` : x.hp ? `HP ${fmt(x.hp[0])} of ${fmt(x.hp[1])}` : "") +
       tile("Mesos", x.mesos_gained != null ? (x.mesos_gained >= 0 ? "+" : "") + fmt(x.mesos_gained) : "—", x.mesos_per_hour != null ? fmt(x.mesos_per_hour) + " an hour" : !st.tesseract ? "needs the text reader (Settings)" : x.mesos == null ? "open the Item window now and then" : "") +
       `</div><div class="g3">` +
       `<section class="card s2" aria-label="EXP over time"><div class="row wrap"><b>${xr === "week" ? "EXP per day" : "EXP every 10 minutes"}</b>` +
-        `${segBtns("xr", xr, [["session", "This session"], ["week", "Last 7 days"]])}</div>` +
-        `<div class="row wrap"><span class="xopts">${segBtns("xk", xkind, [["bars", "Bars"], ["line", "Line"]])}${segBtns("xs", xlog ? "log" : "lin", [["lin", "Normal"], ["log", "Log scale"]])}</span>` +
+        `${segBtns("xr", xr, [["session", "This session"], ["week", "Last 7 days"]])}</div><div class="row wrap">` +
         chart(xr, sl, D) + `</section>` +
-      `<section class="card" aria-label="Next up"><b>Next up</b><div class="list">` +
-        `<div><span>${x.next_mark ? x.next_mark + "% of the level" : "Next 10% of the level"}</span><span class="num">${x.next_mark_text ? "in " + x.next_mark_text : "—"}</span></div>` +
-        `<div><span>Kills to level ${x.level ? +x.level + 1 : "up"}</span><span class="num">${x.kills_left != null ? "about " + fmt(x.kills_left) : "—"}</span></div>` +
+      `<section class="card" aria-label="Today"><b>Today</b><div class="list">` +
+        `<div><span>Gained today</span><span class="num">${fmt(today)}</span></div>` +
+        `<div><span>Best hour</span><span class="num">${x.best_hour != null ? fmt(x.best_hour) + " / h" : "—"}</span></div>` +
         `<div><span>Kills per hour</span><span class="num">${x.kills_per_hour != null ? rate(x.kills_per_hour) : "—"}</span></div>` +
-        `<div><span>Best hour today</span><span class="num">${x.best_hour != null ? fmt(x.best_hour) : "—"}</span></div>` +
-        `<div><span>Gained today</span><span class="num">${fmt(today)}</span></div></div>` +
-        `<span class="mu">${skipped ? `${fmt(skipped)} readings skipped (the bar was covered or unreadable). A few is normal.` : "Every reading so far was clear."}</span></section>` +
-      `</div>${compareCard(x, st.exp_log || [])}${notesHtml()}</div>`;
+        `<div><span>Readings skipped</span><span class="num">${fmt(skipped)}</span></div></div>` +
+        `<span class="mu">${skipped ? "The bar was covered or unreadable now and then. A few is normal." : "Every reading so far was clear."}</span></section>` +
+      `</div>${compareCard(x, st.exp_log || [])}${lastNote()}</div>`;
   put(html, force);
 }
 // Is this hunt worth it? This hunt's EXP and mesos an hour beside your earlier hunts (the run log, last 30 days),
@@ -410,10 +413,13 @@ function firstOpen(st, on) {
     `<div class="bar"><span class="num" style="height:auto;font-size:13px;font-weight:700">Lv. 39</span><span style="flex:1;background:#d9534f"></span><span style="flex:1;background:#4a7bd9"></span><span style="flex:2;background:var(--gold)"></span><span class="num mu" style="height:auto;font-size:12px">61.37%</span></div></div>` +
     `<span class="mu">Sapline looks for the red HP and blue MP bars, then reads the numbers beside them. It takes a picture of your screen about once a second and keeps nothing but the numbers and a small picture of each mob.</span></section></div>` + notesHtml();
 }
-// Messages from the app (an update, a problem): the last few
+// Messages from the app (an update, a problem): the latest as one line on Home, the last few on Runs
+const noteLi = n => `<li class="${n.level || ""}"><b>${new Date((n.t || 0) * 1000).toTimeString().slice(0, 5)}</b><span>${esc(n.text)}</span></li>`;
+function lastNote() {
+  return APP.notes.length ? `<ul class="notes line">${noteLi(APP.notes[0])}</ul>` : "";
+}
 function notesHtml() {
-  return APP.notes.length ? `<div class="card"><b>Messages</b><ul class="notes">${APP.notes.slice(0, 6).map(n =>
-    `<li class="${n.level || ""}"><b>${new Date((n.t || 0) * 1000).toTimeString().slice(0, 5)}</b><span>${esc(n.text)}</span></li>`).join("")}</ul></div>` : "";
+  return APP.notes.length ? `<section class="card" aria-label="Messages"><b>Messages</b><ul class="notes">${APP.notes.slice(0, 6).map(noteLi).join("")}</ul></section>` : "";
 }
 // A newer Sapline: a card at the top of Home (only when there's something to do) and a line in Settings
 function updCard(st) {
@@ -439,14 +445,15 @@ function drawRuns(force) {
       (now ? "" : xren === e.id
         ? `<input id="xrn" maxlength="40" value="${esc(e.name || e.map || "")}" aria-label="Name"><button data-xl="save" data-id="${e.id}">Save</button>`
         : `<button data-xl="rename" data-id="${e.id}">Rename</button><button data-xl="delete" data-id="${e.id}">Delete</button>`) + `</td></tr>`;
-  put(head("Your runs", "One line per hunt. A run ends when you change map, level up, or stop for 30 minutes.",
+  put(head("Runs", "One line per hunt. A run ends when you change map, level up, or stop for 30 minutes.",
     `<label class="card" style="flex-direction:row;align-items:center;gap:10px;padding:8px 12px;font-weight:700;font-size:14px;cursor:pointer"><input type="checkbox" data-xl="on"${logOn ? " checked" : ""}> Log my runs</label>`) +
     weekTiles(L) +
     `<section class="card tcard xlog" aria-label="Runs">` +
     (r || L.length ? `<div class="tw"><table><thead><tr><th>When</th><th>Map</th><th>Level</th><th>Party</th><th>Time</th><th class="r">EXP / h</th><th class="r">Mesos / h</th>` +
       `<th class="r">Kills</th><th class="r">Dmg taken</th><th></th></tr></thead><tbody>${r ? row(r, true) : ""}${L.map(e => row(e)).join("")}</tbody></table></div>`
       : '<p class="mu" style="padding:12px 18px">No runs yet. Your first line appears after a hunt of at least a minute.</p>') +
-    `<p class="mu tfoot">Map names and mesos need the free text reader (Settings). Without it those two columns stay empty; everything else still works.</p></section>`, force);
+    (st.tesseract ? "" : `<p class="mu tfoot">Map names and mesos need the free text reader (Settings). Without it those two columns stay empty; everything else still works.</p>`) +
+    `</section>` + notesHtml(), force);
 }
 // Three answers above the run log: the best map, the week's total, the longest run (the last 7 days of the log)
 function weekTiles(L) {
@@ -478,7 +485,7 @@ function drawMobs(force) {
     sum = all => fmt(all.reduce((a, k) => a + k.n, 0)),
     nameBox = k => `<label><span>Name</span><input class="mn" data-mn="${k.exp}" maxlength="40" placeholder="Type the mob's name" aria-label="Name this mob"></label>`,
     card = k => `<article class="card mob"><div class="pic">${k.pic ? `<img src="/api/mobpic/${k.exp}.png?v=${k.pic}" alt="Picture of the mob, cut from your screen">` : MOB_ICON}</div><div class="body">` +
-      `<div class="row"><span class="num gold" style="font-weight:700">${fmt(k.exp)} EXP</span><span class="mu"><b class="num" style="color:var(--tx)">${fmt(k.n)}</b> kill${k.n > 1 ? "s" : ""}</span></div>` +
+      `<div class="row"><span class="num gold" style="font-weight:700">${fmt(k.exp)} EXP</span><span class="mu"><b class="num" style="color:var(--tx)">${fmt(k.n)}</b> kill${k.n > 1 ? "s" : ""} · <b class="num" style="color:var(--tx)">${fmt(k.exp * k.n)}</b> EXP</span></div>` +
       (k.name ? `<b style="font-size:16px">${esc(k.name)}</b>` : nameBox(k)) +
       `<div class="btns">${k.name ? "" : `<button class="pri" data-mns="${k.exp}">Save</button>`}${k.pic ? `<button data-mnx="${k.exp}">Not this mob</button>` : ""}</div></div></article>`,
     // amounts seen once in a party are shared mobs or quests: one "Other gains" line
@@ -486,13 +493,11 @@ function drawMobs(force) {
     trow = k => `<tr><td>${k.name ? `<b>${esc(k.name)}</b>` : shown.has(k.exp) ? '<span class="mu">Not named yet</span>'
         : `<input class="mn" data-mn="${k.exp}" maxlength="40" placeholder="Name this mob" aria-label="Name this mob"><button class="pri" data-mns="${k.exp}">Save</button>`}</td>` +
       `<td class="num r">${fmt(k.exp)}</td><td class="num r">${fmt(k.n)}</td><td class="num r gold">${fmt(k.exp * k.n)}</td></tr>`;
-  put(head("Mobs", "Sapline tells mobs apart by the EXP they give. Name one once and the name stays.",
+  put(head("Mobs", (hunt.length ? "This hunt" + (x.run.map ? " · " + esc(x.run.map) : "") + ". " : "") + "Mobs are told apart by the EXP they give; a name stays once saved.",
       sess.length ? `<span class="card" style="padding:8px 12px;font-size:13px;font-weight:700">${sum(sess)} kills this session</span>` : "") +
     (cards.length
-      ? `<div class="row"><h2>${hunt.length ? "This hunt" + (x.run.map ? " · " + esc(x.run.map) : "") : "This session"}</h2>` +
-        `<span class="mu">Wrong picture? Press <b>Not this mob</b> and the next clear kill takes a new one.</span></div>` +
-        `<div class="g3">${named(cards).map(card).join("")}</div>` +
-        (other(cards) ? `<p class="mu"><b>Other gains</b>: ${fmt(other(cards))}, of amounts seen once (shared mobs in a party, or quest rewards).</p>` : "")
+      ? `<div class="g2">${named(cards).map(card).join("")}` +
+        (other(cards) ? `<section class="card" style="border-style:dashed;justify-content:center"><b>Other gains</b><span class="mu">${fmt(other(cards))} kill${other(cards) > 1 ? "s" : ""} of amounts seen once: shared mobs in a party, or quest rewards.</span></section>` : "") + `</div>`
       : `<section class="card"><b>No kills yet</b><p class="mu">Kills show here as your EXP goes up.</p></section>`) +
     (hunt.length && sess !== hunt && sess.length ? `<section class="card tcard" aria-label="This session"><h2>This session</h2><div class="tw"><table><thead><tr><th>Mob</th><th class="r">EXP each</th><th class="r">Kills</th><th class="r">EXP from it</th></tr></thead><tbody>` +
       `${named(sess).map(trow).join("")}${other(sess) ? `<tr><td class="mu">Other gains</td><td class="num r">—</td><td class="num r">${fmt(other(sess))}</td><td class="num r">—</td></tr>` : ""}</tbody></table></div>` +
@@ -511,15 +516,14 @@ function drawMore() {
     `<div class="opt"><label for="oi"><b>Pause after</b><span class="mu">Minutes without EXP before the clock stops, so a break does not drag your EXP per hour down.</span></label>` +
     `<select id="oi">${pauses.map(n => `<option value="${n}"${idle === n ? " selected" : ""}>${n} min</option>`).join("")}</select></div>` +
     sw("ofp", "Save fight pictures", "Only for fixing wrong mob pictures: keeps the screenshots around each kill. Off again at the next start.", !!se.fight_pics) +
-    `</section><div style="display:flex;flex-direction:column;gap:14px;min-width:0">` +
-    `<section class="card" aria-label="Map names and mesos"><h2>Map names and mesos</h2><p style="font-size:14px">EXP works on its own. Reading the map's name and your meso count needs <b>Tesseract</b>, a free text reader.</p>` +
-    `<div class="row"><span id="tess" class="mu"></span><button id="tessgo" class="pri" hidden>Install Tesseract</button></div></section>` +
+    `</section>` +
     `<section class="card" aria-label="App"><h2>App</h2>` +
+    `<div class="opt"><span><b>Map names and mesos</b><span class="mu" id="tess"></span></span><button id="tessgo" class="pri" hidden>Install Tesseract</button></div>` +
     `<div class="opt"><span><b>Updates</b><span class="mu" id="updline"></span></span><button id="updcheck">Check now</button></div>` +
     `<div class="opt"><span><b>Your data</b><span class="mu">Runs, day totals and mob pictures, in the folder next to Sapline.</span></span><button id="oscans">Open folder</button></div>` +
-    `<div class="opt"><span><b>Look</b><span class="mu">Night or day colours.</span></span><button id="theme">${isDark() ? "Switch to day" : "Switch to night"}</button></div></section>` +
-    `<section class="card" aria-label="What Sapline does" style="background:var(--sf)"><p style="font-size:14px"><b>Sapline only looks at your screen.</b> It never clicks, types, reads the game's memory or sends anything anywhere. ` +
-    `Nexon has not said whether screen readers are allowed; on a private server, ask a GM first. Fan project, not affiliated with Nexon.</p></section></div></div>`;
+    `<div class="opt"><span><b>Look</b><span class="mu">Night or day colours.</span></span><button id="theme">${isDark() ? "Switch to day" : "Switch to night"}</button></div></section></div>` +
+    `<p class="mu" style="margin:0;line-height:1.5"><b style="color:var(--tx)">Sapline only looks at your screen.</b> It never clicks, types, reads the game's memory or sends anything anywhere. ` +
+    `Nexon has not said whether screen readers are allowed; on a private server, ask a GM first. Fan project, not affiliated with Nexon.</p>`;
   const done = r => r.ok || say(r.error || "Could not save that setting.");
   $("#ox").onchange = e => api("/api/set", { autostart: e.target.checked }).then(done);
   $("#ol").onchange = e => api("/api/set", { exp_log: e.target.checked }).then(done);
