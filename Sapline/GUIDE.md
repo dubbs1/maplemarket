@@ -34,6 +34,8 @@ Above the log: the best map this week (EXP per hour over its runs), the week's t
 
 The map and the party are read when the minimap and the party window are on screen. Mesos come from the **Item** window: open it now and then, at least at the start and the end of a hunt. (Both need Tesseract.)
 
+**Is this hunt worth it?** Once this hunt has a rate (a few minutes in), a card under the chart puts its EXP an hour and mesos an hour beside your earlier hunts on other maps (from the Runs page, the last 30 days), with the difference from now, and says in one line which map gave the most. If the map name is not read (no Tesseract), the line says "This hunt".
+
 ## 4. Mobs
 
 Every rise in your EXP is a kill. A mob always gives the same EXP, so kills are told apart by that amount; a rise worth two to six of a mob you kill is that many kills of it (two mobs that die together). A mob you haven't named shows as a card with "22 EXP" and a box: type its name once, click **Save**, and it's kept in `mobs.txt` next to `Sapline.exe` (one mob per line, `name | level | HP | EXP`; you can edit it by hand).

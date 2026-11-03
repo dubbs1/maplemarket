@@ -338,8 +338,36 @@ function drawExp(force) {
         `<div><span>Best hour today</span><span class="num">${x.best_hour != null ? fmt(x.best_hour) : "—"}</span></div>` +
         `<div><span>Gained today</span><span class="num">${fmt(today)}</span></div></div>` +
         `<span class="mu">${skipped ? `${fmt(skipped)} readings skipped (the bar was covered or unreadable). A few is normal.` : "Every reading so far was clear."}</span></section>` +
-      `</div>${notesHtml()}</div>`;
+      `</div>${compareCard(x, st.exp_log || [])}${notesHtml()}</div>`;
   put(html, force);
+}
+// Is this hunt worth it? This hunt's EXP and mesos an hour beside your earlier hunts (the run log, last 30 days),
+// map by map, and one line saying which was best
+function compareCard(x, L) {
+  const r = x.run || {}, now = Date.now() / 1000,
+    past = L.filter(e => e.date > now - 30 * 86400 && e.minutes >= 10 && e.per_hour != null),
+    byMap = {};
+  for (const e of past) {
+    const k = e.map || e.name || "Unknown map", m = byMap[k] || (byMap[k] = { g: 0, min: 0, mes: 0, mmin: 0, n: 0, last: 0 });
+    m.g += e.gained != null ? e.gained : e.per_hour * e.minutes / 60; m.min += e.minutes; m.n++; m.last = Math.max(m.last, e.date);
+    if (e.mesos_per_hour != null) { m.mes += e.mesos_per_hour * e.minutes / 60; m.mmin += e.minutes; }
+  }
+  const maps = Object.entries(byMap).map(([k, m]) => ({ map: k, eph: m.g / m.min * 60, mph: m.mmin ? m.mes / m.mmin * 60 : null, n: m.n, last: m.last }))
+    .filter(m => m.map !== (r.map || "")).sort((a, b) => b.eph - a.eph);
+  const head = `<section class="card tcard" aria-label="Compared with your other hunts"><h2>Is this hunt worth it?</h2>`;
+  if (!maps.length) return head + `<p class="mu tfoot" style="border:0;padding-top:4px">Once the run log has hunts on other maps, this hunt's EXP and mesos an hour show beside them here.</p></section>`;
+  if (r.per_hour == null) return head + `<p class="mu tfoot" style="border:0;padding-top:4px">After a few minutes here, this hunt's EXP and mesos an hour show beside your earlier hunts on ${maps.length} other map${maps.length > 1 ? "s" : ""}.</p></section>`;
+  const dlt = (a, b) => (a == null || b == null || !b ? '<span class="mu">—</span>' : Math.abs(a / b - 1) < 0.02 ? '<span class="mu">about the same</span>'
+      : `<span class="${a > b ? "up" : "dn"}">${a > b ? "▲" : "▼"} ${Math.round(Math.abs(a / b - 1) * 100)}%</span>`),
+    day = t => new Date(t * 1000).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
+    best = maps[0], bestM = maps.filter(m => m.mph != null).sort((a, b) => b.mph - a.mph)[0],
+    verdict = (best.eph > r.per_hour * 1.02 ? `<b>${esc(best.map)}</b> gave ${Math.round((best.eph / r.per_hour - 1) * 100)}% more EXP an hour (last there ${day(best.last)}).`
+      : `This is your best EXP an hour so far: ${Math.round((r.per_hour / best.eph - 1) * 100)}% over <b>${esc(best.map)}</b>.`) +
+      (bestM && r.mesos_per_hour != null ? (bestM.mph > r.mesos_per_hour * 1.02 ? ` For mesos, <b>${esc(bestM.map)}</b> was better: ${fmt(bestM.mph)} an hour.` : " This is also your best for mesos.") : "");
+  return head + `<p style="margin:0;padding:4px 18px 10px">${verdict}</p><div class="tw"><table><thead><tr><th>Map</th><th class="r">EXP / h</th><th class="r">vs now</th><th class="r">Mesos / h</th><th class="r">vs now</th><th class="r">Runs</th></tr></thead><tbody>` +
+    `<tr><td><b>${esc(r.map || "This hunt")}</b> <span class="mu">now</span></td><td class="num r gold">${fmt(r.per_hour)}</td><td class="r"></td><td class="num r">${r.mesos_per_hour != null ? fmt(r.mesos_per_hour) : "—"}</td><td class="r"></td><td class="num r">${fmt(r.minutes)} min</td></tr>` +
+    maps.slice(0, 5).map(m => `<tr><td>${esc(m.map)}</td><td class="num r">${fmt(m.eph)}</td><td class="r">${dlt(m.eph, r.per_hour)}</td><td class="num r">${m.mph != null ? fmt(m.mph) : "—"}</td><td class="r">${dlt(m.mph, r.mesos_per_hour)}</td><td class="num r">${m.n}</td></tr>`).join("") +
+    `</tbody></table></div><p class="mu tfoot">Your hunts of 10 minutes or more in the last 30 days, from the Runs page. "vs now" compares each map with this hunt.</p></section>`;
 }
 // The chart card's body: bars or a line, this session's 10-minute slots or the last 7 days
 function chart(which, sl, D) {
