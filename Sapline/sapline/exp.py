@@ -455,6 +455,16 @@ class ExpTracker:
         self.amounts[a] = self.amounts.get(a, 0) + n
         if self.run:
             self.run['kills'][a] = self.run['kills'].get(a, 0) + n
+        if self.amounts[a] == 2:
+            self._fold(a)
+
+    def _fold(self, a):
+        """`a` has just become a known mob: gains seen before that are 2–KILL_MAX times it were several of this mob
+        (two 22s before the first single 22, say), not a mob of their own. (A mob worth exactly twice another is
+        counted as two of the smaller one: Sapline can't tell them apart from the EXP alone.)"""
+        for kills in (self.amounts,) + ((self.run['kills'],) if self.run else ()):
+            for b in [b for b in kills if b != a and b % a == 0 and 2 <= b // a <= self.KILL_MAX]:
+                kills[a] = kills.get(a, 0) + kills.pop(b) * (b // a)
 
     def _kill_list(self, kills):
         """[{exp, n, name}], most killed first (name None when the amount isn't in mobs.txt)."""
@@ -637,6 +647,8 @@ class ExpTracker:
             self.lost += exp0 - exp                     # EXP lost (from dying)
         if self.gained > g0:
             self._kills(self.gained - g0)
+            if up:
+                self.last_kills = []                     # (the gain that levelled you: no mob picture from it)
             idle = now - self.gain_t
             if idle > self.idle:                         # back after a break: the time without EXP doesn't count
                 if idle > EXP_RUN_GAP:                   # (a long one starts a new EXP log entry)

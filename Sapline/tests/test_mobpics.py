@@ -90,14 +90,52 @@ def catching():
     with Image.open(pics.path(22)) as f:
         pic = f.copy()                                        # (closed again: Windows can't delete an open file)
     check(50 <= pic.width <= 80 and 60 <= pic.height <= 120, f'the picture is the mob, with a little around it: {pic.size}')
-    check(not pics.keep(22, pic) and MP.MobPics(os.path.join(d, 'mobs')).have == {22}, 'the first clear picture wins; the folder is read again at start')
+    check(not pics.keep(22, pic) and set(MP.MobPics(os.path.join(d, 'mobs')).have) == {22}, 'the first clear picture wins; the folder is read again at start')
     pics.forget(22)
     check(22 not in pics.have and not os.path.exists(pics.path(22)), 'a wrong picture can be dropped')
+    confirming(d, bg)
     for i in range(MP.FIGHT_KEEP + 2):
         pics.save_fight(22, (before, after, after2, earlier, after3), stamp=f'20261022_{i:06d}')
     files = sorted(os.listdir(os.path.join(d, 'fight')))
     check(len(files) == MP.FIGHT_KEEP * 5 and files[0].startswith('20261022_000002'),
           f'fight pictures: at most {MP.FIGHT_KEEP} kills kept, the oldest dropped ({len(files)} files)')
+
+
+def confirming(d, bg):
+    print('The kills confirm each other:')
+    crop = lambda seed, size=(60, 70): scene(bg, mob=False).crop((700, 300, 700 + size[0], 300 + size[1])) if seed is None else _sprite(seed, size)
+    mob, mob_b, lamp = crop(7), crop(7), crop(17)
+    mob_b.paste(_sprite(7, (60, 70)).transpose(Image.FLIP_LEFT_RIGHT))     # the same mob facing the other way
+    check(MP.alike(mob, mob_b) and not MP.alike(mob, lamp) and not MP.alike(mob, crop(7, (60, 140))), 'alike: the same mob either way round; not a lamp, not a thing twice as tall')
+    pics = MP.MobPics(os.path.join(d, 'mobs2'))
+    check(pics.offer(12, lamp) and 12 in pics.have, 'the first clear catch is shown at once (a lamp, say)')
+    stamp = pics.have[12]
+    check(not pics.offer(12, mob) and MP.alike(Image.open(pics.path(12)).convert('RGB'), lamp), 'one catch of another look does not replace it yet')
+    import time; time.sleep(0.01)
+    check(pics.offer(12, mob_b) and MP.alike(Image.open(pics.path(12)).convert('RGB'), mob) and pics.have[12] != stamp,
+          'caught twice, the mob replaces the lamp (and the picture stamp changes, so the page reloads it)')
+    check(not pics.offer(12, lamp) and MP.alike(Image.open(pics.path(12)).convert('RGB'), mob), 'the lamp caught again only ties: the mob stays')
+    again = MP.MobPics(os.path.join(d, 'mobs2'))
+    check(not again.offer(12, lamp) and again.offer(12, lamp) and MP.alike(Image.open(again.path(12)).convert('RGB'), lamp),
+          'after a restart the kept picture is the one to beat: two catches of another look replace it')
+    again.forget(12)
+    check(12 not in again.have and os.path.exists(os.path.join(d, 'mobs2', 'not', '12_0.png')), '"not this mob" moves the picture to scans/mobs/not')
+    check(not again.offer(12, crop(17)) and 12 not in again.have, 'anything alike to it is never kept again')
+    check(again.offer(12, mob) and 12 in again.have, 'the mob itself still is')
+    fresh = MP.MobPics(os.path.join(d, 'mobs2'))
+    fresh.forget(12)
+    check(not fresh.offer(12, lamp) and not fresh.offer(12, mob) and fresh.offer(12, crop(5)), 'the "not" pictures are remembered across restarts')
+    lamp.save(fresh.path(12))                                 # the rejected picture left on disk (Windows: the page was reading it)
+    held = MP.MobPics(os.path.join(d, 'mobs2'))
+    check(12 in held.have and held.offer(12, crop(5)) and MP.alike(Image.open(held.path(12)).convert('RGB'), crop(5)),
+          'a rejected picture that could not be deleted is dropped at the next start: the next catch takes its place')
+    check(held._stamp(os.path.join(d, 'nowhere.png')) == 1, 'a stamp is never 0 (the page takes 0 as "no picture")')
+
+
+def _sprite(seed, size):
+    im = Image.new('RGB', size, (30, 90, 30))
+    blob(ImageDraw.Draw(im), (4, 4, size[0] - 4, size[1] - 4), seed)
+    return im
 
 
 def pairing():

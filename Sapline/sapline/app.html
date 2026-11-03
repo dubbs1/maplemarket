@@ -218,25 +218,28 @@ function saveCharts() {
   try { localStorage.setItem(KEY + ":charts", JSON.stringify({ xk: xkind, xs: xlog })); } catch (e) {}
 }
 /* ===== Talking to the app ===== */
-async function appPull() {
+async function pull(force) {
   try {
     const r = await fetch("/api/state?since=" + APP.seq, { cache: "no-store" });
     if (!r.ok) throw new Error(r.status);
     const j = await r.json();
     APP.st = j;
     APP.lost = false;
-    for (const e of j.events) APP.notes.unshift(e);
+    for (const e of j.events) if (e.seq > APP.seq) APP.notes.unshift(e);   // (two polls can overlap after Save)
     APP.notes.length = Math.min(APP.notes.length, 12);
-    APP.seq = j.seq;
+    APP.seq = Math.max(APP.seq, j.seq);
     drawChip();
-    if (view === "exp") drawExp();
-    else if (view === "runs") drawRuns();
-    else if (view === "mobs") drawMobs();
+    if (view === "exp") drawExp(force);
+    else if (view === "runs") drawRuns(force);
+    else if (view === "mobs") drawMobs(force);
     else if (view === "more") updOpts(j);
   } catch (e) {
     APP.lost = true;
     drawChip();
   }
+}
+async function appPull() {
+  await pull();
   setTimeout(appPull, 1000);
 }
 // What the recorder is doing, in a few words: the status card at the bottom of the menu
@@ -275,12 +278,15 @@ function put(html, force) {
   if (!force && (ae.id === "xrn" || (ae.classList && ae.classList.contains("mn")))) return;
   if (force || el.dataset.html !== html) {
     const typed = $("#xrn") ? $("#xrn").value : null;        // a name being typed survives the redraw
+    const names = {};                                         // (so does a mob name not saved yet)
+    document.querySelectorAll("input.mn").forEach(b => { if (b.value) names[b.dataset.mn] = b.value; });
     el.innerHTML = html;
     el.dataset.html = html;
     if (xren && $("#xrn")) {
       if (typed != null) $("#xrn").value = typed;
       if (ae.id === "xrn") $("#xrn").focus();
     }
+    document.querySelectorAll("input.mn").forEach(b => { if (names[b.dataset.mn] && !b.value) b.value = names[b.dataset.mn]; });
   }
 }
 /* ===== Home ===== numbers from ExpTracker.summary in exp.py */
@@ -443,7 +449,7 @@ function drawMobs(force) {
     shown = new Set(cards.filter(k => k.name || k.n > 1).map(k => k.exp)),   // the ones that got a card
     sum = all => fmt(all.reduce((a, k) => a + k.n, 0)),
     nameBox = k => `<label><span>Name</span><input class="mn" data-mn="${k.exp}" maxlength="40" placeholder="Type the mob's name" aria-label="Name this mob"></label>`,
-    card = k => `<article class="card mob"><div class="pic">${k.pic ? `<img src="/api/mobpic/${k.exp}.png" alt="Picture of the mob, cut from your screen">` : MOB_ICON}</div><div class="body">` +
+    card = k => `<article class="card mob"><div class="pic">${k.pic ? `<img src="/api/mobpic/${k.exp}.png?v=${k.pic}" alt="Picture of the mob, cut from your screen">` : MOB_ICON}</div><div class="body">` +
       `<div class="row"><span class="num gold" style="font-weight:700">${fmt(k.exp)} EXP</span><span class="mu"><b class="num" style="color:var(--tx)">${fmt(k.n)}</b> kill${k.n > 1 ? "s" : ""}</span></div>` +
       (k.name ? `<b style="font-size:16px">${esc(k.name)}</b>` : nameBox(k)) +
       `<div class="btns">${k.name ? "" : `<button class="pri" data-mns="${k.exp}">Save</button>`}${k.pic ? `<button data-mnx="${k.exp}">Not this mob</button>` : ""}</div></div></article>`,
@@ -462,7 +468,7 @@ function drawMobs(force) {
       : `<section class="card"><b>No kills yet</b><p class="mu">Kills show here as your EXP goes up.</p></section>`) +
     (hunt.length && sess !== hunt && sess.length ? `<section class="card tcard" aria-label="This session"><h2>This session</h2><div class="tw"><table><thead><tr><th>Mob</th><th class="r">EXP each</th><th class="r">Kills</th><th class="r">EXP from it</th></tr></thead><tbody>` +
       `${named(sess).map(trow).join("")}${other(sess) ? `<tr><td class="mu">Other gains</td><td class="num r">—</td><td class="num r">${fmt(other(sess))}</td><td class="num r">—</td></tr>` : ""}</tbody></table></div>` +
-      `<p class="mu tfoot">Kills are counted from each rise of your EXP. Two mobs that give the same EXP are counted as one.</p></section>` : ""), force);
+      `<p class="mu tfoot">Kills are counted from each rise of your EXP. Two mobs that give the same EXP are counted as one, and a rise worth two to six of a mob counts as that many kills of it.</p></section>` : ""), force);
 }
 /* ===== Settings ===== */
 const PAUSE = [1, 2, 3, 5, 10, 15, 20, 30];
@@ -531,7 +537,8 @@ document.addEventListener("click", e => {
     const exp = +(d.mns !== undefined ? d.mns : d.mnx),
       body = d.mns !== undefined ? { exp, name: ($(`[data-mn="${exp}"]`) || {}).value || "" } : { exp, action: "forget" };
     if (d.mns !== undefined && !body.name.trim()) return say("Type the mob's name first.");
-    api("/api/mob-name", body).then(r => (r.ok ? (drawMobs(true), d.mnx !== undefined && say("Picture dropped. The next clear kill takes a new one.")) : say(r.error || "Could not save that.")));
+    api("/api/mob-name", body).then(r => (r.ok ? pull(true).then(() => say(d.mnx !== undefined ? "Picture dropped. The next clear kill takes a new one." : `Saved: ${body.name.trim()} gives ${fmt(exp)} EXP.`))
+      : say(r.error || "Could not save that.")));
   } else if (d.xr || d.xk || d.xs) {
     if (d.xr) xr = d.xr;
     if (d.xk) xkind = d.xk;

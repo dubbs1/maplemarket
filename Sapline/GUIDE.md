@@ -36,9 +36,9 @@ The map and the party are read when the minimap and the party window are on scre
 
 ## 4. Mobs
 
-Every rise in your EXP is a kill. A mob always gives the same EXP, so kills are told apart by that amount. A mob you haven't named shows as a card with "22 EXP" and a box: type its name once, click **Save**, and it's kept in `mobs.txt` next to `Sapline.exe` (one mob per line, `name | level | HP | EXP`; you can edit it by hand).
+Every rise in your EXP is a kill. A mob always gives the same EXP, so kills are told apart by that amount; a rise worth two to six of a mob you kill is that many kills of it (two mobs that die together). A mob you haven't named shows as a card with "22 EXP" and a box: type its name once, click **Save**, and it's kept in `mobs.txt` next to `Sapline.exe` (one mob per line, `name | level | HP | EXP`; you can edit it by hand).
 
-A **picture** of the mob appears after a clear kill: the app compares the screen before and after the kill, and when the camera didn't move and exactly one mob-sized thing vanished for good, that's the mob. Kills that aren't clear (you moved, two mobs died together, a drop was picked up, a map lamp blinked) still count, they just bring no picture that time. If a picture is wrong, press **Not this mob** under it; the next clear kill brings a new one.
+A **picture** of the mob appears after a clear kill: the app compares the screen before and after the kill, and when the camera didn't move and exactly one mob-sized thing vanished for good, that's the mob. Kills that aren't clear (you moved, two mobs died together, a drop was picked up, a map lamp blinked) still count, they just bring no picture that time. The kills check each other: the look caught most often is the one shown, so a wrong first picture gives way by itself once the mob has been caught twice. If a picture is wrong, press **Not this mob** under it: it goes to `scans\mobs\not`, nothing that looks like it is kept again, and the next clear kill brings a new one.
 
 In a party, a shared mob gives a different amount each time (the EXP is split by damage), so those kills land under "Other gains", together with quest rewards. Hunting alone, the amounts settle to one per mob.
 
