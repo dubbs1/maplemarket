@@ -51,6 +51,7 @@ In a party, a shared mob gives a different amount each time (the EXP is split by
 - **Pause after**: how long without EXP before the clock stops (1 to 30 minutes).
 - **Save fight pictures**: only for tuning mob pictures. It stores the screenshots around each kill in `scans\fight` (30 kills at most) and turns itself off when the app next opens. Turn it on for one hunt, zip that folder and send it, if mob pictures come out wrong on your screen.
 - **Your data**: opens the `scans` folder (the run log, the day totals, the mob pictures).
+- **Save a screenshot**: puts a picture of your screen in that folder. When something is not being read (the mesos, the map, the level), press it while that thing is on screen and send the file.
 - **Map names and mesos**: whether the text reader is installed, with the install button.
 - **Updates**: see below.
 - **Look**: switches between the night and day colours.
@@ -70,6 +71,7 @@ When a new version is out, a card at the top of Home says **New version …**. C
 - **The numbers look wrong** (a huge jump, a level that isn't yours): press **Reset**. Readings that don't fit are dropped by themselves, but a bad run of them can take a moment to clear.
 - **The window is empty or white**: close it and open Sapline again. It needs Microsoft Edge (every Windows 10/11 PC has it).
 - **A wrong mob picture**: press **Not this mob** under it.
+- **Mesos stay —**: open the Item window and look at the Mesos tile on Home. "Not seen on screen yet" means the meso box was not found; "can't be read" means it was found but the number was not. Either way, press **Save a screenshot** in Settings while the window is open and send the file.
 
 ## 8. The zip version (without the installer)
 

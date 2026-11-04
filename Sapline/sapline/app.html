@@ -330,7 +330,9 @@ function drawExp(force) {
       tile("Gained this session", `+${fmt(x.gained)}`, `${x.lost ? fmt(x.lost) + " lost from dying" : "0 lost"} · ${x.levels ? x.levels + " level-up" + (x.levels > 1 ? "s" : "") : "no level-ups"} · ${mins(x.minutes)}`) +
       tile("Kills", fmt(x.kills_total || 0), x.kills_total && x.gained > 0 ? `${x.kills_per_hour != null ? fmt(x.kills_per_hour) + " an hour · " : ""}${fmt(x.gained / x.kills_total)} EXP a kill` : "counted from each rise of your EXP") +
       tile("Damage taken", fmt(x.taken || 0), x.hits ? `${x.hits} hits · biggest ${fmt(x.big)}` : x.hp ? `HP ${fmt(x.hp[0])} of ${fmt(x.hp[1])}` : "") +
-      tile("Mesos", x.mesos_gained != null ? (x.mesos_gained >= 0 ? "+" : "") + fmt(x.mesos_gained) : "—", x.mesos_per_hour != null ? fmt(x.mesos_per_hour) + " an hour" : !st.tesseract ? "needs the text reader (Settings)" : x.mesos == null ? "open the Item window now and then" : "") +
+      tile("Mesos", x.mesos_gained != null ? (x.mesos_gained >= 0 ? "+" : "") + fmt(x.mesos_gained) : "—", x.mesos_per_hour != null ? fmt(x.mesos_per_hour) + " an hour"
+        : !st.tesseract ? "needs the text reader (Settings)" : st.meso_seen === "unread" ? "the Item window is on screen but the amount can't be read: save a screenshot (Settings) and send it"
+        : x.mesos == null ? (st.meso_seen === "none" ? "open the Item window now and then (not seen on screen yet)" : "open the Item window now and then") : `${fmt(x.mesos)} on hand`) +
       `</div><div class="g3">` +
       `<section class="card s2" aria-label="EXP over time"><div class="row wrap"><b>${xr === "week" ? "EXP per day" : "EXP every 10 minutes"}</b>` +
         `${segBtns("xr", xr, [["session", "This session"], ["week", "Last 7 days"]])}</div><div class="row wrap">` +
@@ -521,6 +523,7 @@ function drawMore() {
     `<div class="opt"><span><b>Map names and mesos</b><span class="mu" id="tess"></span></span><button id="tessgo" class="pri" hidden>Install Tesseract</button></div>` +
     `<div class="opt"><span><b>Updates</b><span class="mu" id="updline"></span></span><button id="updcheck">Check now</button></div>` +
     `<div class="opt"><span><b>Your data</b><span class="mu">Runs, day totals and mob pictures, in the folder next to Sapline.</span></span><button id="oscans">Open folder</button></div>` +
+    `<div class="opt"><span><b>Save a screenshot</b><span class="mu">Puts a picture of your screen in that folder, to send when something is not being read (the mesos, the map, the level).</span></span><button id="oshot">Save now</button></div>` +
     `<div class="opt"><span><b>Look</b><span class="mu">Night or day colours.</span></span><button id="theme">${isDark() ? "Switch to day" : "Switch to night"}</button></div></section></div>` +
     `<p class="mu" style="margin:0;line-height:1.5"><b style="color:var(--tx)">Sapline only looks at your screen.</b> It never clicks, types, reads the game's memory or sends anything anywhere. ` +
     `Nexon has not said whether screen readers are allowed; on a private server, ask a GM first. Fan project, not affiliated with Nexon.</p>`;
@@ -530,6 +533,7 @@ function drawMore() {
   $("#oi").onchange = e => api("/api/set", { idle_min: +e.target.value }).then(done);
   $("#ofp").onchange = e => api("/api/set", { fight_pics: e.target.checked }).then(done);
   $("#oscans").onclick = () => api("/api/open-scans").then(r => r.ok || say(r.error || "Could not open the folder."));
+  $("#oshot").onclick = () => api("/api/screenshot").then(r => say(r.ok ? `Saved ${r.file} in the scans folder.` : r.error || "Could not save a screenshot."));
   $("#tessgo").onclick = () => api("/api/install-tesseract").then(r => say(r.ok ? "Installing Tesseract. Click Yes if Windows asks." : r.error || "Could not start the installer."));
   $("#updcheck").onclick = async () => {
     $("#updline").textContent = "Checking…";

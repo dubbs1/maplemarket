@@ -140,6 +140,9 @@ async def main():
                 await pg.click('#theme'); await pg.wait_for_timeout(200)
                 ok(f'A10 the Look button in Settings switches day and night (first {lt})', lt == 'light' and
                    await pg.evaluate("document.documentElement.dataset.theme") == 'dark')
+                await pg.click('#oshot'); await pg.wait_for_timeout(800)
+                shots = [f for f in os.listdir(os.path.join(work, 'scans')) if f.startswith('screen_') and f.endswith('.png')]
+                ok('A9f Save a screenshot puts the screen in the scans folder', len(shots) == 1 and 'Saved screen_' in await pg.inner_text('#live'))
                 await pg.screenshot(path=OUT + '_options.png')
                 await pg.click('[data-nav=exp]'); await pg.wait_for_timeout(800)
                 ht = await pg.inner_text('#app')
