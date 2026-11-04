@@ -18,8 +18,8 @@ class Events:
 
 class ExpRunner:
     """Records EXP: a screenshot once a second, the status bar's EXP line read from it (exp.py) and the party window
-    every other second (location.py); the map's name and the mesos (location.py, mesos.py: Tesseract, slow) on a
-    second thread from the newest screenshot; and the pictures around each kill kept for the mob pictures
+    every other second and the meso box spotted every second (location.py, mesos.py); the map's name and the meso
+    amount (Tesseract, slow) on a second thread; and the pictures around each kill kept for the mob pictures
     (mobpics.py). Runs on its own thread until stop()."""
     FRAMES = 5                                         # screenshots kept (the last few seconds) for the mob pictures
 
@@ -32,7 +32,7 @@ class ExpRunner:
         self.mobpics, self.fight = mobpics, fight     # mobpics.MobPics (a picture of each mob killed); fight() = save whole pictures?
         self.frames = deque(maxlen=self.FRAMES)       # (time, screenshot), newest last
         self.latest, self.party_t = None, 0           # the newest screenshot (for the slow reads' thread); the last party look
-        self.meso_seen = None                         # what the last meso look found (see look_mesos)
+        self.meso_seen, self.meso_shot = None, None   # what the last meso look found; a picture with the meso box, to be read
         self.pending = []                             # kills waiting for their "after" pictures: {'exp', 'before', 't', 'after'}
 
     def saw(self, img, now):
@@ -60,8 +60,8 @@ class ExpRunner:
                 done.append(p)
         self.pending = [p for p in self.pending if p not in done]
 
-    LOOK_PARTY, LOOK_MESOS, LOOK_MAP, LOOK_CONFIRM = 2, 5, 10, 3   # seconds between looks (the party window is cheap; the
-                                                                 # map and mesos need Tesseract: their own thread, see _looks)
+    LOOK_PARTY, LOOK_MESOS, LOOK_MAP, LOOK_CONFIRM = 2, 5, 10, 3   # seconds between looks (the party window and the meso box are
+                                                                 # spotted cheaply; reading them needs Tesseract: a thread, see _looks)
 
     def look(self, img):
         """The map's name (minimap title), the party (its window's HP bars) and the meso box, all at once."""
@@ -75,12 +75,22 @@ class ExpRunner:
         if n:
             self.tracker.set_party(n)
 
-    def look_mesos(self, img):
-        """The meso box, when the Item window is open (Tesseract). `meso_seen` keeps what the last look found:
-        'none' (no meso box on screen), 'unread' (the box, but not the number), 'read'."""
+    def spot_mesos(self, img):
+        """Every screenshot (cheap, ~50 ms): is the Item window's meso box on screen? If so that very picture goes
+        to the slow reads' thread to be read at once, so a window opened for a second or two is never missed.
+        `meso_seen` keeps what was found: 'none' (no meso box), 'unread' (the box, but not the number), 'read'."""
+        from .mesos import find_box
+        box = find_box(img)
+        if box:
+            self.meso_shot = (img, box)
+        elif self.meso_shot is None:
+            self.meso_seen = 'none'
+
+    def look_mesos(self, img, box=None):
+        """The meso box read (Tesseract): the amount goes to the tracker."""
         try:
             from .mesos import find_box, read_mesos
-            box = find_box(img)
+            box = box or find_box(img)
             if not box:
                 self.meso_seen = 'none'
                 return
@@ -114,19 +124,22 @@ class ExpRunner:
         return bool(self.seen_map)
 
     def _looks(self):
-        """The thread for the slow reads (Tesseract takes a second or two): the newest screenshot's meso box every
-        LOOK_MESOS s and map name every LOOK_MAP s (LOOK_CONFIRM s while a new name waits for its second read), so
-        the EXP line is never held up."""
+        """The thread for the slow reads (Tesseract takes a second or two): a meso box spotted by the screenshot
+        loop is read at once (and at most every LOOK_MESOS s while the window stays open); the newest screenshot's
+        map name every LOOK_MAP s (LOOK_CONFIRM s while a new name waits for its second read). The EXP line is never
+        held up."""
         next_mesos = next_map = 0
         while not self._stop.is_set():
             img, now = self.latest, time.time()
-            if img is None or (now < next_mesos and now < next_map):
+            shot = self.meso_shot if now >= next_mesos else None
+            if img is None or (shot is None and now < next_map):
                 time.sleep(0.25)
                 continue
             try:
-                if now >= next_mesos:
+                if shot is not None:
+                    self.meso_shot = None
                     next_mesos = now + self.LOOK_MESOS
-                    self.look_mesos(img)
+                    self.look_mesos(*shot)
                 if now >= next_map:
                     next_map = now + (self.LOOK_CONFIRM if self.look_map(img) else self.LOOK_MAP)
             except Exception:
@@ -171,6 +184,7 @@ class ExpRunner:
                     if reading and self.tracker.add(reading, now=now):
                         self.events.exp(self.tracker.summary())
                     self.saw(img, now)
+                    self.spot_mesos(img)
                     if now - self.party_t >= self.LOOK_PARTY:
                         self.party_t = now
                         self.look_party(img)

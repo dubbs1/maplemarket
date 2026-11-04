@@ -349,6 +349,17 @@ def mesos():
            for f in (0.8, 1.0, 1.3, 1.6) for flt in (Image.BILINEAR, Image.LANCZOS)]
     check(got == [1421566] * 8, f'kerning_inv.png at 0.8x to 1.6x: {set(got)}')
     check(read(inv) == (16709, 6.27, 39), f'and its EXP line, with the level tiles\' 9: {read(inv)}')
+    beach = load('beach_inv.png')                           # the owner's clip (2026-11-03, 0.6x): the Item window open for 3 s
+    check(M.read_mesos(beach) == 96869, f'beach_inv.png (the owner\'s screen, small): {M.read_mesos(beach)}')
+    from sapline import recorder as R
+    got = []
+    rr = R.ExpRunner(type('T', (), {'set_mesos': lambda self, m, now=None: got.append(m)})())
+    rr.spot_mesos(load('live_shop.png'))
+    check(rr.meso_shot is None and rr.meso_seen == 'none', 'no Item window on screen: nothing to read, "none"')
+    rr.spot_mesos(beach)
+    check(rr.meso_shot is not None and rr.meso_shot[0] is beach, 'the Item window spotted: that very picture waits for the reading thread')
+    rr.look_mesos(*rr.meso_shot)
+    check(got == [96869] and rr.meso_seen == 'read', 'and the reading thread reads it at once')
     others = [n for n in ('live_shop.png', 'desk_live.png', 'ch2.png', 'shopS.png', 'hunt_party.png', 'live_ch.png') if M.find_box(load(n))]
     check(not others, f'no meso box where the Item window isn\'t open (a shop sign\'s gold frame is not a coin) {others}')
     t = E.ExpTracker(on_run=lambda e: runs.append(e))
