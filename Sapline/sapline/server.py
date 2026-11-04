@@ -55,7 +55,7 @@ class _Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         try:
             d = json.loads(body.decode('utf-8') or '{}') if body else {}
-            act = {'/api/set': lambda: c.update(d), '/api/open-scans': c.open_scans,
+            act = {'/api/set': lambda: c.update(d), '/api/open-scans': c.open_scans, '/api/screenshot': c.screenshot,
                    '/api/install-tesseract': c.install_tesseract, '/api/update': c.install_update,
                    '/api/update-check': lambda: c.check_update(wait=True), '/api/exp-reset': c.exp_reset,
                    '/api/exp-log': lambda: c.exp_log_edit(d), '/api/mob-name': lambda: c.mob_name(d)}.get(path)

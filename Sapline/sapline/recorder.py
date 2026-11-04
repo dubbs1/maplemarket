@@ -32,6 +32,7 @@ class ExpRunner:
         self.mobpics, self.fight = mobpics, fight     # mobpics.MobPics (a picture of each mob killed); fight() = save whole pictures?
         self.frames = deque(maxlen=self.FRAMES)       # (time, screenshot), newest last
         self.latest, self.party_t = None, 0           # the newest screenshot (for the slow reads' thread); the last party look
+        self.meso_seen = None                         # what the last meso look found (see look_mesos)
         self.pending = []                             # kills waiting for their "after" pictures: {'exp', 'before', 't', 'after'}
 
     def saw(self, img, now):
@@ -75,14 +76,22 @@ class ExpRunner:
             self.tracker.set_party(n)
 
     def look_mesos(self, img):
-        """The meso box, when the Item window is open (Tesseract)."""
+        """The meso box, when the Item window is open (Tesseract). `meso_seen` keeps what the last look found:
+        'none' (no meso box on screen), 'unread' (the box, but not the number), 'read'."""
         try:
-            from .mesos import read_mesos
-            m = read_mesos(img)
-            if m is not None:
-                self.tracker.set_mesos(m)
+            from .mesos import find_box, read_mesos
+            box = find_box(img)
+            if not box:
+                self.meso_seen = 'none'
+                return
+            m = read_mesos(img, box)
+            if m is None:
+                self.meso_seen = 'unread'
+                return
+            self.meso_seen = 'read'
+            self.tracker.set_mesos(m)
         except Exception:
-            pass
+            self.meso_seen = 'unread'
 
     def look_map(self, img):
         """The map's name (Tesseract): a new name counts once read the same twice. True when a name is waiting

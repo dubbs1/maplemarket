@@ -189,7 +189,7 @@ class Controller:
             settings = dict(self.settings)
             return dict(version=__version__, engine=self.engine, tesseract=self.tesseract, update=self.update_info,
                         settings=settings, exp=self._with_pics(self.exp.summary()), exp_days=self.exp_days.last(7), exp_log=self.exp_log.list(),
-                        exp_on=bool(r), exp_found=bool(r and r.found), exp_unread=r.watcher.unread if r else 0,
+                        exp_on=bool(r), exp_found=bool(r and r.found), exp_unread=r.watcher.unread if r else 0, meso_seen=r.meso_seen if r else None,
                         seq=self.seq, events=[e for e in self.events if e['seq'] > since])
 
     # --- EXP: Start/Stop (the `exp` setting) ---
@@ -293,6 +293,29 @@ class Controller:
         if sys.platform == 'win32':
             os.startfile(path)
         return {'ok': True, 'path': path}
+
+    def screenshot(self):
+        """Settings: save the main screen as scans/screen_<time>.png, for a report (the recorder's newest picture
+        while recording, a fresh one otherwise)."""
+        path = os.path.join(APP_DIR, 'scans')
+        os.makedirs(path, exist_ok=True)
+        r = self.exp_runner
+        img = r.latest if r else None
+        if img is None:
+            try:
+                import mss
+                from PIL import Image
+                with (getattr(mss, 'MSS', None) or mss.mss)() as sct:
+                    shot = sct.grab(sct.monitors[min(1, len(sct.monitors) - 1)])
+                    img = Image.frombytes('RGB', shot.size, shot.bgra, 'raw', 'BGRX')
+            except Exception as e:
+                return {'ok': False, 'error': f'Could not take a screenshot: {type(e).__name__}.'}
+        name = time.strftime('screen_%Y%m%d_%H%M%S.png')
+        try:
+            img.save(os.path.join(path, name), 'PNG')
+        except OSError as e:
+            return {'ok': False, 'error': f'Could not save it: {e}'}
+        return {'ok': True, 'file': name}
 
     def install_tesseract(self):
         if sys.platform != 'win32':
