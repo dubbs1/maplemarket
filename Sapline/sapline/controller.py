@@ -75,6 +75,7 @@ class Controller:
         s.setdefault('autostart', False)             # start recording as soon as the app opens (off: press Start)
         s.setdefault('exp_log', True)                # keep the run log (the Runs tab's "Log my runs" switch)
         s.setdefault('idle_min', EXP_IDLE // 60)     # minutes without EXP before the clock pauses
+        s.setdefault('capture', 'auto')              # screenshots: 'auto' (fast when it works) or 'standard'
         s['fight_pics'] = False                      # save whole screenshots around each kill (for tuning): off at every start
         return s
 
@@ -190,6 +191,7 @@ class Controller:
             return dict(version=__version__, engine=self.engine, tesseract=self.tesseract, update=self.update_info,
                         settings=settings, exp=self._with_pics(self.exp.summary()), exp_days=self.exp_days.last(7), exp_log=self.exp_log.list(),
                         exp_on=bool(r), exp_found=bool(r and r.found), exp_unread=r.watcher.unread if r else 0, meso_seen=r.meso_seen if r else None,
+                        capture=r.screen.state() if r else None,
                         seq=self.seq, events=[e for e in self.events if e['seq'] > since])
 
     # --- EXP: Start/Stop (the `exp` setting) ---
@@ -207,7 +209,7 @@ class Controller:
             if self.exp_runner:
                 return {'ok': True}
             r = self.exp_runner = ExpRunner(self.exp, events=_Feed(self), mobpics=self.mobpics,
-                                            fight=lambda: bool(self.settings.get('fight_pics')))
+                                            fight=lambda: bool(self.settings.get('fight_pics')), capture=self.settings.get('capture', 'auto'))
             self.exp.resume()                            # (the time it was stopped doesn't count)
 
         def run():
@@ -270,9 +272,11 @@ class Controller:
     def update(self, d):
         """From the window: the settings autostart, exp_log, idle_min, fight_pics; and exp = record now or stop
         (not a setting: whether to record is asked each time the app opens)."""
-        for k, conv in (('autostart', bool), ('exp_log', bool), ('idle_min', int), ('fight_pics', bool)):
+        for k, conv in (('autostart', bool), ('exp_log', bool), ('idle_min', int), ('fight_pics', bool), ('capture', str)):
             if k in d:
                 self.settings[k] = conv(d[k])
+        if 'capture' in d and self.settings['capture'] not in ('auto', 'standard'):
+            self.settings['capture'] = 'auto'
         if 'idle_min' in d:
             if not 1 <= self.settings['idle_min'] <= 30:
                 self.settings['idle_min'] = min(30, max(1, self.settings['idle_min']))
@@ -302,14 +306,14 @@ class Controller:
         r = self.exp_runner
         img = r.latest if r else None
         if img is None:
+            from .capture import Screen
+            screen = Screen(prefer=self.settings.get('capture', 'auto'))
             try:
-                import mss
-                from PIL import Image
-                with (getattr(mss, 'MSS', None) or mss.mss)() as sct:
-                    shot = sct.grab(sct.monitors[min(1, len(sct.monitors) - 1)])
-                    img = Image.frombytes('RGB', shot.size, shot.bgra, 'raw', 'BGRX')
+                img = screen.grab()
             except Exception as e:
                 return {'ok': False, 'error': f'Could not take a screenshot: {type(e).__name__}.'}
+            finally:
+                screen.close()
         name = time.strftime('screen_%Y%m%d_%H%M%S.png')
         try:
             img.save(os.path.join(path, name), 'PNG')

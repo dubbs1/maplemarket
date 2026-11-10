@@ -181,6 +181,15 @@ def self_check(result_path):
         with urllib.request.urlopen(url, timeout=10) as r:
             page = r.read().decode('utf-8', 'replace')
         from .exp_font import GLYPHS
+        from .capture import Screen
+        screen = Screen()
+        try:
+            shot = screen.grab()
+            lines.append(f'screen capture: {screen.how} {shot.size} {screen.why}'.strip())
+        except Exception as e:
+            lines.append(f'screen capture: none ({type(e).__name__}: {e}) {screen.why}')
+        finally:
+            screen.close()
         lines += [f"version {state['version']}", f"text reader: {state['engine']}", f'page: {len(page)} characters',
                   f"EXP digit shapes: {''.join(sorted(GLYPHS.get('small', {})))}"]
         good = (bool(state['version']) and WINDOW_TITLE in page and 'exp' in state and len(GLYPHS.get('small', {})) >= 10 and

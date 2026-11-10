@@ -16,6 +16,10 @@ run "reader: EXP tracker" bash -c 'cd Sapline && python3 tests/test_exp.py'
 run "reader: mob pictures" bash -c 'cd Sapline && python3 tests/test_mobpics.py'
 run "reader: app server" bash -c 'cd Sapline && python3 tests/test_server.py'
 run "reader: updates"    bash -c 'cd Sapline && python3 tests/test_update.py'
+run "reader: screen capture" bash -c 'cd Sapline && python3 tests/test_capture.py'
+if command -v node >/dev/null 2>&1; then
+  run "page: script syntax" bash -c 'python3 -c "import re,sys; s=open(\"Sapline/sapline/app.html\").read(); open(\"/tmp/sapline_app_check.js\",\"w\").write(chr(10).join(re.findall(r\"<script>(.*?)</script>\", s, re.S)))" && node --check /tmp/sapline_app_check.js'
+fi
 if [[ $QUICK == 0 ]]; then
   if python3 -c 'import playwright' 2>/dev/null; then
     run "browser: app_e2e" python3 dev-tests/e2e/app_e2e.py

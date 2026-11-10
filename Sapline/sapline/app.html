@@ -518,6 +518,8 @@ function drawMore() {
     `<div class="opt"><label for="oi"><b>Pause after</b><span class="mu">Minutes without EXP before the clock stops, so a break does not drag your EXP per hour down.</span></label>` +
     `<select id="oi">${pauses.map(n => `<option value="${n}"${idle === n ? " selected" : ""}>${n} min</option>`).join("")}</select></div>` +
     sw("ofp", "Save fight pictures", "Only for fixing wrong mob pictures: keeps the screenshots around each kill. Off again at the next start.", !!se.fight_pics) +
+    `<div class="opt"><label for="ocap"><b>Screen capture</b><span class="mu" id="capline"></span></label>` +
+    `<select id="ocap"><option value="auto"${se.capture !== "standard" ? " selected" : ""}>Fast when possible</option><option value="standard"${se.capture === "standard" ? " selected" : ""}>Standard</option></select></div>` +
     `</section>` +
     `<section class="card" aria-label="App"><h2>App</h2>` +
     `<div class="opt"><span><b>Map names and mesos</b><span class="mu" id="tess"></span></span><button id="tessgo" class="pri" hidden>Install Tesseract</button></div>` +
@@ -532,6 +534,7 @@ function drawMore() {
   $("#ol").onchange = e => api("/api/set", { exp_log: e.target.checked }).then(done);
   $("#oi").onchange = e => api("/api/set", { idle_min: +e.target.value }).then(done);
   $("#ofp").onchange = e => api("/api/set", { fight_pics: e.target.checked }).then(done);
+  $("#ocap").onchange = e => api("/api/set", { capture: e.target.value }).then(r => (r.ok ? say("Saved. It is used from the next Start recording.") : done(r)));
   $("#oscans").onclick = () => api("/api/open-scans").then(r => r.ok || say(r.error || "Could not open the folder."));
   $("#oshot").onclick = () => api("/api/screenshot").then(r => say(r.ok ? `Saved ${r.file} in the scans folder.` : r.error || "Could not save a screenshot."));
   $("#tessgo").onclick = () => api("/api/install-tesseract").then(r => say(r.ok ? "Installing Tesseract. Click Yes if Windows asks." : r.error || "Could not start the installer."));
@@ -543,9 +546,18 @@ function drawMore() {
   $("#theme").onclick = () => setTheme(!isDark());
   updOpts(st);
 }
+// What the screen capture is doing, for the Settings row (capture.py: fast = Desktop Duplication, standard = a plain copy)
+function capLine(st) {
+  const c = st.capture, se = st.settings || {};
+  if (!st.exp_on || !c || !c.how) return se.capture === "standard" ? "A plain copy of the screen about once a second." : "Fast capture (the picture the graphics card already has) when it works, a plain copy otherwise. Checked when recording starts.";
+  return c.how === "fast" ? "Recording with fast capture." : `Recording with standard capture. ${c.why || ""}`;
+}
 function updOpts(st) {
   const line = $("#updline");
   if (!line) return;
+  const cap = $("#capline");
+  if (cap) cap.textContent = capLine(st);
+  if ($("#ocap") && (document.activeElement || {}).id !== "ocap") $("#ocap").value = (st.settings || {}).capture === "standard" ? "standard" : "auto";
   const u = st.update || {}, v = st.version ? `You have ${st.version}.` : "";
   line.textContent = v + " " + ({
     none: "That is the newest.", available: `${u.version} is ready: see Home.`, downloading: "Downloading the new version…", installing: "Installing…",

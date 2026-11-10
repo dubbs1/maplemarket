@@ -140,6 +140,11 @@ async def main():
                 await pg.click('#theme'); await pg.wait_for_timeout(200)
                 ok(f'A10 the Look button in Settings switches day and night (first {lt})', lt == 'light' and
                    await pg.evaluate("document.documentElement.dataset.theme") == 'dark')
+                ok('A9g the Screen capture row: a choice and a sentence saying what is in use', await pg.locator('#ocap').count() == 1
+                   and await pg.input_value('#ocap') == 'auto' and 'standard capture' in (await pg.inner_text('#capline')).lower())
+                await pg.select_option('#ocap', 'standard'); await pg.wait_for_timeout(600)
+                ok('A9h choosing Standard is saved and said', ctl.settings.get('capture') == 'standard' and 'next Start' in await pg.inner_text('#live'))
+                await pg.select_option('#ocap', 'auto'); await pg.wait_for_timeout(400)
                 await pg.click('#oshot'); await pg.wait_for_timeout(800)
                 shots = [f for f in os.listdir(os.path.join(work, 'scans')) if f.startswith('screen_') and f.endswith('.png')]
                 ok('A9f Save a screenshot puts the screen in the scans folder', len(shots) == 1 and 'Saved screen_' in await pg.inner_text('#live'))
