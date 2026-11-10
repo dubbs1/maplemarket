@@ -49,15 +49,16 @@ class Screen:
         return self
 
     def _open_fast(self):
-        """Try DXcam, on a helper thread with a time limit (a graphics call that never answers must not hang the
-        app); the reason it can't be used, or '' when it can."""
-        try:
-            import dxcam
-        except Exception as e:
-            return f'The fast capture library is not installed ({type(e).__name__}).'
+        """Try DXcam, import included, on a helper thread with a time limit (a graphics call that never answers
+        must not hang the app); the reason it can't be used, or '' when it can."""
         out = {}
 
         def start():
+            try:
+                import dxcam                            # (its import already asks the graphics card about the screens)
+            except Exception as e:
+                out['why'] = f'The fast capture library is not installed ({type(e).__name__}).'
+                return
             try:
                 cam = dxcam.create(output_color='BGRA', processor_backend='numpy')
                 frame = cam.grab(new_frame_only=False)
@@ -110,7 +111,7 @@ class Screen:
             self.fails += 1
             return None
         h, w = frame.shape[0], frame.shape[1]
-        if not frame.any():
+        if not frame[:, :, :3].any():                   # (the colour channels: the alpha one is 255 even on a black screen)
             self.blacks += 1
             return None
         self.fails = self.blacks = 0

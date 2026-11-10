@@ -39,6 +39,7 @@ class Controller:
     def __init__(self):
         self.lock = threading.Lock()
         self._start_lock = threading.Lock()
+        self._last_thread = None                     # the latest recorder thread (joined before the next starts)
         self._settings_lock = threading.Lock()
         self.settings = self._load()
         self.tesseract = find_tesseract()
@@ -208,6 +209,9 @@ class Controller:
         with self._start_lock:
             if self.exp_runner:
                 return {'ok': True}
+            old = self._last_thread                      # a recorder just stopped: let it close its screen capture first
+            if old is not None and old.is_alive():       # (the fast capture is one camera per screen: a late close would
+                old.join(5)                              # take it from under the new recorder)
             r = self.exp_runner = ExpRunner(self.exp, events=_Feed(self), mobpics=self.mobpics,
                                             fight=lambda: bool(self.settings.get('fight_pics')), capture=self.settings.get('capture', 'auto'))
             self.exp.resume()                            # (the time it was stopped doesn't count)
@@ -220,7 +224,8 @@ class Controller:
             finally:
                 if self.exp_runner is r:
                     self.exp_runner = None
-        threading.Thread(target=run, daemon=True, name='exp').start()
+        self._last_thread = threading.Thread(target=run, daemon=True, name='exp')
+        self._last_thread.start()
         return {'ok': True}
 
     def exp_stop(self):
@@ -305,8 +310,18 @@ class Controller:
         os.makedirs(path, exist_ok=True)
         r = self.exp_runner
         img = r.latest if r else None
-        if img is None:
+        for _ in range(30):                              # recording just started: its first picture is a second away
+            if img is not None or self.exp_runner is None:
+                break
+            time.sleep(0.1)
+            img = self.exp_runner.latest if self.exp_runner else None
+        if img is None and self.exp_runner is not None:
+            return {'ok': False, 'error': 'Recording is just starting: try again in a moment.'}
+        if img is None:                                  # (never a second camera beside the recorder's: it is one per screen)
             from .capture import Screen
+            old = self._last_thread
+            if old is not None and old.is_alive():
+                old.join(5)
             screen = Screen(prefer=self.settings.get('capture', 'auto'))
             try:
                 img = screen.grab()

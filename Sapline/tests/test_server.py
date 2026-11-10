@@ -83,6 +83,28 @@ def main():
     except urllib.error.HTTPError as e:
         ok('an unknown button is 404', e.code == 404)
     ok('reset', post(url + 'api/exp-reset', {})['ok'])
+    # Stop then Start at once: the old recorder's screen capture is closed before the new one opens (one camera per screen)
+    import types, time, threading
+    class Shot:
+        def __init__(s, w, h): s.size, s.bgra = (w, h), bytes((9, 9, 9, 255)) * (w * h)
+    opened, closed = [], []
+    class Sct:
+        monitors = [{}, {}]
+        def __init__(s): opened.append(s)
+        def grab(s, mon): time.sleep(0.05); return Shot(64, 32)
+        def close(s): closed.append(s)
+    sys.modules['mss'] = types.SimpleNamespace(MSS=lambda: Sct())
+    ctl.settings['capture'] = 'standard'
+    ctl.exp_start(); first = ctl._last_thread; time.sleep(0.3)
+    ctl.exp_stop(); ctl.exp_start(); second = ctl._last_thread
+    ok('Stop then Start: the first recorder had closed its capture before the second opened', first is not second and not first.is_alive()
+       and len(closed) >= 1 and closed[0] is opened[0] and len(opened) == 2)
+    r = ctl.screenshot()
+    ok('Save a screenshot right after Start waits for the first picture instead of opening a second camera', r['ok'] and len(opened) == 2
+       and os.path.exists(os.path.join(ctl.mobpics.folder, '..', r['file'])))
+    ctl.exp_stop(); time.sleep(0.3)
+    r = ctl.screenshot()
+    ok('not recording: a screenshot opens its own capture and closes it', r['ok'] and len(opened) == 3 and closed[-1] is opened[-1])
     srv.stop()
     ctl.shutdown()
     print('SERVER CHECK PASSED' if not fails else 'SERVER CHECK FAILED')

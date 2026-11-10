@@ -16,13 +16,17 @@ def check(ok, what):
 
 
 class Frame:
-    """A pretend numpy frame: BGRA bytes, shape (h, w, 4)."""
+    """A pretend numpy frame: BGRA bytes, shape (h, w, 4); [:, :, :3] gives the colour channels."""
     def __init__(self, w, h, bgra=(10, 20, 30, 255)):
         self.shape = (h, w, 4)
         self._b = bytes(bgra) * (w * h)
+        self._rgb = bytes(bgra[:3]) * (w * h)
 
     def tobytes(self):
         return self._b
+
+    def __getitem__(self, key):
+        return types.SimpleNamespace(any=lambda: any(self._rgb))
 
     def any(self):
         return any(self._b)
@@ -155,7 +159,7 @@ def main():
         check(got == ['miss', 'miss', (12, 6), (12, 6)] and s.how == 'standard' and cam4.released and 'stopped giving pictures' in s.why,
               f'three failed fast grabs in a row: the standard way takes over and the recording goes on ({got})')
 
-        cam5 = Cam([Frame(16, 8)] + [Frame(16, 8, (0, 0, 0, 0))] * 10)
+        cam5 = Cam([Frame(16, 8)] + [Frame(16, 8, (0, 0, 0, 255))] * 10)      # (black on screen: the alpha channel is still 255)
         sizes = []
         with libs(fake_dxcam(cam5), mss):
             s = C.Screen().open()
