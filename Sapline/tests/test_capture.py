@@ -76,13 +76,11 @@ def fake_dxcam(cam_or_error):
 
 @contextlib.contextmanager
 def libs(dxcam, mss):
-    """The pretend libraries in place of the real ones for a while (None = not installed)."""
+    """The pretend libraries in place of the real ones for a while (None = not installed: Python raises
+    ImportError for a None in sys.modules, even when the real package is on disk)."""
     saved = {k: sys.modules.get(k) for k in ('dxcam', 'mss')}
     for k, v in (('dxcam', dxcam), ('mss', mss)):
-        if v is None:
-            sys.modules.pop(k, None)
-        else:
-            sys.modules[k] = v
+        sys.modules[k] = v
     try:
         yield
     finally:
