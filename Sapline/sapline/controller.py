@@ -39,6 +39,7 @@ class Controller:
     def __init__(self):
         self.lock = threading.Lock()
         self._start_lock = threading.Lock()
+        self._last_thread = None                     # the latest recorder thread (joined before the next starts)
         self._settings_lock = threading.Lock()
         self.settings = self._load()
         self.tesseract = find_tesseract()
@@ -75,6 +76,7 @@ class Controller:
         s.setdefault('autostart', False)             # start recording as soon as the app opens (off: press Start)
         s.setdefault('exp_log', True)                # keep the run log (the Runs tab's "Log my runs" switch)
         s.setdefault('idle_min', EXP_IDLE // 60)     # minutes without EXP before the clock pauses
+        s.setdefault('capture', 'auto')              # screenshots: 'auto' (fast when it works) or 'standard'
         s['fight_pics'] = False                      # save whole screenshots around each kill (for tuning): off at every start
         return s
 
@@ -190,6 +192,7 @@ class Controller:
             return dict(version=__version__, engine=self.engine, tesseract=self.tesseract, update=self.update_info,
                         settings=settings, exp=self._with_pics(self.exp.summary()), exp_days=self.exp_days.last(7), exp_log=self.exp_log.list(),
                         exp_on=bool(r), exp_found=bool(r and r.found), exp_unread=r.watcher.unread if r else 0, meso_seen=r.meso_seen if r else None,
+                        capture=r.screen.state() if r else None,
                         seq=self.seq, events=[e for e in self.events if e['seq'] > since])
 
     # --- EXP: Start/Stop (the `exp` setting) ---
@@ -206,8 +209,11 @@ class Controller:
         with self._start_lock:
             if self.exp_runner:
                 return {'ok': True}
+            old = self._last_thread                      # a recorder just stopped: let it close its screen capture first
+            if old is not None and old.is_alive():       # (the fast capture is one camera per screen: a late close would
+                old.join(5)                              # take it from under the new recorder)
             r = self.exp_runner = ExpRunner(self.exp, events=_Feed(self), mobpics=self.mobpics,
-                                            fight=lambda: bool(self.settings.get('fight_pics')))
+                                            fight=lambda: bool(self.settings.get('fight_pics')), capture=self.settings.get('capture', 'auto'))
             self.exp.resume()                            # (the time it was stopped doesn't count)
 
         def run():
@@ -218,7 +224,8 @@ class Controller:
             finally:
                 if self.exp_runner is r:
                     self.exp_runner = None
-        threading.Thread(target=run, daemon=True, name='exp').start()
+        self._last_thread = threading.Thread(target=run, daemon=True, name='exp')
+        self._last_thread.start()
         return {'ok': True}
 
     def exp_stop(self):
@@ -270,9 +277,11 @@ class Controller:
     def update(self, d):
         """From the window: the settings autostart, exp_log, idle_min, fight_pics; and exp = record now or stop
         (not a setting: whether to record is asked each time the app opens)."""
-        for k, conv in (('autostart', bool), ('exp_log', bool), ('idle_min', int), ('fight_pics', bool)):
+        for k, conv in (('autostart', bool), ('exp_log', bool), ('idle_min', int), ('fight_pics', bool), ('capture', str)):
             if k in d:
                 self.settings[k] = conv(d[k])
+        if 'capture' in d and self.settings['capture'] not in ('auto', 'standard'):
+            self.settings['capture'] = 'auto'
         if 'idle_min' in d:
             if not 1 <= self.settings['idle_min'] <= 30:
                 self.settings['idle_min'] = min(30, max(1, self.settings['idle_min']))
@@ -301,15 +310,25 @@ class Controller:
         os.makedirs(path, exist_ok=True)
         r = self.exp_runner
         img = r.latest if r else None
-        if img is None:
+        for _ in range(30):                              # recording just started: its first picture is a second away
+            if img is not None or self.exp_runner is None:
+                break
+            time.sleep(0.1)
+            img = self.exp_runner.latest if self.exp_runner else None
+        if img is None and self.exp_runner is not None:
+            return {'ok': False, 'error': 'Recording is just starting: try again in a moment.'}
+        if img is None:                                  # (never a second camera beside the recorder's: it is one per screen)
+            from .capture import Screen
+            old = self._last_thread
+            if old is not None and old.is_alive():
+                old.join(5)
+            screen = Screen(prefer=self.settings.get('capture', 'auto'))
             try:
-                import mss
-                from PIL import Image
-                with (getattr(mss, 'MSS', None) or mss.mss)() as sct:
-                    shot = sct.grab(sct.monitors[min(1, len(sct.monitors) - 1)])
-                    img = Image.frombytes('RGB', shot.size, shot.bgra, 'raw', 'BGRX')
+                img = screen.grab()
             except Exception as e:
                 return {'ok': False, 'error': f'Could not take a screenshot: {type(e).__name__}.'}
+            finally:
+                screen.close()
         name = time.strftime('screen_%Y%m%d_%H%M%S.png')
         try:
             img.save(os.path.join(path, name), 'PNG')

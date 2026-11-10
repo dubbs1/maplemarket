@@ -19,6 +19,12 @@ def build(dist):
            '--icon', os.path.join(HERE, 'sapline', 'icon.ico'), '--workpath', work, '--distpath', dist, '--specpath', work]
     for src, dst in DATA:
         cmd += ['--add-data', os.path.join(HERE, src) + sep + dst]
+    try:
+        import importlib
+        importlib.import_module('dxcam')   # fast screen capture, Windows only; its parts are loaded by name at run time
+        cmd += ['--collect-submodules', 'dxcam', '--collect-binaries', 'dxcam', '--collect-submodules', 'comtypes']
+    except ImportError:
+        pass
     subprocess.run(cmd + [os.path.join(HERE, 'app.py')], check=True)
     return os.path.join(dist, 'Sapline')
 

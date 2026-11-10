@@ -3,7 +3,7 @@ import difflib
 import threading
 import time
 from collections import deque
-from PIL import Image
+from .capture import Screen
 from .exp import ExpWatcher
 
 
@@ -17,14 +17,15 @@ class Events:
 
 
 class ExpRunner:
-    """Records EXP: a screenshot once a second, the status bar's EXP line read from it (exp.py) and the party window
+    """Records EXP: a screenshot once a second (capture.py), the status bar's EXP line read from it (exp.py) and the party window
     every other second and the meso box spotted every second (location.py, mesos.py); the map's name and the meso
     amount (Tesseract, slow) on a second thread; and the pictures around each kill kept for the mob pictures
     (mobpics.py). Runs on its own thread until stop()."""
     FRAMES = 5                                         # screenshots kept (the last few seconds) for the mob pictures
 
-    def __init__(self, tracker, monitor=1, events=None, every=1.0, mobpics=None, fight=None):
+    def __init__(self, tracker, monitor=1, events=None, every=1.0, mobpics=None, fight=None, capture='auto'):
         self.tracker, self.monitor, self.every = tracker, monitor, every
+        self.screen = Screen(prefer=capture, monitor=monitor)   # the screenshots (capture.py: fast when it works, standard otherwise)
         self.events = events or Events()
         self.watcher = ExpWatcher()
         self._stop = threading.Event()
@@ -154,30 +155,23 @@ class ExpRunner:
         self._stop.set()
 
     def run(self):
-        import mss
-        sct, fails, pause, spent = None, 0, 0, 0
+        fails, pause, spent = 0, 0, 0
+        self.screen.open()
         threading.Thread(target=self._looks, daemon=True, name='look').start()
         try:
             while not self._stop.is_set():
                 time.sleep(max(0, self.every - spent))   # (the work of the last round counts: one reading a second)
                 t0 = time.time()
                 try:
-                    if sct is None:
-                        sct = (getattr(mss, 'MSS', None) or mss.mss)()
-                        mon = sct.monitors[min(self.monitor, len(sct.monitors) - 1)]
-                    shot = sct.grab(mon)
+                    img = self.screen.grab()
                     fails = 0
                 except Exception:
                     fails += 1                        # (PC locked, a Windows Yes/No prompt): try again shortly
-                    if fails % 5 == 0 and sct is not None:
-                        getattr(sct, 'close', lambda: None)()
-                        sct = None
-                    time.sleep(2)
+                    time.sleep(2 if fails % 5 == 0 else 0.5)
                     continue
                 if time.time() < pause:
                     continue
                 try:
-                    img = Image.frombytes('RGB', shot.size, shot.bgra, 'raw', 'BGRX')
                     self.latest = img
                     reading = self.watcher.update(img)
                     now = time.time()
@@ -192,5 +186,4 @@ class ExpRunner:
                     pause = time.time() + 30          # a reading that went wrong: never stop for good
                 spent = time.time() - t0
         finally:
-            if sct is not None:
-                getattr(sct, 'close', lambda: None)()
+            self.screen.close()

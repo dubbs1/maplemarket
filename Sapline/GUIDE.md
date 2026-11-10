@@ -49,6 +49,7 @@ In a party, a shared mob gives a different amount each time (the EXP is split by
 - **Start when Sapline opens**: off to begin with. On, Sapline records as soon as it opens.
 - **Log my runs**: keep the Runs page's log (also a switch at the top of Runs).
 - **Pause after**: how long without EXP before the clock stops (1 to 30 minutes).
+- **Screen capture**: how Sapline takes its screenshots. **Fast when possible** uses the picture your graphics card already has (a few milliseconds a grab, and it works when the game is full screen); if that is not available or stops working, Sapline switches to the standard way by itself and the sentence under the setting says why. **Standard** is a plain copy of the screen, the way older versions worked. A change is used from the next Start recording.
 - **Save fight pictures**: only for tuning mob pictures. It stores the screenshots around each kill in `scans\fight` (30 kills at most) and turns itself off when the app next opens. Turn it on for one hunt, zip that folder and send it, if mob pictures come out wrong on your screen.
 - **Your data**: opens the `scans` folder (the run log, the day totals, the mob pictures).
 - **Save a screenshot**: puts a picture of your screen in that folder. When something is not being read (the mesos, the map, the level), press it while that thing is on screen and send the file.

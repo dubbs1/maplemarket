@@ -3,3 +3,7 @@
 mss==10.2.0
 pillow==13.0.0
 pytesseract==0.3.13
+# fast screen capture (Desktop Duplication), Windows only; the app falls back to mss without it
+dxcam==0.3.0; sys_platform == 'win32'
+numpy==2.5.4; sys_platform == 'win32'
+comtypes==1.5.0; sys_platform == 'win32'
