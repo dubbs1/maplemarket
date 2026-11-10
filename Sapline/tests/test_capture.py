@@ -132,6 +132,19 @@ def main():
             s = C.Screen(prefer='standard').open()
         check(s.how == 'standard' and 'chosen in Settings' in s.why, 'the setting can force the standard way')
 
+        class Hung(Cam):
+            def grab(self, new_frame_only=True):
+                import time as _t
+                _t.sleep(3)
+                return Frame(16, 8)
+        C.START_WAIT = 0.3
+        try:
+            with libs(fake_dxcam(Hung([])), mss):
+                s = C.Screen().open()
+        finally:
+            C.START_WAIT = 8
+        check(s.how == 'standard' and 'did not start within' in s.why, f'the fast way taking too long to start: standard, not a hang ({s.why})')
+
         cam4 = Cam([Frame(16, 8), RuntimeError('DXGI_ERROR_ACCESS_LOST'), None, RuntimeError('x')])
         got = []
         with libs(fake_dxcam(cam4), mss):

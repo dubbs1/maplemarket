@@ -75,7 +75,7 @@ jobs:
         working-directory: Sapline
         run: |
           $ErrorActionPreference = "Stop"; $PSNativeCommandUseErrorActionPreference = $true
-          python -c "from sapline.capture import Screen; s = Screen().open(); im = s.grab(); print('capture:', s.how, im.size, s.why); s.close(); assert im.size[0] > 100"
+          python -c "import threading, os, sys; threading.Timer(120, lambda: (print('capture: hung'), os._exit(3))).start(); from sapline.capture import Screen; s = Screen().open(); im = s.grab(); print('capture:', s.how, im.size, s.why); s.close(); assert im.size[0] > 100; os._exit(0)"
       - name: Version
         id: ver
         run: |

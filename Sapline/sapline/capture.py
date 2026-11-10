@@ -11,12 +11,14 @@ switches to the standard way by itself and carries on; `how` says which is in us
 else: nothing is sent anywhere.
 """
 import sys
+import threading
 import time
 from PIL import Image
 
 FAILS = 3                      # fast grabs in a row that went wrong before the standard way takes over
 BLACKS = 5                     # all-black fast pictures in a row (the game took the screen): the standard way takes over
 WAIT = 0.05                    # seconds to wait for a first picture from the fast way
+START_WAIT = 8                 # seconds the fast way gets to start before the standard way is used instead
 PLATFORM = sys.platform        # (the checks pretend to be on Windows)
 
 
@@ -47,24 +49,35 @@ class Screen:
         return self
 
     def _open_fast(self):
-        """Try DXcam; the reason it can't be used, or '' when it can."""
+        """Try DXcam, on a helper thread with a time limit (a graphics call that never answers must not hang the
+        app); the reason it can't be used, or '' when it can."""
         try:
             import dxcam
         except Exception as e:
             return f'The fast capture library is not installed ({type(e).__name__}).'
-        try:
-            cam = dxcam.create(output_color='BGRA', processor_backend='numpy')
-            frame = cam.grab(new_frame_only=False)
-            if frame is None:
-                time.sleep(WAIT)
+        out = {}
+
+        def start():
+            try:
+                cam = dxcam.create(output_color='BGRA', processor_backend='numpy')
                 frame = cam.grab(new_frame_only=False)
-            if frame is None:
-                cam.release()
-                return 'Fast capture gave no picture of the screen.'
-            self._cam = cam
-            return ''
-        except Exception as e:
-            return f'Fast capture could not start: {type(e).__name__}: {str(e)[:80]}'
+                if frame is None:
+                    time.sleep(WAIT)
+                    frame = cam.grab(new_frame_only=False)
+                if frame is None:
+                    cam.release()
+                    out['why'] = 'Fast capture gave no picture of the screen.'
+                else:
+                    out['cam'] = cam
+            except Exception as e:
+                out['why'] = f'Fast capture could not start: {type(e).__name__}: {str(e)[:80]}'
+        t = threading.Thread(target=start, daemon=True, name='capture-start')
+        t.start()
+        t.join(START_WAIT)
+        if t.is_alive():
+            return f'Fast capture did not start within {START_WAIT:g} seconds.'
+        self._cam = out.get('cam')
+        return out.get('why', '')
 
     def _open_standard(self):
         import mss

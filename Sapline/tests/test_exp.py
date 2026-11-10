@@ -432,7 +432,7 @@ def loop():
     old = os.getcwd()
     os.chdir(work)
     try:
-        sc = recorder.ExpRunner(t, events=Ev(), every=0)
+        sc = recorder.ExpRunner(t, events=Ev(), every=0, capture='standard')   # (the pretend screen is an mss: no fast capture here)
         sc.run()
     finally:
         os.chdir(old)
