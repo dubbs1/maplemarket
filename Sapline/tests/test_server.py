@@ -84,7 +84,7 @@ def main():
         ok('an unknown button is 404', e.code == 404)
     ok('reset', post(url + 'api/exp-reset', {})['ok'])
     # Stop then Start at once: the old recorder's screen capture is closed before the new one opens (one camera per screen)
-    import types, time, threading
+    import types, time
     class Shot:
         def __init__(s, w, h): s.size, s.bgra = (w, h), bytes((9, 9, 9, 255)) * (w * h)
     opened, closed = [], []
