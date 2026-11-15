@@ -101,6 +101,10 @@ def main():
     ok('the state has the all-time mobs, summed over the runs, most killed first, amounts seen twice or more',
        st['mobs_all'] == [{'exp': 22, 'name': 'Evil Eye', 'n': 18, 'gained': 396}, {'exp': 45, 'name': None, 'n': 3, 'gained': 135}])
     ok('how long the EXP line has been missing is None while not recording', st['exp_lost_s'] is None)
+    post(url + 'api/mob-name', {'exp': 45, 'name': 'Stump'}); post(url + 'api/mob-name', {'exp': 22, 'name': 'Snail'})
+    st = json.loads(get(url + 'api/state')[1])
+    ok('a name given just now shows in the all-time list at once, and beats the name a run was logged with',
+       [(m['exp'], m['name']) for m in st['mobs_all']] == [(22, 'Snail'), (45, 'Stump')])
     # Stop then Start at once: the old recorder's screen capture is closed before the new one opens (one camera per screen)
     import types, time
     class Shot:

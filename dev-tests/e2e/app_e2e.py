@@ -50,12 +50,12 @@ async def main():
                 ok('A2e before any reading, Home explains what to check and nothing records by itself', 'Three things to check' in await pg.inner_text('#app')
                    and 'Press Start recording' in await pg.inner_text('#chipsub') and ctl.settings.get('autostart') is False)
                 ctl.update_info = {'state': 'available', 'version': '2099-01-01', 'can_install': False, 'page': 'https://example.com/r',
-                                   'notes': '## Fixes\n- Faster capture\n\n* See the [guide](https://example.com/g)\n1. **Level** digits\n'}
+                                   'notes': "## What's Changed\n* Faster capture by @dubbs1 in https://github.com/dubbs1/maplemarket/pull/42\n\n---\n* See the [guide](https://example.com/g)\n1. **Level** digits\n\n**Full Changelog**: https://github.com/dubbs1/maplemarket/compare/a...b\n"}
                 await pg.wait_for_timeout(1600)
                 ok('A2c a new version shows at the top of EXP', await pg.locator('#upd').count() == 1 and
                    'New version 2099-01-01' in await pg.inner_text('#upd') and 'Download page' in await pg.inner_text('#upd'))
                 wn = await pg.locator('#whatsnew li').all_inner_texts()
-                ok(f"A2f What's new: the release notes as plain lines {wn}", wn == ['Fixes', 'Faster capture', 'See the guide', 'Level digits']
+                ok(f"A2f What's new: the release notes as plain lines {wn}", wn == ['Faster capture', 'See the guide', 'Level digits']
                    and "What's new" in await pg.inner_text('#upd'))
                 ctl.update_info = {'state': 'none'}; await pg.wait_for_timeout(1600)
                 ok('A2d and goes away again', await pg.locator('#upd').count() == 0)

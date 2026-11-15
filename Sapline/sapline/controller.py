@@ -206,7 +206,8 @@ class Controller:
         """Every mob killed over the whole run log: [{exp, name, n, gained}], most killed first, amounts seen at least
         twice. Worked out again only when the log changed (the page asks once a second)."""
         log = self.exp_log.list(self.exp_log.KEEP)
-        key = (len(log), log[0]['id'] if log else None)
+        self.mobs.load()                             # (mobs.txt re-read when it changed: a name given just now counts)
+        key = (len(log), log[0]['id'] if log else None, self.mobs.stamp)
         if key != self._mobs_all[0]:
             n, names = {}, {}
             for e in log:                            # (newest first: the first name seen for an amount is the newest)
@@ -214,7 +215,7 @@ class Controller:
                     n[k['exp']] = n.get(k['exp'], 0) + int(k.get('n') or 0)
                     if k.get('name') and k['exp'] not in names:
                         names[k['exp']] = k['name']
-            out = [{'exp': a, 'name': names.get(a) or self.mobs.name(a), 'n': c, 'gained': a * c} for a, c in n.items() if c >= 2]
+            out = [{'exp': a, 'name': self.mobs.name(a) or names.get(a), 'n': c, 'gained': a * c} for a, c in n.items() if c >= 2]   # the name of today first
             self._mobs_all = (key, sorted(out, key=lambda m: -m['n'])[:self.MOBS_ALL])
         return [dict(m) for m in self._mobs_all[1]]
 

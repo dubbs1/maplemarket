@@ -455,9 +455,7 @@ async function copyText(t) {
     const ta = document.createElement("textarea");
     ta.value = t; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;opacity:0";
     document.body.appendChild(ta); ta.select();
-    const ok = document.execCommand("copy");
-    ta.remove();
-    return ok;
+    try { return document.execCommand("copy"); } finally { ta.remove(); }
   } catch (e) { return false; }
 }
 // Messages from the app (an update, a problem): the latest as one line on Home, the last few on Runs
@@ -480,8 +478,10 @@ function updCard(st) {
 }
 // The release notes, as short plain lines (the markdown marks taken off), six at most
 function whatsNew(notes) {
-  const L = String(notes || "").split(/\r?\n/)
-    .map(l => l.replace(/^\s*(#+|[*\-+]|\d+[.)])\s*/, "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\*\*|__|`/g, "").trim()).filter(Boolean);
+  // GitHub's automatic notes: "## What's Changed", "* <title> by @who in https://…/pull/N", "**Full Changelog**: …"
+  const L = String(notes || "").split(/\r?\n/).filter(l => !/^\s*#/.test(l) && !/full changelog/i.test(l))
+    .map(l => l.replace(/^\s*([*\-+]+|\d+[.)])\s*/, "").replace(/\s+by\s+@\S+\s+in\s+https?:\/\/\S+\s*$/, "")
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\*\*|__|`/g, "").trim()).filter(l => /[A-Za-z0-9]/.test(l));
   if (!L.length) return "";
   return `<div class="wn"><b>What's new</b><ul class="notes mu" id="whatsnew">${L.slice(0, 6).map(l => `<li>${esc(l)}</li>`).join("")}` +
     (L.length > 6 ? `<li>… and more on the download page</li>` : "") + `</ul></div>`;
