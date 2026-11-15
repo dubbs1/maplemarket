@@ -2,7 +2,6 @@
 import difflib
 import threading
 import time
-from collections import deque
 from .capture import Screen
 from .exp import ExpWatcher
 
@@ -19,47 +18,19 @@ class Events:
 class ExpRunner:
     """Records EXP: a screenshot once a second (capture.py), the status bar's EXP line read from it (exp.py) and the party window
     every other second and the meso box spotted every second (location.py, mesos.py); the map's name and the meso
-    amount (Tesseract, slow) on a second thread; and the pictures around each kill kept for the mob pictures
-    (mobpics.py). Runs on its own thread until stop()."""
-    FRAMES = 5                                         # screenshots kept (the last few seconds) for the mob pictures
+    amount (Tesseract, slow) on a second thread. Runs on its own thread until stop()."""
 
-    def __init__(self, tracker, monitor=1, events=None, every=1.0, mobpics=None, fight=None, capture='auto'):
+    def __init__(self, tracker, monitor=1, events=None, every=1.0, capture='auto', meso_dir=None):
         self.tracker, self.monitor, self.every = tracker, monitor, every
+        self.meso_dir = meso_dir                      # scans/meso: a record of every meso reading, for reports
         self.screen = Screen(prefer=capture, monitor=monitor)   # the screenshots (capture.py: fast when it works, standard otherwise)
         self.events = events or Events()
         self.watcher = ExpWatcher()
         self._stop = threading.Event()
         self.seen_map = None                          # the map's name must be read the same twice before it counts
-        self.mobpics, self.fight = mobpics, fight     # mobpics.MobPics (a picture of each mob killed); fight() = save whole pictures?
-        self.frames = deque(maxlen=self.FRAMES)       # (time, screenshot), newest last
         self.latest, self.party_t = None, 0           # the newest screenshot (for the slow reads' thread); the last party look
         self.meso_seen, self.meso_shot = None, None   # what the last meso look found; a picture with the meso box, to be read
-        self.pending = []                             # kills waiting for their "after" pictures: {'exp', 'before', 't', 'after'}
-
-    def saw(self, img, now):
-        """A new screenshot: a kill just seen gets its "before" pictures (2 and 3 s back), and earlier kills their
-        "after" ones (2, 3 and 4 s on); with all, the mob's picture is cut out if the kill was clear (mobpics.catch)."""
-        self.frames.append((now, img))
-        t = self.tracker
-        if t.last_kills and t.gain_t == now and len(t.last_kills) == 1 and t.last_kills[0][1] == 1 and self.mobpics:
-            old = [f for f in self.frames if now - f[0] >= 1.8]
-            older = [f for f in self.frames if now - f[0] >= 2.8]
-            if old:
-                self.pending = (self.pending + [{'exp': t.last_kills[0][0], 'before': old[-1][1], 'earlier': older[-1][1] if older else None,
-                                                 't': now, 'after': None, 'after2': None}])[-3:]
-        done = []
-        for p in self.pending:
-            if p['after'] is None and now - p['t'] >= 1.8:
-                p['after'] = img
-            elif p['after'] is not None and p['after2'] is None and now - p['t'] >= 2.8:
-                p['after2'] = img
-            elif p['after2'] is not None and now - p['t'] >= 3.8:
-                frames = (p['before'], p['after'], p['after2'], p['earlier'], img)
-                self.mobpics.look(p['exp'], frames)
-                if self.fight and self.fight():
-                    self.mobpics.save_fight(p['exp'], frames)
-                done.append(p)
-        self.pending = [p for p in self.pending if p not in done]
+        self.lost_since = None                        # since when the status bar hasn't been found (None once it is)
 
     LOOK_PARTY, LOOK_MESOS, LOOK_MAP, LOOK_CONFIRM = 2, 5, 10, 3   # seconds between looks (the party window and the meso box are
                                                                  # spotted cheaply; reading them needs Tesseract: a thread, see _looks)
@@ -87,8 +58,11 @@ class ExpRunner:
         elif self.meso_shot is None:
             self.meso_seen = 'none'
 
+    MESO_KEEP = 60                                     # meso box pictures kept in scans/meso (the newest)
+
     def look_mesos(self, img, box=None):
-        """The meso box read (Tesseract): the amount goes to the tracker."""
+        """The meso box read (Tesseract): the amount goes to the tracker. Every look is written down in
+        scans/meso/meso.log with the box's picture beside it, so a wrong amount can be traced to its picture."""
         try:
             from .mesos import find_box, read_mesos
             box = box or find_box(img)
@@ -96,13 +70,30 @@ class ExpRunner:
                 self.meso_seen = 'none'
                 return
             m = read_mesos(img, box)
-            if m is None:
-                self.meso_seen = 'unread'
-                return
-            self.meso_seen = 'read'
-            self.tracker.set_mesos(m)
+            self.meso_seen = 'read' if m is not None else 'unread'
+            self._meso_note(img, box, m)
+            if m is not None:
+                self.tracker.set_mesos(m)
         except Exception:
             self.meso_seen = 'unread'
+
+    def _meso_note(self, img, box, amount):
+        if not self.meso_dir:
+            return
+        try:
+            import os
+            os.makedirs(self.meso_dir, exist_ok=True)
+            stamp = time.strftime('%Y%m%d_%H%M%S')
+            name = f'{stamp}_{amount if amount is not None else "unread"}.png'
+            x0, y0, x1, y1 = box
+            img.crop((max(0, x0 - 40), max(0, y0 - 6), min(img.width, x1 + 60), min(img.height, y1 + 6))).save(os.path.join(self.meso_dir, name), 'PNG')
+            with open(os.path.join(self.meso_dir, 'meso.log'), 'a', encoding='utf-8') as f:
+                f.write(f'{time.strftime("%Y-%m-%d %H:%M:%S")}\t{amount if amount is not None else "unread"}\t{name}\n')
+            old = sorted(f for f in os.listdir(self.meso_dir) if f.endswith('.png'))
+            for f in old[:-self.MESO_KEEP]:
+                os.remove(os.path.join(self.meso_dir, f))
+        except OSError:
+            pass
 
     def look_map(self, img):
         """The map's name (Tesseract): a new name counts once read the same twice. True when a name is waiting
@@ -156,6 +147,7 @@ class ExpRunner:
 
     def run(self):
         fails, pause, spent = 0, 0, 0
+        self.lost_since = time.time()                 # (the page says how long the EXP line has been missing)
         self.screen.open()
         threading.Thread(target=self._looks, daemon=True, name='look').start()
         try:
@@ -175,9 +167,10 @@ class ExpRunner:
                     self.latest = img
                     reading = self.watcher.update(img)
                     now = time.time()
+                    if self.watcher.bar:
+                        self.lost_since = None
                     if reading and self.tracker.add(reading, now=now):
                         self.events.exp(self.tracker.summary())
-                    self.saw(img, now)
                     self.spot_mesos(img)
                     if now - self.party_t >= self.LOOK_PARTY:
                         self.party_t = now

@@ -5,7 +5,7 @@
 2. The same bar shrunk or grown (0.75x to 1.9x, two ways of resizing) is read right or skipped, never wrong.
 3. A picture without a status bar finds none.
 4. The tracker: starts when two readings agree, adds up gains, drops a misread, counts a death's loss and a level-up,
-   works out EXP per hour and the time to the next level; counts kills from the EXP jumps (named from mobs.txt) and
+   works out EXP per hour and the time to the next level; counts kills from the EXP jumps and
    damage taken from the HP numbers.
 5. The recorder: pretend screenshots go through the watcher into the tracker.
 6. Goals: kills per hour, kills left to the level, the next 10% mark; skipped readings are counted.
@@ -166,19 +166,7 @@ def kills_and_damage():
         check(E.read_hp(img, E.find_bar(img)) == want, f'{name}: HP {want[0]} of {want[1]}')
     w = E.ExpWatcher()
     check(w.update(load('status38_lowmp.png'), now=1000)['hp'] == (1146, 1325), 'a reading carries the HP')
-    from sapline.mobs import parse_mobs, Mobs
-    table = parse_mobs('# notes\nSnail | 1 | 8 | 3\nBlue Snail\t2\t15\t4\nStump | 1,200\nno number\nMano | 3\nOrange Mushroom|15\n')
-    check(table == {3: ['Snail', 'Mano'], 4: ['Blue Snail'], 1200: ['Stump'], 15: ['Orange Mushroom']}, f'mobs.txt read: {table}')
-    import tempfile
-    d = tempfile.mkdtemp()
-    m = Mobs(os.path.join(d, 'mobs.txt'))
-    check(m.name(3) is None, 'no mobs.txt: no names')
-    m.ensure()
-    with open(m.path, 'a', encoding='utf-8') as f:
-        f.write('Wild Boar | 30 | 500 | 30\nFire Boar | 45\n')
-    m.checked = 0
-    check(m.name(30) == 'Wild Boar' and m.name(45) == 'Fire Boar' and m.name(31) is None, 'names from the file (read again after a change)')
-    t = E.ExpTracker(namer={30: 'Wild Boar', 45: 'Fire Boar'}.get)
+    t = E.ExpTracker()
     need = 216580
     r = lambda x, hp: {'exp': x, 'pct': round(x * 100 / need, 2), 'level': 37, 'hp': hp}
     t.add(r(93499, (1325, 1325)), now=0)
@@ -189,8 +177,8 @@ def kills_and_damage():
         x, n = x + gain, n + 3
         t.add(r(x, hp), now=n)
     s = t.summary(now=n)
-    kills = [(k['name'], k['n']) for k in s['kills']]
-    check(kills == [('Wild Boar', 5), ('Fire Boar', 5), (None, 1)] and s['kills_total'] == 11,
+    kills = [(k['exp'], k['n']) for k in s['kills']]
+    check(kills == [(30, 5), (45, 5), (500, 1)] and s['kills_total'] == 11,
           f'kills from the EXP jumps (60 = two boars, 75 = one of each, 90 = the fewest kills: two fire boars; 500 unknown): {kills}')
     check(s['taken'] == 550 and s['hits'] == 3 and s['big'] == 246 and s['hp'] == (1200, 1340),
           f'damage taken from HP drops (a full HP that changed is not a hit): {s["taken"]} in {s["hits"]} hits, biggest {s["big"]}')
@@ -209,7 +197,7 @@ def kills_and_damage():
             check(t3.last_kills == [(44, 1)] and t3.amounts == {44: 2}, 'a gain seen twice is a mob at first: 44')
     ks = {k['exp']: k['n'] for k in t3.summary(now=n3)['kills']}
     check(ks == {22: 15} and t3.last_kills == [(22, 4)], f'once 22 is a mob, the 44s before and after are two of it, 66 three, 88 four: {ks}')
-    check(t3.summary(now=n3)['run']['kills'] == [{'exp': 22, 'n': 15, 'name': None}], 'the run counts them the same way')
+    check(t3.summary(now=n3)['run']['kills'] == [{'exp': 22, 'n': 15}], 'the run counts them the same way')
     runs = []
     t2 = E.ExpTracker(on_run=runs.append)
     t2.add(r(1000, (100, 100)), now=0)
@@ -217,7 +205,7 @@ def kills_and_damage():
     t2.add(r(1020, (60, 100)), now=60)
     t2.add(r(1040, (60, 100)), now=120)
     t2.end_run(now=120)
-    check(runs and runs[0]['kills_total'] == 2 and runs[0]['kills'] == [{'exp': 20, 'n': 2, 'name': None}] and runs[0]['taken'] == 40 and runs[0]['hits'] == 1,
+    check(runs and runs[0]['kills_total'] == 2 and runs[0]['kills'] == [{'exp': 20, 'n': 2}] and runs[0]['taken'] == 40 and runs[0]['hits'] == 1,
           f'the EXP log line has the kills and damage: {runs and runs[0]}')
 
 
@@ -395,6 +383,16 @@ def mesos():
     t3.add(r(50000), now=0); t3.add(r(50000), now=3); t3.add(r(50500), now=400)
     t3.set_mesos(500, now=400)
     check(t3.summary(now=400)['mesos_per_hour'] is None, 'the first look of a session only sets where mesos stand: no rate from it')
+    # a digit read wrong upward (94,115 as 941,150 once) is not mesos gained; a real big rise seen twice (a sale) is
+    t4 = E.ExpTracker()
+    t4.add(r(50000), now=0); t4.add(r(50000), now=3)
+    t4.set_mesos(94_115, now=10); t4.set_mesos(941_150, now=15); t4.set_mesos(94_315, now=20)
+    s4 = t4.summary(now=20)
+    check(s4['mesos_gained'] == 200 and s4['mesos'] == 94_315, f'one wrong read of 941,150 between 94,115 and 94,315: 200 gained, not 847,000 ({s4["mesos_gained"]})')
+    t4.set_mesos(84_315, now=25); t4.set_mesos(94_415, now=30)
+    check(t4.summary(now=30)['mesos_gained'] == 300, f'84,315 once (a digit wrong) then 94,415: just the 100 more ({t4.summary(now=30)["mesos_gained"]})')
+    t4.set_mesos(244_415, now=35); t4.set_mesos(244_500, now=40)
+    check(t4.summary(now=40)['mesos_gained'] == 300 + 150_085 and t4.summary(now=40)['mesos_at'] == 40, f'a sale of 150,000 seen on two looks counts ({t4.summary(now=40)["mesos_gained"]})')
 
 
 def loop():
@@ -438,6 +436,7 @@ def loop():
         os.chdir(old)
     s = t.summary()
     check(bool(seen) and s and (s['exp'], s['pct'], s['level']) == TRUE, f'the EXP recorder got {s and (s["exp"], s["pct"], s["level"])}')
+    check(sc.lost_since is None, 'once the status bar is found the recorder no longer counts the EXP line as missing')
     # the slow reads: a new map name counts once read the same twice, and the next look comes sooner while it waits
     from sapline import location
     names, got = [], []

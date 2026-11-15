@@ -372,11 +372,10 @@ class ExpTracker:
 
     KILL_MAX = 6                                         # kills of one mob that may hide in one reading (3 s)
 
-    def __init__(self, on_gain=None, on_run=None, namer=None):
+    def __init__(self, on_gain=None, on_run=None):
         self.lock = threading.Lock()
         self.on_gain = on_gain                           # called with each gain (n, time): the daily totals
         self.on_run = on_run                             # called with each finished run (a line for the EXP log)
-        self.namer = namer                               # the mob that gives this much EXP (mobs.txt), or None
         self.map = None                                  # the map you're on, when known (for the EXP log)
         self.paused = None                               # when recording was stopped: the clock stands still
         self.idle = EXP_IDLE                             # no EXP for this long: the clock stops (Options: "Pause after")
@@ -437,7 +436,7 @@ class ExpTracker:
         that is a multiple of one, or the sum of two, is those kills. (In a party the EXP is shared by damage dealt:
         the amounts are steady while your partner hunts elsewhere, and vary when you share mobs; the page folds
         amounts seen once into "other gains".)"""
-        self.last_kills = []                         # (what this rise was taken as: the mob-picture catcher asks)
+        self.last_kills = []                         # (what this rise was taken as)
         known = sorted((a for a, n in self.amounts.items() if n >= 2), reverse=True)
         if d in known:
             return self._kill(d, 1)
@@ -467,8 +466,8 @@ class ExpTracker:
                 kills[a] = kills.get(a, 0) + kills.pop(b) * (b // a)
 
     def _kill_list(self, kills):
-        """[{exp, n, name}], most killed first (name None when the amount isn't in mobs.txt)."""
-        out = [{'exp': a, 'n': n, 'name': self.namer(a) if self.namer else None} for a, n in kills.items()]
+        """[{exp, n}], most killed first: how the kills split by the EXP one gave (the totals are what the page shows)."""
+        out = [{'exp': a, 'n': n} for a, n in kills.items()]
         return sorted(out, key=lambda k: -k['n'])
 
     def _hp(self, cur, full):
@@ -503,10 +502,14 @@ class ExpTracker:
                 self.map = name
 
     MESO_JUMP = 5_000_000                                # a bigger rise between two looks is a misread, not a pickup
+    MESO_BIG, MESO_BIG_PCT = 5_000, 0.05                 # a rise this big (or this share of the amount) must be seen twice
+    MESO_NEAR = 2_000                                    # two reads this close are the same amount (pickups in between)
 
     def set_mesos(self, amount, now=None):
         """The Item window showed `amount` mesos. Every rise since the last look counts as mesos gained (spending
-        doesn't take any off); mesos per hour is that over the time between the first and the last look."""
+        doesn't take any off); mesos per hour is that over the time between the first and the last look. A big
+        rise, like a lower amount, counts only when a second look agrees: a digit read wrong (94,115 as 941,150, or
+        84,115 as 94,115) looks like a jump and must not become mesos gained."""
         now = time.time() if now is None else now
         with self.lock:
             if not self.start or self.paused is not None:
@@ -515,6 +518,12 @@ class ExpTracker:
             t = self._now(now)
             if self.mesos is not None and amount - self.mesos > self.MESO_JUMP:
                 return                                   # a misread (no pickup is that big): nothing changes
+            if self.mesos is not None and amount - self.mesos > max(self.MESO_BIG, self.mesos * self.MESO_BIG_PCT):
+                if self.meso_high is None or abs(amount - self.meso_high) > self.MESO_NEAR:
+                    self.meso_high = amount              # a big rise seen once: a sale, or a misread; wait for a second look
+                    return
+            self.meso_high = None
+            self.meso_at = now
             if self.mesos is not None and amount < self.mesos:
                 if self.meso_low is None:                # lower: spent, or a digit lost (1,421,566 read as 421,566, which
                     self.meso_low = amount               # would make the next look a million "gained"): wait for a second
@@ -573,6 +582,8 @@ class ExpTracker:
             self.need = None                            # EXP the current level needs (exp / pct)
             self.need_prev = None                       # the level before's (a loose check while the new one is unknown)
             self.meso_low = None                        # a lower meso amount seen once: real (spent) only if seen again
+            self.meso_high = None                       # a big rise seen once: real (a sale) only if seen again
+            self.meso_at = None                         # when the amount was last read (wall time)
             self.amounts = {}                           # EXP per kill -> kills this session
             self.last_kills = []                        # the latest rise as kills: [(EXP, n)]
             self.hp = None                              # (HP now, full HP) last read
@@ -732,7 +743,7 @@ class ExpTracker:
                          'party': r['party'], 'mesos_per_hour': self._mph(r['mg'], r['mt0'], r['mt1'], now - r['t0']),
                          'kills': self._kill_list(r['kills']), 'kills_total': sum(r['kills'].values()), 'taken': r['taken'], 'hits': r['hits'],
                          'per_hour': round((self.gained - r['g0']) / (now - r['t0']) * 3600) if now - r['t0'] >= 60 else None}
-            return {'slots': slots, 'hour': hour, 'prev_hour': prev, 'best_hour': best, 'run': run, 'mesos': self.mesos,
+            return {'slots': slots, 'hour': hour, 'prev_hour': prev, 'best_hour': best, 'run': run, 'mesos': self.mesos, 'mesos_at': self.meso_at,
                     'mesos_gained': self.meso_gain if self.mt0 is not None else None, 'mesos_per_hour': self._mph(self.meso_gain, self.mt0, self.mt1, whole),
                     'last5': (self.gained - self._at(now - 300)) * 12 if whole >= 300 else None,
                     'idle': self.paused is None and real - self.gain_t > self.idle, 'stopped': self.paused is not None,

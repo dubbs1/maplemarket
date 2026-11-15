@@ -1,6 +1,6 @@
-"""Checks the app's server and controller: the page is served, the state answers, settings are kept, a mob can be
+"""Checks the app's server and controller: the page is served, the state answers, settings are kept, the run log can be
 named, pictures are served safely, and requests that don't come from this PC's own window are refused."""
-import json, os, socket, sys, tempfile, urllib.error, urllib.request
+import json, os, sys, tempfile, urllib.error, urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 work = tempfile.mkdtemp(prefix='sapline_server_')
@@ -29,9 +29,7 @@ def post(url, body, header=True):
 
 
 def main():
-    from PIL import Image
     ctl = CT.Controller()
-    ctl.mobpics.keep(22, Image.new('RGB', (8, 8), (200, 40, 40)))
     srv = SV.AppServer(controller=ctl, ports=TEST_PORTS)
     url = srv.start()
     fails = []
@@ -63,26 +61,34 @@ def main():
     ok('settings: the run log switch', post(url + 'api/set', {'exp_log': False})['ok'] and ctl.settings['exp_log'] is False)
     ok('settings: start on open is off until switched on, and old keys are dropped', ctl.settings['autostart'] is False
        and 'monitor' not in ctl.settings and 'exp' not in ctl.settings and post(url + 'api/set', {'autostart': True})['ok'] and ctl.settings['autostart'] is True)
-    ok('naming a mob writes mobs.txt', post(url + 'api/mob-name', {'exp': 22, 'name': 'Evil Eye'})['ok'] and ctl.mobs.name(22) == 'Evil Eye')
-    ok('a bad name is refused', not post(url + 'api/mob-name', {'exp': 22, 'name': 'a|b'})['ok'])
-    ok('the mob picture is served', get(url + 'api/mobpic/22.png')[0] == 200)
-    for path in ('api/mobpic/23.png', 'api/mobpic/../settings.json', 'api/mobpic/x.png'):
+    for path in ('api/mob-name', 'api/mobpic/22.png'):                      # the mob pages are gone (2026-11-15)
         try:
-            get(url + path)
+            post(url + path, {}) if path.endswith('name') else get(url + path)
             ok(f'{path}: 404', False)
         except urllib.error.HTTPError as e:
-            ok(f'{path}: 404', e.code == 404)
-    s = socket.create_connection(('127.0.0.1', srv.httpd.server_address[1]), timeout=5)   # a digit that isn't ASCII
-    s.sendall(b'GET /api/mobpic/\xb2.png HTTP/1.0\r\nHost: 127.0.0.1:%d\r\n\r\n' % srv.httpd.server_address[1])
-    ok('a non-ASCII digit in a picture name is a 404, not an error', b' 404 ' in s.recv(200))
-    s.close()
-    ok('forgetting a picture', post(url + 'api/mob-name', {'exp': 22, 'action': 'forget'})['ok'] and 22 not in ctl.mobpics.have)
+            ok(f'{path}: 404 (the mob names and pictures are gone)', e.code == 404)
     try:
         post(url + 'api/nothing', {})
         ok('an unknown button is 404', False)
     except urllib.error.HTTPError as e:
         ok('an unknown button is 404', e.code == 404)
     ok('reset', post(url + 'api/exp-reset', {})['ok'])
+    # the run log exported as a spreadsheet
+    ctl.exp_log.add({'date': 1_700_000_000, 'minutes': 30, 'gained': 6000, 'per_hour': 12000, 'level': 39, 'map': 'Kerning City', 'party': None,
+                     'mesos': None, 'mesos_per_hour': None, 'kills_total': 9, 'taken': 100,
+                     'kills': [{'exp': 22, 'n': 6}, {'exp': 45, 'n': 3}]})
+    ctl.exp_log.add({'date': 1_700_003_600, 'minutes': 45, 'gained': 9000, 'per_hour': 12000, 'level': 40, 'map': 'Subway', 'party': 2,
+                     'mesos': 5000, 'mesos_per_hour': 6667, 'kills_total': 13, 'taken': 50, 'name': 'Evening hunt',
+                     'kills': [{'exp': 22, 'n': 12}, {'exp': 60, 'n': 1}]})
+    r = post(url + 'api/export-runs', {})
+    raw = open(os.path.join(work, 'scans', 'runs.csv'), 'rb').read()
+    lines = raw.decode('utf-8-sig').splitlines()
+    ok('the run log exports to scans/runs.csv with a BOM, a header and one row per run', r == {'ok': True, 'file': 'runs.csv', 'rows': 2}
+       and raw.startswith(b'\xef\xbb\xbf') and lines[0] == 'date,name,level,party,minutes,gained,exp_per_hour,mesos,mesos_per_hour,kills,damage_taken'
+       and len(lines) == 3 and lines[1].endswith(',Evening hunt,40,2,45,9000,12000,5000,6667,13,50')
+       and lines[2].endswith(',Kerning City,39,,30,6000,12000,,,9,100'))
+    st = json.loads(get(url + 'api/state')[1])
+    ok('how long the EXP line has been missing is None while not recording', st['exp_lost_s'] is None)
     # Stop then Start at once: the old recorder's screen capture is closed before the new one opens (one camera per screen)
     import types, time
     class Shot:
@@ -101,7 +107,7 @@ def main():
        and len(closed) >= 1 and closed[0] is opened[0] and len(opened) == 2)
     r = ctl.screenshot()
     ok('Save a screenshot right after Start waits for the first picture instead of opening a second camera', r['ok'] and len(opened) == 2
-       and os.path.exists(os.path.join(ctl.mobpics.folder, '..', r['file'])))
+       and os.path.exists(os.path.join(work, 'scans', r['file'])))
     ctl.exp_stop(); time.sleep(0.3)
     r = ctl.screenshot()
     ok('not recording: a screenshot opens its own capture and closes it', r['ok'] and len(opened) == 3 and closed[-1] is opened[-1])

@@ -2,7 +2,7 @@
 
 Your EXP, read from your own screen.
 
-**Sapline** is a small Windows app. While you hunt, it looks at the status bar on your screen about once a second and keeps count: EXP per hour, time to the next level, kills by mob (with a picture of each), damage taken, mesos per hour, and a log of every hunt.
+**Sapline** is a small Windows app. While you hunt, it looks at the status bar on your screen about once a second and keeps count: EXP per hour, time to the next level, kills, damage taken, mesos per hour, and a log of every hunt.
 
 It only looks at your screen. It never clicks, types, reads the game's memory or sends anything anywhere.
 
@@ -21,8 +21,7 @@ The menu on the left has four pages. The card under it always says what Sapline 
 | Page | What it shows |
 |---|---|
 | **Home** | EXP per hour and the last 5 minutes, level and progress, time to level, this session's gains, kills, damage taken and mesos, a chart of this session or the last 7 days, **Next up** (time to level, the next 10 % mark, kills to level), **Today** and **Is this hunt worth it?** (this hunt's EXP and mesos an hour beside your earlier maps). Before the first reading it shows what to check |
-| **Runs** | The best map, the week's total and the longest run, then one line per hunt: map, level, party, time, EXP/h, mesos/h, kills, damage taken. Rename or delete lines |
-| **Mobs** | Your kills by mob as cards, with the picture cut from your screen; name a mob once and it is remembered |
+| **Runs** | The best map, the week's total and the longest run, then one line per hunt: map, level, party, time, EXP/h, mesos/h, kills, damage taken; Export CSV. Rename or delete lines |
 | **Settings** | Start when Sapline opens (off until you switch it on), log my runs, pause after N minutes, the text reader, updates, your data, night or day look, and what the app does and never does |
 
 The step-by-step guide, with what you should see at each step, is in [the Guide](Sapline/GUIDE.md).
