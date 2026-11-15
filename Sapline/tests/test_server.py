@@ -83,6 +83,24 @@ def main():
     except urllib.error.HTTPError as e:
         ok('an unknown button is 404', e.code == 404)
     ok('reset', post(url + 'api/exp-reset', {})['ok'])
+    # the run log exported as a spreadsheet, and the all-time mob counts
+    ctl.exp_log.add({'date': 1_700_000_000, 'minutes': 30, 'gained': 6000, 'per_hour': 12000, 'level': 39, 'map': 'Kerning City', 'party': None,
+                     'mesos': None, 'mesos_per_hour': None, 'kills_total': 9, 'taken': 100,
+                     'kills': [{'exp': 22, 'n': 6, 'name': None}, {'exp': 45, 'n': 3, 'name': None}]})
+    ctl.exp_log.add({'date': 1_700_003_600, 'minutes': 45, 'gained': 9000, 'per_hour': 12000, 'level': 40, 'map': 'Subway', 'party': 2,
+                     'mesos': 5000, 'mesos_per_hour': 6667, 'kills_total': 13, 'taken': 50, 'name': 'Evening hunt',
+                     'kills': [{'exp': 22, 'n': 12, 'name': 'Evil Eye'}, {'exp': 60, 'n': 1, 'name': None}]})
+    r = post(url + 'api/export-runs', {})
+    raw = open(os.path.join(work, 'scans', 'runs.csv'), 'rb').read()
+    lines = raw.decode('utf-8-sig').splitlines()
+    ok('the run log exports to scans/runs.csv with a BOM, a header and one row per run', r == {'ok': True, 'file': 'runs.csv', 'rows': 2}
+       and raw.startswith(b'\xef\xbb\xbf') and lines[0] == 'date,name,level,party,minutes,gained,exp_per_hour,mesos,mesos_per_hour,kills,damage_taken,mobs'
+       and len(lines) == 3 and lines[1].endswith(',Evening hunt,40,2,45,9000,12000,5000,6667,13,50,Evil Eye x12; 60 EXP x1')
+       and lines[2].endswith(',Kerning City,39,,30,6000,12000,,,9,100,22 EXP x6; 45 EXP x3'))
+    st = json.loads(get(url + 'api/state')[1])
+    ok('the state has the all-time mobs, summed over the runs, most killed first, amounts seen twice or more',
+       st['mobs_all'] == [{'exp': 22, 'name': 'Evil Eye', 'n': 18, 'gained': 396}, {'exp': 45, 'name': None, 'n': 3, 'gained': 135}])
+    ok('how long the EXP line has been missing is None while not recording', st['exp_lost_s'] is None)
     # Stop then Start at once: the old recorder's screen capture is closed before the new one opens (one camera per screen)
     import types, time
     class Shot:

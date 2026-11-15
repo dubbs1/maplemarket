@@ -3,6 +3,7 @@
 The window (a web page) asks for /api/state about once a second and sends button presses as
 small requests. Everything here is safe to call from the web server's threads.
 """
+import csv
 import json
 import os
 import subprocess
@@ -61,6 +62,7 @@ class Controller:
         self.update_info = {'state': 'checking'}
         self._update_at = 0
         self.quit_requested = False                  # set when an update is about to install: the window closes
+        self._mobs_all = (None, [])                  # (key, list): the all-time mob counts, redone when the run log changes
         if self.frozen:
             self._after_update()
 
@@ -186,14 +188,35 @@ class Controller:
             self._tess_check = time.time()
             threading.Thread(target=self._look_for_tesseract, daemon=True).start()
         r = self.exp_runner
+        lost = r.lost_since if r else None
         with self.lock:
             self.last_seen = time.time()
             settings = dict(self.settings)
             return dict(version=__version__, engine=self.engine, tesseract=self.tesseract, update=self.update_info,
                         settings=settings, exp=self._with_pics(self.exp.summary()), exp_days=self.exp_days.last(7), exp_log=self.exp_log.list(),
+                        mobs_all=self.mobs_all(),
                         exp_on=bool(r), exp_found=bool(r and r.found), exp_unread=r.watcher.unread if r else 0, meso_seen=r.meso_seen if r else None,
+                        exp_lost_s=round(time.time() - lost) if lost is not None and not (r and r.found) else None,
                         capture=r.screen.state() if r else None,
                         seq=self.seq, events=[e for e in self.events if e['seq'] > since])
+
+    MOBS_ALL = 40                                    # mobs on the all-time list at most
+
+    def mobs_all(self):
+        """Every mob killed over the whole run log: [{exp, name, n, gained}], most killed first, amounts seen at least
+        twice. Worked out again only when the log changed (the page asks once a second)."""
+        log = self.exp_log.list(self.exp_log.KEEP)
+        key = (len(log), log[0]['id'] if log else None)
+        if key != self._mobs_all[0]:
+            n, names = {}, {}
+            for e in log:                            # (newest first: the first name seen for an amount is the newest)
+                for k in e.get('kills') or []:
+                    n[k['exp']] = n.get(k['exp'], 0) + int(k.get('n') or 0)
+                    if k.get('name') and k['exp'] not in names:
+                        names[k['exp']] = k['name']
+            out = [{'exp': a, 'name': names.get(a) or self.mobs.name(a), 'n': c, 'gained': a * c} for a, c in n.items() if c >= 2]
+            self._mobs_all = (key, sorted(out, key=lambda m: -m['n'])[:self.MOBS_ALL])
+        return [dict(m) for m in self._mobs_all[1]]
 
     # --- EXP: Start/Stop (the `exp` setting) ---
     def _with_pics(self, x):
@@ -302,6 +325,28 @@ class Controller:
         if sys.platform == 'win32':
             os.startfile(path)
         return {'ok': True, 'path': path}
+
+    EXPORT = 'runs.csv'                              # scans/runs.csv: the run log for a spreadsheet
+
+    def export_runs(self):
+        """Runs -> Export: the run log as scans/runs.csv, one row per run (UTF-8 with a BOM so Excel reads it right)."""
+        path = os.path.join(APP_DIR, 'scans')
+        rows = self.exp_log.list(self.exp_log.KEEP)
+        try:
+            os.makedirs(path, exist_ok=True)
+            with open(os.path.join(path, self.EXPORT), 'w', encoding='utf-8-sig', newline='') as f:
+                w = csv.writer(f)
+                w.writerow(['date', 'name', 'level', 'party', 'minutes', 'gained', 'exp_per_hour', 'mesos', 'mesos_per_hour',
+                            'kills', 'damage_taken', 'mobs'])
+                blank = lambda v: '' if v is None else v
+                for e in rows:
+                    mobs = '; '.join(f"{k.get('name') or str(k['exp']) + ' EXP'} x{k['n']}" for k in e.get('kills') or [])
+                    w.writerow([time.strftime('%Y-%m-%d %H:%M', time.localtime(e['date'])), e.get('name') or e.get('map') or '',
+                                blank(e.get('level')), blank(e.get('party')), e.get('minutes', 0), e.get('gained', 0), e.get('per_hour', 0),
+                                blank(e.get('mesos')), blank(e.get('mesos_per_hour')), e.get('kills_total', 0), e.get('taken', 0), mobs])
+        except OSError as e:
+            return {'ok': False, 'error': f'Could not write it: {e}'}
+        return {'ok': True, 'file': self.EXPORT, 'rows': len(rows)}
 
     def screenshot(self):
         """Settings: save the main screen as scans/screen_<time>.png, for a report (the recorder's newest picture

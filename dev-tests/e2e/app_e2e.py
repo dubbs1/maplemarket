@@ -38,7 +38,7 @@ async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(**({'executable_path': os.environ['PW_CHROMIUM']} if os.environ.get('PW_CHROMIUM') else {}))
         for scheme in ('dark', 'light'):
-            ctx = await b.new_context(viewport={'width': 1240, 'height': 860}, color_scheme=scheme)
+            ctx = await b.new_context(viewport={'width': 1240, 'height': 860}, color_scheme=scheme, permissions=['clipboard-read', 'clipboard-write'])
             pg = await ctx.new_page(); errs = []
             pg.on('pageerror', lambda e: errs.append(str(e)))
             await pg.goto(url); await pg.wait_for_timeout(1800)
@@ -49,10 +49,14 @@ async def main():
                 ok('A2b no update card when there is nothing to update', await pg.locator('#upd').count() == 0)
                 ok('A2e before any reading, Home explains what to check and nothing records by itself', 'Three things to check' in await pg.inner_text('#app')
                    and 'Press Start recording' in await pg.inner_text('#chipsub') and ctl.settings.get('autostart') is False)
-                ctl.update_info = {'state': 'available', 'version': '2099-01-01', 'can_install': False, 'page': 'https://example.com/r'}
+                ctl.update_info = {'state': 'available', 'version': '2099-01-01', 'can_install': False, 'page': 'https://example.com/r',
+                                   'notes': '## Fixes\n- Faster capture\n\n* See the [guide](https://example.com/g)\n1. **Level** digits\n'}
                 await pg.wait_for_timeout(1600)
                 ok('A2c a new version shows at the top of EXP', await pg.locator('#upd').count() == 1 and
                    'New version 2099-01-01' in await pg.inner_text('#upd') and 'Download page' in await pg.inner_text('#upd'))
+                wn = await pg.locator('#whatsnew li').all_inner_texts()
+                ok(f"A2f What's new: the release notes as plain lines {wn}", wn == ['Fixes', 'Faster capture', 'See the guide', 'Level digits']
+                   and "What's new" in await pg.inner_text('#upd'))
                 ctl.update_info = {'state': 'none'}; await pg.wait_for_timeout(1600)
                 ok('A2d and goes away again', await pg.locator('#upd').count() == 0)
                 await pg.screenshot(path=OUT + '_idle.png')
@@ -77,8 +81,40 @@ async def main():
                 ok('A5b one chart control only (no line or log-scale buttons)', await pg.locator('[data-xk],[data-xs]').count() == 0 and await pg.locator('[data-xr]').count() == 2)
                 await pg.click('[data-xr=session]'); await pg.wait_for_timeout(300)
                 await pg.screenshot(path=OUT + '_exp.png')
-                await pg.click('[data-x=reset]'); await pg.wait_for_timeout(1500)
-                ok('A6 Reset clears it (until the next readings)', ctl.exp.gained == 0 and ctl.exp.levels == 0 and 'Counting again' in await pg.inner_text('#live'))
+                # the EXP line lost for 45 s (the state says so): a highlighted card above the hero card, gone when it is found again
+                real_snapshot = ctl.snapshot
+                ok('A15 no lost-line card while the bar is read', await pg.locator('#lost').count() == 0)
+                ctl.snapshot = lambda since=0: {**real_snapshot(since), 'exp_lost_s': 45}
+                await pg.wait_for_timeout(1500)
+                lt = await pg.inner_text('#lost') if await pg.locator('#lost').count() else ''
+                ok('A15b the lost-line card says how long and offers a screenshot', "can't see the EXP line" in lt and '45 seconds' in lt
+                   and await pg.locator('#lost [data-x=shot]').count() == 1 and await pg.locator('.hero').count() == 1)
+                await pg.click('#lost [data-x=shot]'); await pg.wait_for_timeout(800)
+                ok('A15c its button saves a screenshot and says so', 'Saved screen_' in await pg.inner_text('#live'))
+                for f in os.listdir(os.path.join(work, 'scans')):                   # (A9f counts the Settings one alone)
+                    if f.startswith('screen_'): os.remove(os.path.join(work, 'scans', f))
+                ctl.snapshot = real_snapshot; await pg.wait_for_timeout(1500)
+                ok('A15d and goes away by itself', await pg.locator('#lost').count() == 0)
+                # Copy summary (as if this session had run 20 minutes at 60,000 EXP / h, so there is a rate to copy)
+                with ctl.exp.lock:
+                    h = ctl.exp.history; h[0] = (h[0][0] - 1200, h[0][1]); ctl.exp.start = (ctl.exp.start[0] - 1200,) + tuple(ctl.exp.start[1:])
+                    ctl.exp.gained += 20000; ctl.exp.gain_t = time.time(); h.append((time.time(), ctl.exp.gained))
+                await pg.wait_for_timeout(1500)
+                await pg.click('[data-x=copy]'); await pg.wait_for_timeout(500)
+                clip = await pg.evaluate("navigator.clipboard.readText().catch(() => summaryText(APP.st))")
+                ok(f'A16 Copy summary copies a plain-text summary {clip.splitlines()[:2]}', 'copied' in await pg.inner_text('#live') and 'EXP per hour' in clip
+                   and clip.startswith('Sapline · ') and 'Level 37 at 43.17%' in clip and 'Gained: 20,000' in clip)
+                # Reset asks first
+                with ctl.exp.lock: ctl.exp.gained = 777
+                await pg.click('[data-x=reset]'); await pg.wait_for_timeout(300)
+                ok('A6 Reset asks first, in the header', 'Reset the session?' in await pg.inner_text('.ph') and await pg.locator('[data-x=reset-yes]').count() == 1
+                   and await pg.locator('[data-x=reset]').count() == 0)
+                await pg.click('[data-x=reset-no]'); await pg.wait_for_timeout(300)
+                ok('A6b Keep it changes nothing', ctl.exp.gained == 777 and await pg.locator('[data-x=reset]').count() == 1 and await pg.locator('[data-x=reset-yes]').count() == 0)
+                await pg.click('[data-x=reset]'); await pg.wait_for_timeout(6800)
+                ok('A6c with no answer the question gives up after 6 s', ctl.exp.gained == 777 and await pg.locator('[data-x=reset]').count() == 1)
+                await pg.click('[data-x=reset]'); await pg.click('[data-x=reset-yes]'); await pg.wait_for_timeout(1500)
+                ok('A6d Yes resets (until the next readings)', ctl.exp.gained == 0 and ctl.exp.levels == 0 and 'Counting again' in await pg.inner_text('#live'))
                 # Runs
                 for i, m in enumerate(('The Land of Wild Boar II', 'Ant Tunnel I')):
                     ctl.exp_log.add({'date': time.time() - 3600 * (i + 1), 'minutes': 45, 'gained': 40000, 'per_hour': 53333, 'level': 37, 'map': m, 'party': 4 - i * 3,
@@ -98,6 +134,17 @@ async def main():
                 rt = (await pg.inner_text('#app')).lower()
                 ok('A7f the week summary above the log', 'best map this week' in rt and 'longest run' in rt and 'ant tunnel i' in rt)
                 await pg.click('[data-xl=on]'); await pg.wait_for_timeout(800)
+                ok('A17 no hover-only text on the Kills cell', await pg.get_attribute('.xlog tbody tr:not(.now) td:nth-child(8)', 'title') is None)
+                await pg.click('.xlog [data-xl=mobs] >> nth=-1'); await pg.wait_for_timeout(300)
+                xm = await pg.inner_text('.xlog tr.xm') if await pg.locator('.xlog tr.xm').count() else ''
+                ok(f'A17b Mobs opens a line under the run with its mobs {xm!r}', await pg.locator('.xlog tr.xm').count() == 1 and 'Snail ×30' in xm)
+                await pg.wait_for_timeout(1200)
+                ok('A17c the line stays through the page refreshing', await pg.locator('.xlog tr.xm').count() == 1)
+                await pg.click('.xlog [data-xl=mobs] >> nth=-1'); await pg.wait_for_timeout(300)
+                ok('A17d and closes again', await pg.locator('.xlog tr.xm').count() == 0)
+                await pg.click('[data-xl=export]'); await pg.wait_for_timeout(800)
+                ok('A18 Export CSV writes scans/runs.csv and says so', 'Saved runs.csv in the scans folder (1 run)' in await pg.inner_text('#live')
+                   and 'Boars with Sam' in open(os.path.join(work, 'scans', 'runs.csv'), encoding='utf-8-sig').read())
                 await pg.screenshot(path=OUT + '_runs.png')
                 # Mobs
                 ctl.exp.amounts = {22: 5, 45: 1}       # (as if kills had been seen)
@@ -121,6 +168,12 @@ async def main():
                 src = await pg.get_attribute('.mob img', 'src')
                 ok('A8e the picture shows with its stamp (a new picture reloads)', src is not None and src.endswith('/api/mobpic/22.png?v=123')
                    and await pg.evaluate("() => fetch('/api/mobpic/22.png?v=123').then(r => r.status)") == 200 and await pg.locator('[data-mnx]').count() == 1)
+                at = await pg.inner_text('#alltime') if await pg.locator('#alltime').count() else ''
+                ok(f'A19 All time lists the mobs of the whole run log {at.splitlines()[:1]}', 'Snail' in at and '30' in at and 'From your run log' in at)
+                ctl.snapshot = lambda since=0: {**real_snapshot(since), 'mobs_all': []}
+                await pg.wait_for_timeout(1500)
+                ok('A19b and is not there without any', await pg.locator('#alltime').count() == 0)
+                ctl.snapshot = real_snapshot; await pg.wait_for_timeout(1200)
                 await pg.screenshot(path=OUT + '_mobs.png')
                 # Options
                 await pg.click('[data-nav=more]'); await pg.wait_for_timeout(500)

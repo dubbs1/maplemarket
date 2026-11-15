@@ -438,6 +438,7 @@ def loop():
         os.chdir(old)
     s = t.summary()
     check(bool(seen) and s and (s['exp'], s['pct'], s['level']) == TRUE, f'the EXP recorder got {s and (s["exp"], s["pct"], s["level"])}')
+    check(sc.lost_since is None, 'once the status bar is found the recorder no longer counts the EXP line as missing')
     # the slow reads: a new map name counts once read the same twice, and the next look comes sooner while it waits
     from sapline import location
     names, got = [], []

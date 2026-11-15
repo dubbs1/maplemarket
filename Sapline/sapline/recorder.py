@@ -35,6 +35,7 @@ class ExpRunner:
         self.latest, self.party_t = None, 0           # the newest screenshot (for the slow reads' thread); the last party look
         self.meso_seen, self.meso_shot = None, None   # what the last meso look found; a picture with the meso box, to be read
         self.pending = []                             # kills waiting for their "after" pictures: {'exp', 'before', 't', 'after'}
+        self.lost_since = None                        # since when the status bar hasn't been found (None once it is)
 
     def saw(self, img, now):
         """A new screenshot: a kill just seen gets its "before" pictures (2 and 3 s back), and earlier kills their
@@ -156,6 +157,7 @@ class ExpRunner:
 
     def run(self):
         fails, pause, spent = 0, 0, 0
+        self.lost_since = time.time()                 # (the page says how long the EXP line has been missing)
         self.screen.open()
         threading.Thread(target=self._looks, daemon=True, name='look').start()
         try:
@@ -175,6 +177,8 @@ class ExpRunner:
                     self.latest = img
                     reading = self.watcher.update(img)
                     now = time.time()
+                    if self.watcher.bar:
+                        self.lost_since = None
                     if reading and self.tracker.add(reading, now=now):
                         self.events.exp(self.tracker.summary())
                     self.saw(img, now)

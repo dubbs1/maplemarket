@@ -147,6 +147,9 @@ input.mn{min-height:34px}
 .opt>label:first-child,.opt>span:first-child{min-width:0}label.opt,.opt label{cursor:pointer}.opt b{display:block}.opt .mu{display:block}
 .opt select{width:auto;flex:none}.opt button{flex:none}
 .upd{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 10%,var(--card))}
+.upd .wn{border-top:1px solid var(--bd);padding-top:8px}.upd .wn li{display:block;padding:3px 0;border:0}
+.lostc{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--card))}.lostc ol{margin:0;padding-left:20px;color:var(--mu);font-size:14px}
+td.xm{white-space:normal;color:var(--mu);padding-top:4px;padding-bottom:12px;border-top:0}.pa .ask{font-weight:700}
 .notes{margin:0;padding:0;list-style:none;font-size:13px}
 .notes li{padding:6px 0;border-top:1px solid var(--bd);color:var(--mu);display:flex;gap:8px}
 .notes li:first-child{border-top:0}.notes li b{font-family:var(--mono);font-weight:500;flex:none}
@@ -187,7 +190,9 @@ let view = "exp",
   xr = "session", // the chart: this session or the last 7 days
   xkind = "bars", // bars or a line
   xlog = false,   // ...on a log scale
-  xren = null;    // the run being renamed
+  xren = null,    // the run being renamed
+  xmobs = null,   // the run whose mobs are listed under it
+  xask = 0;       // when "Reset session" was pressed (the question shows for 6 s), 0 = not asked
 const APP = { seq: 0, st: null, notes: [], lost: false };
 const segBtns = (name, cur, opts) =>
   `<span class="seg" role="group">${opts.map(([v, t]) => `<button data-${name}="${v}" aria-pressed="${v === cur}">${t}</button>`).join("")}</span>`;
@@ -299,6 +304,7 @@ function drawExp(force) {
     warm = x && x.warm,
     rate = (v, dec) => (v == null ? "…" : (warm ? "≈" : "") + (dec ? v.toLocaleString("en-US", { maximumFractionDigits: 2 }) : fmt(v))),
     skipped = (st.exp_unread || 0) + ((x && x.skipped) || 0);
+  if (xask && Date.now() - xask > 6000) xask = 0;                      // the question gave up waiting
   if (!x) return put(updCard(st) + firstOpen(st, on), force);
   // the trend line under the big number
   let vs = "";
@@ -312,7 +318,8 @@ function drawExp(force) {
     sub = !on ? "Recording is off. The numbers are from before it stopped." : x.idle ? "Paused: no EXP for a while." : warm ? "The first five minutes: the rates are still settling." : where || "This session so far",
     sl = x.slots || [],
     html = updCard(st) + `<div class="${warm ? "warm" : ""}" style="display:contents">` +
-      head("Home", sub, `<button data-x="reset">Reset session</button>`) +
+      head("Home", sub, xask ? `<span class="ask">Reset the session?</span><button data-x="reset-yes" class="pri">Yes, reset</button><button data-x="reset-no">Keep it</button>`
+        : `<button data-x="copy">Copy summary</button><button data-x="reset">Reset session</button>`) + lostCard(st, true) +
       `<section class="card hero" aria-label="Right now">` +
       `<div><div class="row"><span class="k">EXP per hour</span></div>` +
         `<div class="bline"><span class="big">${rate(x.per_hour)}</span><span>EXP / h</span></div>${vs}` +
@@ -403,7 +410,7 @@ function chart(which, sl, D) {
 function firstOpen(st, on) {
   const title = !on ? "Ready when you are" : st.exp_found ? "Reading your EXP…" : "Looking for the EXP line",
     sub = !on ? "Press Start recording at the bottom left when you are ready to hunt. Sapline reads your EXP from the game's status bar." : "Nothing to set up; just keep the status bar visible.";
-  return head(title, sub) + `<div class="g2">` +
+  return head(title, sub) + lostCard(st) + `<div class="g2">` +
     `<section class="card" aria-label="What to check"><h2>Three things to check</h2><div class="steps">` +
     `<div><i>1</i><div><b>The game is open on your main screen</b><br><span>Sapline reads the main screen, in a window or full screen.</span></div></div>` +
     `<div><i>2</i><div><b>The status bar is showing</b><br><span>The strip at the bottom with your level, HP, MP and EXP. Nothing may cover it.</span></div></div>` +
@@ -414,6 +421,44 @@ function firstOpen(st, on) {
     `<div style="display:flex;justify-content:space-between"><span style="width:110px;height:60px;border-radius:6px;border:1px solid var(--bd);background:var(--card)"></span><span style="width:150px;height:26px;border-radius:6px;border:1px solid var(--bd);background:var(--card)"></span></div>` +
     `<div class="bar"><span class="num" style="height:auto;font-size:13px;font-weight:700">Lv. 39</span><span style="flex:1;background:#d9534f"></span><span style="flex:1;background:#4a7bd9"></span><span style="flex:2;background:var(--gold)"></span><span class="num mu" style="height:auto;font-size:12px">61.37%</span></div></div>` +
     `<span class="mu">Sapline looks for the red HP and blue MP bars, then reads the numbers beside them. It takes a picture of your screen about once a second and keeps nothing but the numbers and a small picture of each mob.</span></section></div>` + notesHtml();
+}
+// Recording, but the status bar has been missing for half a minute: a highlighted card (full before the first
+// reading, one line above the hero card after). It goes by itself when the bar is seen again (exp_lost_s = null).
+function lostCard(st, small) {
+  const s = st.exp_lost_s;
+  if (!st.exp_on || s == null || s < 30) return "";
+  const checks = ["The game is open on your main screen.", "The status bar (level, HP, MP, EXP) is showing and nothing covers it.", "The interface size is 1.0 or larger."];
+  return `<section class="card lostc" id="lost" aria-label="The EXP line is missing"><div class="row wrap"><span style="min-width:0"><b>Sapline can't see the EXP line</b><br>` +
+    `<span class="mu">The status bar has not been found for ${fmt(s)} seconds.${small ? " Check that the game is on your main screen, the status bar is showing with nothing over it, and the interface size is 1.0 or larger." : ""}</span></span>` +
+    `<button data-x="shot">Save a screenshot to send</button></div>` +
+    (small ? "" : `<ol>${checks.map(c => `<li>${c}</li>`).join("")}</ol>`) + `</section>`;
+}
+// Copy summary: this session as plain text, one line each, only what is known
+function summaryText(st) {
+  const x = st.exp;
+  if (!x) return "";
+  const r = x.run || {}, dec = v => v.toLocaleString("en-US", { maximumFractionDigits: 2 }), L = [];
+  L.push(`Sapline · ${r.map || "This hunt"} · ${fmt(x.minutes || 0)} min`);
+  if (x.per_hour != null) L.push(`EXP per hour: ${fmt(x.per_hour)}` + (x.pct_per_hour != null ? ` (${dec(x.pct_per_hour)}% of the level an hour)` : ""));
+  const lv = [x.level ? `Level ${x.level}` : "", x.pct != null ? `at ${x.pct.toFixed(2)}%` : ""].filter(Boolean).join(" ");
+  if (lv) L.push(lv + (x.left != null ? `, ${fmt(x.left)} to go` : "") + (x.eta_text ? `, next level in about ${x.eta_text}` : ""));
+  L.push([x.gained != null ? `Gained: ${fmt(x.gained)}` : "", x.kills_total != null ? `Kills: ${fmt(x.kills_total)}` + (x.kills_per_hour != null ? ` (${fmt(x.kills_per_hour)}/h)` : "") : "",
+    x.taken != null ? `Damage taken: ${fmt(x.taken)}` : ""].filter(Boolean).join(" · "));
+  if (x.mesos_gained != null) L.push(`Mesos: ${x.mesos_gained >= 0 ? "+" : ""}${fmt(x.mesos_gained)}` + (x.mesos_per_hour != null ? ` (${fmt(x.mesos_per_hour)}/h)` : ""));
+  const mobs = (x.kills || []).slice().sort((a, b) => b.n - a.n).slice(0, 5);
+  if (mobs.length) L.push("Mobs: " + mobs.map(k => `${k.name || fmt(k.exp) + " EXP"} ×${k.n}`).join(", "));
+  return L.filter(Boolean).join("\n");
+}
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; } catch (e) {}
+  try {                                                       // the old way, when the clipboard says no
+    const ta = document.createElement("textarea");
+    ta.value = t; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;opacity:0";
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  } catch (e) { return false; }
 }
 // Messages from the app (an update, a problem): the latest as one line on Home, the last few on Runs
 const noteLi = n => `<li class="${n.level || ""}"><b>${new Date((n.t || 0) * 1000).toTimeString().slice(0, 5)}</b><span>${esc(n.text)}</span></li>`;
@@ -431,7 +476,15 @@ function updCard(st) {
     ? `<b>Updating to ${v}…</b><p class="mu">${u.state === "downloading" ? "Downloading." : "Installing. The app restarts by itself."}</p>`
     : `<div class="row"><span><b>New version ${v}</b><br><span class="mu">` +
       `${u.error ? `<span class="dn">${esc(u.error)}</span>` : "Your runs and settings stay."}</span></span>` +
-      (u.can_install ? `<button class="go" data-upd="now">Update now</button>` : `<button data-page="${esc(u.page || "https://github.com/dubbs1/maplemarket/releases")}">Download page</button>`) + `</div>`) + `</div>`;
+      (u.can_install ? `<button class="go" data-upd="now">Update now</button>` : `<button data-page="${esc(u.page || "https://github.com/dubbs1/maplemarket/releases")}">Download page</button>`) + `</div>` + whatsNew(u.notes)) + `</div>`;
+}
+// The release notes, as short plain lines (the markdown marks taken off), six at most
+function whatsNew(notes) {
+  const L = String(notes || "").split(/\r?\n/)
+    .map(l => l.replace(/^\s*(#+|[*\-+]|\d+[.)])\s*/, "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\*\*|__|`/g, "").trim()).filter(Boolean);
+  if (!L.length) return "";
+  return `<div class="wn"><b>What's new</b><ul class="notes mu" id="whatsnew">${L.slice(0, 6).map(l => `<li>${esc(l)}</li>`).join("")}` +
+    (L.length > 6 ? `<li>… and more on the download page</li>` : "") + `</ul></div>`;
 }
 /* ===== Runs ===== one line per hunt (a map and a level, until a level-up, a new map or 30 minutes without EXP) */
 function drawRuns(force) {
@@ -439,16 +492,21 @@ function drawRuns(force) {
     r = x && x.run && x.run.minutes >= 1 ? x.run : null,
     logOn = (st.settings || {}).exp_log !== false,
     dt = t => new Date(t * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    id = (e, now) => (now ? "now" : String(e.id)),             // the Mobs button's run: "now" for the hunt going on
     row = (e, now) => `<tr${now ? ' class="now"' : ""}><td>${now ? "Now" : dt(e.date)}</td><td><b>${esc(e.name || e.map || "—")}</b></td>` +
       `<td class="num">${e.level || "—"}</td><td>${e.party > 1 ? e.party + " in party" : "solo"}</td><td class="num">${mins(e.minutes)}</td>` +
       `<td class="num r gold">${e.per_hour == null ? "…" : fmt(e.per_hour)}</td><td class="num r">${e.mesos_per_hour == null ? "—" : fmt(e.mesos_per_hour)}</td>` +
-      `<td class="num r" title="${esc((e.kills || []).map(k => `${k.name || k.exp + " EXP"} ×${k.n}`).join(", "))}">${e.kills_total == null ? "—" : fmt(e.kills_total)}</td>` +
+      `<td class="num r">${e.kills_total == null ? "—" : fmt(e.kills_total)}</td>` +
       `<td class="num r">${e.taken == null ? "—" : fmt(e.taken)}</td><td class="r">` +
       (now ? "" : xren === e.id
         ? `<input id="xrn" maxlength="40" value="${esc(e.name || e.map || "")}" aria-label="Name"><button data-xl="save" data-id="${e.id}">Save</button>`
-        : `<button data-xl="rename" data-id="${e.id}">Rename</button><button data-xl="delete" data-id="${e.id}">Delete</button>`) + `</td></tr>`;
+        : `<button data-xl="rename" data-id="${e.id}">Rename</button><button data-xl="delete" data-id="${e.id}">Delete</button>`) +
+      `<button data-xl="mobs" data-id="${id(e, now)}" aria-expanded="${xmobs === id(e, now)}">Mobs</button></td></tr>` +
+      (xmobs === id(e, now) ? `<tr class="xm"><td class="xm" colspan="10"><b style="color:var(--tx)">Mobs:</b> ${(e.kills || []).length
+        ? (e.kills || []).map(k => `${esc(k.name || fmt(k.exp) + " EXP")} ×${fmt(k.n)}`).join(" · ") : "No kills counted"}</td></tr>` : "");
   put(head("Runs", "One line per hunt. A run ends when you change map, level up, or stop for 30 minutes.",
-    `<label class="card" style="flex-direction:row;align-items:center;gap:10px;padding:8px 12px;font-weight:700;font-size:14px;cursor:pointer"><input type="checkbox" data-xl="on"${logOn ? " checked" : ""}> Log my runs</label>`) +
+    `<label class="card" style="flex-direction:row;align-items:center;gap:10px;padding:8px 12px;font-weight:700;font-size:14px;cursor:pointer"><input type="checkbox" data-xl="on"${logOn ? " checked" : ""}> Log my runs</label>` +
+    (L.length ? `<button data-xl="export">Export CSV</button>` : "")) +
     weekTiles(L) +
     `<section class="card tcard xlog" aria-label="Runs">` +
     (r || L.length ? `<div class="tw"><table><thead><tr><th>When</th><th>Map</th><th>Level</th><th>Party</th><th>Time</th><th class="r">EXP / h</th><th class="r">Mesos / h</th>` +
@@ -503,7 +561,15 @@ function drawMobs(force) {
       : `<section class="card"><b>No kills yet</b><p class="mu">Kills show here as your EXP goes up.</p></section>`) +
     (hunt.length && sess !== hunt && sess.length ? `<section class="card tcard" aria-label="This session"><h2>This session</h2><div class="tw"><table><thead><tr><th>Mob</th><th class="r">EXP each</th><th class="r">Kills</th><th class="r">EXP from it</th></tr></thead><tbody>` +
       `${named(sess).map(trow).join("")}${other(sess) ? `<tr><td class="mu">Other gains</td><td class="num r">—</td><td class="num r">${fmt(other(sess))}</td><td class="num r">—</td></tr>` : ""}</tbody></table></div>` +
-      `<p class="mu tfoot">Kills are counted from each rise of your EXP. Two mobs that give the same EXP are counted as one, and a rise worth two to six of a mob counts as that many kills of it.</p></section>` : ""), force);
+      `<p class="mu tfoot">Kills are counted from each rise of your EXP. Two mobs that give the same EXP are counted as one, and a rise worth two to six of a mob counts as that many kills of it.</p></section>` : "") +
+    allTime(st.mobs_all || []), force);
+}
+// Every mob over the whole run log (controller.mobs_all), the most killed first
+function allTime(A) {
+  if (!A.length) return "";
+  return `<section class="card tcard" id="alltime" aria-label="All time"><h2>All time</h2><div class="tw"><table><thead><tr><th>Mob</th><th class="r">Kills</th><th class="r">EXP from it</th></tr></thead><tbody>` +
+    A.slice(0, 15).map(m => `<tr><td>${m.name ? `<b>${esc(m.name)}</b>` : `${fmt(m.exp)} EXP`}</td><td class="num r">${fmt(m.n)}</td><td class="num r gold">${fmt(m.gained != null ? m.gained : m.exp * m.n)}</td></tr>`).join("") +
+    `</tbody></table></div><p class="mu tfoot">From your run log. Mobs are told apart by the EXP they give.</p></section>`;
 }
 /* ===== Settings ===== */
 const PAUSE = [1, 2, 3, 5, 10, 15, 20, 30];
@@ -581,6 +647,8 @@ document.addEventListener("click", e => {
     else if (d.xl === "rename") { xren = d.id; drawRuns(true); }
     else if (d.xl === "save") { api("/api/exp-log", { action: "rename", id: d.id, name: $("#xrn").value }).then(done); xren = null; drawRuns(true); }
     else if (d.xl === "delete") api("/api/exp-log", { action: "delete", id: d.id }).then(done);
+    else if (d.xl === "mobs") { xmobs = xmobs === d.id ? null : d.id; drawRuns(true); }
+    else if (d.xl === "export") api("/api/export-runs").then(r => say(r.ok ? `Saved ${r.file} in the scans folder (${r.rows} run${r.rows === 1 ? "" : "s"}). Open folder: Settings → Your data.` : r.error || "Could not save the runs."));
   } else if (d.mns !== undefined || d.mnx !== undefined) {
     const exp = +(d.mns !== undefined ? d.mns : d.mnx),
       body = d.mns !== undefined ? { exp, name: ($(`[data-mn="${exp}"]`) || {}).value || "" } : { exp, action: "forget" };
@@ -594,7 +662,14 @@ document.addEventListener("click", e => {
     saveCharts();
     drawExp(true);
   } else if (d.x === "go") api("/api/set", { exp: !(APP.st && APP.st.exp_on) }).then(r => r.ok || say(r.error || "Could not change EXP recording."));
-  else if (d.x === "reset") api("/api/exp-reset").then(r => say(r.ok ? "Counting again from now" : r.error || "Could not reset."));
+  else if (d.x === "reset") {                                 // ask first; the question gives up after 6 s
+    const t = (xask = Date.now());
+    drawExp(true);
+    setTimeout(() => { if (xask === t) { xask = 0; if (view === "exp") drawExp(true); } }, 6000);
+  } else if (d.x === "reset-yes") { xask = 0; api("/api/exp-reset").then(r => say(r.ok ? "Counting again from now" : r.error || "Could not reset.")); drawExp(true); }
+  else if (d.x === "reset-no") { xask = 0; drawExp(true); }
+  else if (d.x === "copy") copyText(summaryText(APP.st || {})).then(ok => say(ok ? "Summary copied. Paste it anywhere." : "Could not copy. Try again."));
+  else if (d.x === "shot") api("/api/screenshot").then(r => say(r.ok ? `Saved ${r.file} in the scans folder.` : r.error || "Could not save a screenshot."));
   else if (d.upd) api("/api/update").then(r => r.ok || say(r.error || "Could not start the update."));
   else if (d.page) window.open(d.page, "_blank", "noopener");
 });
@@ -604,7 +679,7 @@ document.addEventListener("keydown", e => {
   const box = e.target.closest(".mob,td"), b = box && box.querySelector("[data-xl=save],[data-mns]");
   if (b) { e.preventDefault(); b.click(); }
 });
-document.querySelectorAll("[data-nav]").forEach(b => (b.onclick = () => { view = b.dataset.nav; xren = null; draw(); }));
+document.querySelectorAll("[data-nav]").forEach(b => (b.onclick = () => { view = b.dataset.nav; xren = null; xask = 0; draw(); }));
 try {
   const t = localStorage.getItem(KEY + ":theme"), c = JSON.parse(localStorage.getItem(KEY + ":charts") || "{}");
   // night first: the game window is dark and the app sits beside it; the Look setting remembers a change
