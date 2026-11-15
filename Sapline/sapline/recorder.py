@@ -2,7 +2,6 @@
 import difflib
 import threading
 import time
-from collections import deque
 from .capture import Screen
 from .exp import ExpWatcher
 
@@ -19,11 +18,9 @@ class Events:
 class ExpRunner:
     """Records EXP: a screenshot once a second (capture.py), the status bar's EXP line read from it (exp.py) and the party window
     every other second and the meso box spotted every second (location.py, mesos.py); the map's name and the meso
-    amount (Tesseract, slow) on a second thread; and the pictures around each kill kept for the mob pictures
-    (mobpics.py). Runs on its own thread until stop()."""
-    FRAMES = 5                                         # screenshots kept (the last few seconds) for the mob pictures
+    amount (Tesseract, slow) on a second thread. Runs on its own thread until stop()."""
 
-    def __init__(self, tracker, monitor=1, events=None, every=1.0, mobpics=None, fight=None, capture='auto', meso_dir=None):
+    def __init__(self, tracker, monitor=1, events=None, every=1.0, capture='auto', meso_dir=None):
         self.tracker, self.monitor, self.every = tracker, monitor, every
         self.meso_dir = meso_dir                      # scans/meso: a record of every meso reading, for reports
         self.screen = Screen(prefer=capture, monitor=monitor)   # the screenshots (capture.py: fast when it works, standard otherwise)
@@ -31,37 +28,9 @@ class ExpRunner:
         self.watcher = ExpWatcher()
         self._stop = threading.Event()
         self.seen_map = None                          # the map's name must be read the same twice before it counts
-        self.mobpics, self.fight = mobpics, fight     # mobpics.MobPics (a picture of each mob killed); fight() = save whole pictures?
-        self.frames = deque(maxlen=self.FRAMES)       # (time, screenshot), newest last
         self.latest, self.party_t = None, 0           # the newest screenshot (for the slow reads' thread); the last party look
         self.meso_seen, self.meso_shot = None, None   # what the last meso look found; a picture with the meso box, to be read
-        self.pending = []                             # kills waiting for their "after" pictures: {'exp', 'before', 't', 'after'}
         self.lost_since = None                        # since when the status bar hasn't been found (None once it is)
-
-    def saw(self, img, now):
-        """A new screenshot: a kill just seen gets its "before" pictures (2 and 3 s back), and earlier kills their
-        "after" ones (2, 3 and 4 s on); with all, the mob's picture is cut out if the kill was clear (mobpics.catch)."""
-        self.frames.append((now, img))
-        t = self.tracker
-        if t.last_kills and t.gain_t == now and len(t.last_kills) == 1 and t.last_kills[0][1] == 1 and self.mobpics:
-            old = [f for f in self.frames if now - f[0] >= 1.8]
-            older = [f for f in self.frames if now - f[0] >= 2.8]
-            if old:
-                self.pending = (self.pending + [{'exp': t.last_kills[0][0], 'before': old[-1][1], 'earlier': older[-1][1] if older else None,
-                                                 't': now, 'after': None, 'after2': None}])[-3:]
-        done = []
-        for p in self.pending:
-            if p['after'] is None and now - p['t'] >= 1.8:
-                p['after'] = img
-            elif p['after'] is not None and p['after2'] is None and now - p['t'] >= 2.8:
-                p['after2'] = img
-            elif p['after2'] is not None and now - p['t'] >= 3.8:
-                frames = (p['before'], p['after'], p['after2'], p['earlier'], img)
-                self.mobpics.look(p['exp'], frames)
-                if self.fight and self.fight():
-                    self.mobpics.save_fight(p['exp'], frames)
-                done.append(p)
-        self.pending = [p for p in self.pending if p not in done]
 
     LOOK_PARTY, LOOK_MESOS, LOOK_MAP, LOOK_CONFIRM = 2, 5, 10, 3   # seconds between looks (the party window and the meso box are
                                                                  # spotted cheaply; reading them needs Tesseract: a thread, see _looks)
@@ -202,7 +171,6 @@ class ExpRunner:
                         self.lost_since = None
                     if reading and self.tracker.add(reading, now=now):
                         self.events.exp(self.tracker.summary())
-                    self.saw(img, now)
                     self.spot_mesos(img)
                     if now - self.party_t >= self.LOOK_PARTY:
                         self.party_t = now

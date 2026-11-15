@@ -13,7 +13,6 @@ run() {   # run <name> <command...>: one line per check, the output only when it
   if [[ $code == 0 ]]; then results+=("PASS  $name"); else results+=("FAIL  $name"); bad=1; printf '\n--- %s ---\n%s\n' "$name" "$out" | tail -n 40; printf '%s\n' "$out" | grep -E '^ *FAIL|Error|Traceback' | head -n 10; fi
 }
 run "reader: EXP tracker" bash -c 'cd Sapline && python3 tests/test_exp.py'
-run "reader: mob pictures" bash -c 'cd Sapline && python3 tests/test_mobpics.py'
 run "reader: app server" bash -c 'cd Sapline && python3 tests/test_server.py'
 run "reader: updates"    bash -c 'cd Sapline && python3 tests/test_update.py'
 run "reader: screen capture" bash -c 'cd Sapline && python3 tests/test_capture.py'

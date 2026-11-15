@@ -6,9 +6,6 @@ echo.
 py -3.13 tests\test_exp.py
 if errorlevel 1 set FAILED=1
 echo.
-py -3.13 tests\test_mobpics.py
-if errorlevel 1 set FAILED=1
-echo.
 py -3.13 tests\test_server.py
 if errorlevel 1 set FAILED=1
 echo.

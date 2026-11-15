@@ -372,11 +372,10 @@ class ExpTracker:
 
     KILL_MAX = 6                                         # kills of one mob that may hide in one reading (3 s)
 
-    def __init__(self, on_gain=None, on_run=None, namer=None):
+    def __init__(self, on_gain=None, on_run=None):
         self.lock = threading.Lock()
         self.on_gain = on_gain                           # called with each gain (n, time): the daily totals
         self.on_run = on_run                             # called with each finished run (a line for the EXP log)
-        self.namer = namer                               # the mob that gives this much EXP (mobs.txt), or None
         self.map = None                                  # the map you're on, when known (for the EXP log)
         self.paused = None                               # when recording was stopped: the clock stands still
         self.idle = EXP_IDLE                             # no EXP for this long: the clock stops (Options: "Pause after")
@@ -437,7 +436,7 @@ class ExpTracker:
         that is a multiple of one, or the sum of two, is those kills. (In a party the EXP is shared by damage dealt:
         the amounts are steady while your partner hunts elsewhere, and vary when you share mobs; the page folds
         amounts seen once into "other gains".)"""
-        self.last_kills = []                         # (what this rise was taken as: the mob-picture catcher asks)
+        self.last_kills = []                         # (what this rise was taken as)
         known = sorted((a for a, n in self.amounts.items() if n >= 2), reverse=True)
         if d in known:
             return self._kill(d, 1)
@@ -467,8 +466,8 @@ class ExpTracker:
                 kills[a] = kills.get(a, 0) + kills.pop(b) * (b // a)
 
     def _kill_list(self, kills):
-        """[{exp, n, name}], most killed first (name None when the amount isn't in mobs.txt)."""
-        out = [{'exp': a, 'n': n, 'name': self.namer(a) if self.namer else None} for a, n in kills.items()]
+        """[{exp, n}], most killed first: how the kills split by the EXP one gave (the totals are what the page shows)."""
+        out = [{'exp': a, 'n': n} for a, n in kills.items()]
         return sorted(out, key=lambda k: -k['n'])
 
     def _hp(self, cur, full):

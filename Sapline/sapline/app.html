@@ -132,15 +132,6 @@ tr.now td{color:var(--gold)}
 td button{min-height:34px;padding:0 12px;font-size:13px;margin-left:6px;background:var(--sf)}td input{width:170px;min-height:34px;display:inline-block}
 .tfoot{margin:0;padding:12px 18px;border-top:1px solid var(--bd)}
 .tcard h2{padding:10px 18px 4px}
-/* ---- mobs ---- */
-.mob{flex-direction:row;gap:14px;padding:14px}
-.mob .pic{width:96px;height:96px;flex:none;border-radius:10px;background:var(--sf);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;overflow:hidden}
-.mob .pic img{max-width:92px;max-height:92px;object-fit:contain}.mob .pic svg{width:56px;height:56px;color:var(--mu)}
-.mob .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
-.mob label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mu)}
-.mob input.mn{min-height:38px;font-weight:700}
-.mob .btns{display:flex;gap:6px;flex-wrap:wrap}.mob .btns button{min-height:34px;padding:0 12px;font-size:13px}
-input.mn{min-height:34px}
 /* ---- settings ---- */
 .opt{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 0}
 .opt+.opt{border-top:1px solid var(--bd)}.opt:last-child{padding-bottom:0}
@@ -149,7 +140,7 @@ input.mn{min-height:34px}
 .upd{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 10%,var(--card))}
 .upd .wn{border-top:1px solid var(--bd);padding-top:8px}.upd .wn li{display:block;padding:3px 0;border:0}
 .lostc{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--card))}.lostc ol{margin:0;padding-left:20px;color:var(--mu);font-size:14px}
-td.xm{white-space:normal;color:var(--mu);padding-top:4px;padding-bottom:12px;border-top:0}.pa .ask{font-weight:700}
+.pa .ask{font-weight:700}
 .notes{margin:0;padding:0;list-style:none;font-size:13px}
 .notes li{padding:6px 0;border-top:1px solid var(--bd);color:var(--mu);display:flex;gap:8px}
 .notes li:first-child{border-top:0}.notes li b{font-family:var(--mono);font-weight:500;flex:none}
@@ -165,7 +156,6 @@ td.xm{white-space:normal;color:var(--mu);padding-top:4px;padding-bottom:12px;bor
   <nav aria-label="Sections">
     <button data-nav="exp" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Home</button>
     <button data-nav="runs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Runs</button>
-    <button data-nav="mobs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="7"/><path d="M8 5l-2-3M16 5l2-3M9.5 13h.01M14.5 13h.01M10 16c1 1 3 1 4 0"/></svg>Mobs</button>
     <button data-nav="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
   </nav>
   <div class="sp"></div>
@@ -191,7 +181,6 @@ let view = "exp",
   xkind = "bars", // bars or a line
   xlog = false,   // ...on a log scale
   xren = null,    // the run being renamed
-  xmobs = null,   // the run whose mobs are listed under it
   xask = 0;       // when "Reset session" was pressed (the question shows for 6 s), 0 = not asked
 const APP = { seq: 0, st: null, notes: [], lost: false };
 const segBtns = (name, cur, opts) =>
@@ -199,7 +188,6 @@ const segBtns = (name, cur, opts) =>
 const mins = m => (m < 60 ? m + " min" : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`);
 const tile = (k, v, sub) => `<div class="card tile"><span class="k">${k}</span><span class="v">${v}</span><span class="mu">${sub || ""}</span></div>`;
 const head = (title, sub, acts) => `<header class="ph"><div><h1>${title}</h1><p>${sub}</p></div>${acts ? `<div class="pa">${acts}</div>` : ""}</header>`;
-const MOB_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="7"/><path d="M8 5l-2-3M16 5l2-3M9.5 13h.01M14.5 13h.01M10 16c1 1 3 1 4 0"/></svg>';
 async function api(path, body) {
   try {
     const r = await fetch(path, { method: "POST", headers: { "X-Sapline": "1", "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
@@ -239,7 +227,6 @@ async function pull(force) {
     drawChip();
     if (view === "exp") drawExp(force);
     else if (view === "runs") drawRuns(force);
-    else if (view === "mobs") drawMobs(force);
     else if (view === "more") updOpts(j);
   } catch (e) {
     APP.lost = true;
@@ -277,24 +264,21 @@ function draw() {
     $("#app").innerHTML = '<div class="card"><b>This page is part of Sapline.</b><p class="mu">Open Sapline; it shows this page in its own window.</p></div>';
     return;
   }
-  ({ exp: drawExp, runs: drawRuns, mobs: drawMobs, more: drawMore })[view](true);
+  ({ exp: drawExp, runs: drawRuns, more: drawMore })[view](true);
   $("#app").focus({ preventScroll: true });
 }
 // Redraw only when something changed, and never while a box is being typed in
 function put(html, force) {
   const el = $("#app"), ae = document.activeElement || {};
-  if (!force && (ae.id === "xrn" || (ae.classList && ae.classList.contains("mn")))) return;
+  if (!force && ae.id === "xrn") return;
   if (force || el.dataset.html !== html) {
     const typed = $("#xrn") ? $("#xrn").value : null;        // a name being typed survives the redraw
-    const names = {};                                         // (so does a mob name not saved yet)
-    document.querySelectorAll("input.mn").forEach(b => { if (b.value) names[b.dataset.mn] = b.value; });
     el.innerHTML = html;
     el.dataset.html = html;
     if (xren && $("#xrn")) {
       if (typed != null) $("#xrn").value = typed;
       if (ae.id === "xrn") $("#xrn").focus();
     }
-    document.querySelectorAll("input.mn").forEach(b => { if (names[b.dataset.mn] && !b.value) b.value = names[b.dataset.mn]; });
   }
 }
 // "read 17:06": when the Item window's amount was last read, so a wrong number can be matched with the game
@@ -422,7 +406,7 @@ function firstOpen(st, on) {
     `<div role="img" aria-label="A game window; the status bar along the bottom is highlighted" style="flex:1;min-height:170px;border-radius:12px;border:1px solid var(--bd);background:var(--sf);position:relative;display:flex;flex-direction:column;padding:14px;box-sizing:border-box">` +
     `<div style="display:flex;justify-content:space-between"><span style="width:110px;height:60px;border-radius:6px;border:1px solid var(--bd);background:var(--card)"></span><span style="width:150px;height:26px;border-radius:6px;border:1px solid var(--bd);background:var(--card)"></span></div>` +
     `<div class="bar"><span class="num" style="height:auto;font-size:13px;font-weight:700">Lv. 39</span><span style="flex:1;background:#d9534f"></span><span style="flex:1;background:#4a7bd9"></span><span style="flex:2;background:var(--gold)"></span><span class="num mu" style="height:auto;font-size:12px">61.37%</span></div></div>` +
-    `<span class="mu">Sapline looks for the red HP and blue MP bars, then reads the numbers beside them. It takes a picture of your screen about once a second and keeps nothing but the numbers and a small picture of each mob.</span></section></div>` + notesHtml();
+    `<span class="mu">Sapline looks for the red HP and blue MP bars, then reads the numbers beside them. It takes a picture of your screen about once a second and keeps nothing but the numbers.</span></section></div>` + notesHtml();
 }
 // Recording, but the status bar has been missing for half a minute: a highlighted card (full before the first
 // reading, one line above the hero card after). It goes by itself when the bar is seen again (exp_lost_s = null).
@@ -447,8 +431,6 @@ function summaryText(st) {
   L.push([x.gained != null ? `Gained: ${fmt(x.gained)}` : "", x.kills_total != null ? `Kills: ${fmt(x.kills_total)}` + (x.kills_per_hour != null ? ` (${fmt(x.kills_per_hour)}/h)` : "") : "",
     x.taken != null ? `Damage taken: ${fmt(x.taken)}` : ""].filter(Boolean).join(" · "));
   if (x.mesos_gained != null) L.push(`Mesos: ${x.mesos_gained >= 0 ? "+" : ""}${fmt(x.mesos_gained)}` + (x.mesos_per_hour != null ? ` (${fmt(x.mesos_per_hour)}/h)` : ""));
-  const mobs = (x.kills || []).slice().sort((a, b) => b.n - a.n).slice(0, 5);
-  if (mobs.length) L.push("Mobs: " + mobs.map(k => `${k.name || fmt(k.exp) + " EXP"} ×${k.n}`).join(", "));
   return L.filter(Boolean).join("\n");
 }
 async function copyText(t) {
@@ -494,7 +476,6 @@ function drawRuns(force) {
     r = x && x.run && x.run.minutes >= 1 ? x.run : null,
     logOn = (st.settings || {}).exp_log !== false,
     dt = t => new Date(t * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-    id = (e, now) => (now ? "now" : String(e.id)),             // the Mobs button's run: "now" for the hunt going on
     row = (e, now) => `<tr${now ? ' class="now"' : ""}><td>${now ? "Now" : dt(e.date)}</td><td><b>${esc(e.name || e.map || "—")}</b></td>` +
       `<td class="num">${e.level || "—"}</td><td>${e.party > 1 ? e.party + " in party" : "solo"}</td><td class="num">${mins(e.minutes)}</td>` +
       `<td class="num r gold">${e.per_hour == null ? "…" : fmt(e.per_hour)}</td><td class="num r">${e.mesos_per_hour == null ? "—" : fmt(e.mesos_per_hour)}</td>` +
@@ -502,10 +483,7 @@ function drawRuns(force) {
       `<td class="num r">${e.taken == null ? "—" : fmt(e.taken)}</td><td class="r">` +
       (now ? "" : xren === e.id
         ? `<input id="xrn" maxlength="40" value="${esc(e.name || e.map || "")}" aria-label="Name"><button data-xl="save" data-id="${e.id}">Save</button>`
-        : `<button data-xl="rename" data-id="${e.id}">Rename</button><button data-xl="delete" data-id="${e.id}">Delete</button>`) +
-      `<button data-xl="mobs" data-id="${id(e, now)}" aria-expanded="${xmobs === id(e, now)}">Mobs</button></td></tr>` +
-      (xmobs === id(e, now) ? `<tr class="xm"><td class="xm" colspan="10"><b style="color:var(--tx)">Mobs:</b> ${(e.kills || []).length
-        ? (e.kills || []).map(k => `${esc(k.name || fmt(k.exp) + " EXP")} ×${fmt(k.n)}`).join(" · ") : "No kills counted"}</td></tr>` : "");
+        : `<button data-xl="rename" data-id="${e.id}">Rename</button><button data-xl="delete" data-id="${e.id}">Delete</button>`) + `</td></tr>`;
   put(head("Runs", "One line per hunt. A run ends when you change map, level up, or stop for 30 minutes.",
     `<label class="card" style="flex-direction:row;align-items:center;gap:10px;padding:8px 12px;font-weight:700;font-size:14px;cursor:pointer"><input type="checkbox" data-xl="on"${logOn ? " checked" : ""}> Log my runs</label>` +
     (L.length ? `<button data-xl="export">Export CSV</button>` : "")) +
@@ -537,42 +515,6 @@ function weekTiles(L) {
     tile("This week", fmt(tot), `EXP in ${week.length} run${week.length > 1 ? "s" : ""} · ${mins(tmin)}`) +
     tile("Longest run", mins(lon.minutes), `${esc(lon.name || lon.map || "—")}, ${new Date(lon.date * 1000).toLocaleDateString(undefined, { weekday: "long" })}`) + `</div>`;
 }
-/* ===== Mobs ===== the kills, told apart by the EXP one kill gives, with the pictures cut from the screen */
-function drawMobs(force) {
-  const st = APP.st || {}, x = st.exp,
-    hunt = (x && x.run && x.run.kills) || [],
-    sess = (x && x.kills) || [],
-    cards = hunt.length ? hunt : sess,                       // the cards: this hunt, or the session when no hunt is going
-    shown = new Set(cards.filter(k => k.name || k.n > 1).map(k => k.exp)),   // the ones that got a card
-    sum = all => fmt(all.reduce((a, k) => a + k.n, 0)),
-    nameBox = k => `<label><span>Name</span><input class="mn" data-mn="${k.exp}" maxlength="40" placeholder="Type the mob's name" aria-label="Name this mob"></label>`,
-    card = k => `<article class="card mob"><div class="pic">${k.pic ? `<img src="/api/mobpic/${k.exp}.png?v=${k.pic}" alt="Picture of the mob, cut from your screen">` : MOB_ICON}</div><div class="body">` +
-      `<div class="row"><span class="num gold" style="font-weight:700">${fmt(k.exp)} EXP</span><span class="mu"><b class="num" style="color:var(--tx)">${fmt(k.n)}</b> kill${k.n > 1 ? "s" : ""} · <b class="num" style="color:var(--tx)">${fmt(k.exp * k.n)}</b> EXP</span></div>` +
-      (k.name ? `<b style="font-size:16px">${esc(k.name)}</b>` : nameBox(k)) +
-      `<div class="btns">${k.name ? "" : `<button class="pri" data-mns="${k.exp}">Save</button>`}${k.pic ? `<button data-mnx="${k.exp}">Not this mob</button>` : ""}</div></div></article>`,
-    // amounts seen once in a party are shared mobs or quests: one "Other gains" line
-    named = all => all.filter(k => k.name || k.n > 1), other = all => all.filter(k => !(k.name || k.n > 1)).reduce((a, k) => a + k.n, 0),
-    trow = k => `<tr><td>${k.name ? `<b>${esc(k.name)}</b>` : shown.has(k.exp) ? '<span class="mu">Not named yet</span>'
-        : `<input class="mn" data-mn="${k.exp}" maxlength="40" placeholder="Name this mob" aria-label="Name this mob"><button class="pri" data-mns="${k.exp}">Save</button>`}</td>` +
-      `<td class="num r">${fmt(k.exp)}</td><td class="num r">${fmt(k.n)}</td><td class="num r gold">${fmt(k.exp * k.n)}</td></tr>`;
-  put(head("Mobs", (hunt.length ? "This hunt" + (x.run.map ? " · " + esc(x.run.map) : "") + ". " : "") + "Mobs are told apart by the EXP they give; a name stays once saved.",
-      sess.length ? `<span class="card" style="padding:8px 12px;font-size:13px;font-weight:700">${sum(sess)} kills this session</span>` : "") +
-    (cards.length
-      ? `<div class="g2">${named(cards).map(card).join("")}` +
-        (other(cards) ? `<section class="card" style="border-style:dashed;justify-content:center"><b>Other gains</b><span class="mu">${fmt(other(cards))} kill${other(cards) > 1 ? "s" : ""} of amounts seen once: shared mobs in a party, or quest rewards.</span></section>` : "") + `</div>`
-      : `<section class="card"><b>No kills yet</b><p class="mu">Kills show here as your EXP goes up.</p></section>`) +
-    (hunt.length && sess !== hunt && sess.length ? `<section class="card tcard" aria-label="This session"><h2>This session</h2><div class="tw"><table><thead><tr><th>Mob</th><th class="r">EXP each</th><th class="r">Kills</th><th class="r">EXP from it</th></tr></thead><tbody>` +
-      `${named(sess).map(trow).join("")}${other(sess) ? `<tr><td class="mu">Other gains</td><td class="num r">—</td><td class="num r">${fmt(other(sess))}</td><td class="num r">—</td></tr>` : ""}</tbody></table></div>` +
-      `<p class="mu tfoot">Kills are counted from each rise of your EXP. Two mobs that give the same EXP are counted as one, and a rise worth two to six of a mob counts as that many kills of it.</p></section>` : "") +
-    allTime(st.mobs_all || []), force);
-}
-// Every mob over the whole run log (controller.mobs_all), the most killed first
-function allTime(A) {
-  if (!A.length) return "";
-  return `<section class="card tcard" id="alltime" aria-label="All time"><h2>All time</h2><div class="tw"><table><thead><tr><th>Mob</th><th class="r">Kills</th><th class="r">EXP from it</th></tr></thead><tbody>` +
-    A.slice(0, 15).map(m => `<tr><td>${m.name ? `<b>${esc(m.name)}</b>` : `${fmt(m.exp)} EXP`}</td><td class="num r">${fmt(m.n)}</td><td class="num r gold">${fmt(m.gained != null ? m.gained : m.exp * m.n)}</td></tr>`).join("") +
-    `</tbody></table></div><p class="mu tfoot">From your run log. Mobs are told apart by the EXP they give.</p></section>`;
-}
 /* ===== Settings ===== */
 const PAUSE = [1, 2, 3, 5, 10, 15, 20, 30];
 const sw = (id, title, desc, on) => `<label class="opt" for="${id}"><span><b>${title}</b><span class="mu">${desc}</span></span><input type="checkbox" id="${id}"${on ? " checked" : ""}></label>`;
@@ -585,14 +527,13 @@ function drawMore() {
     sw("ol", "Log my runs", "Keep one line per hunt on the Runs page.", se.exp_log !== false) +
     `<div class="opt"><label for="oi"><b>Pause after</b><span class="mu">Minutes without EXP before the clock stops, so a break does not drag your EXP per hour down.</span></label>` +
     `<select id="oi">${pauses.map(n => `<option value="${n}"${idle === n ? " selected" : ""}>${n} min</option>`).join("")}</select></div>` +
-    sw("ofp", "Save fight pictures", "Only for fixing wrong mob pictures: keeps the screenshots around each kill. Off again at the next start.", !!se.fight_pics) +
     `<div class="opt"><label for="ocap"><b>Screen capture</b><span class="mu" id="capline"></span></label>` +
     `<select id="ocap"><option value="auto"${se.capture !== "standard" ? " selected" : ""}>Fast when possible</option><option value="standard"${se.capture === "standard" ? " selected" : ""}>Standard</option></select></div>` +
     `</section>` +
     `<section class="card" aria-label="App"><h2>App</h2>` +
     `<div class="opt"><span><b>Map names and mesos</b><span class="mu" id="tess"></span></span><button id="tessgo" class="pri" hidden>Install Tesseract</button></div>` +
     `<div class="opt"><span><b>Updates</b><span class="mu" id="updline"></span></span><button id="updcheck">Check now</button></div>` +
-    `<div class="opt"><span><b>Your data</b><span class="mu">Runs, day totals and mob pictures, in the folder next to Sapline.</span></span><button id="oscans">Open folder</button></div>` +
+    `<div class="opt"><span><b>Your data</b><span class="mu">Runs, day totals and screenshots, in the folder next to Sapline.</span></span><button id="oscans">Open folder</button></div>` +
     `<div class="opt"><span><b>Save a screenshot</b><span class="mu">Puts a picture of your screen in that folder, to send when something is not being read (the mesos, the map, the level).</span></span><button id="oshot">Save now</button></div>` +
     `<div class="opt"><span><b>Look</b><span class="mu">Night or day colours.</span></span><button id="theme">${isDark() ? "Switch to day" : "Switch to night"}</button></div></section></div>` +
     `<p class="mu" style="margin:0;line-height:1.5"><b style="color:var(--tx)">Sapline only looks at your screen.</b> It never clicks, types, reads the game's memory or sends anything anywhere. ` +
@@ -601,7 +542,6 @@ function drawMore() {
   $("#ox").onchange = e => api("/api/set", { autostart: e.target.checked }).then(done);
   $("#ol").onchange = e => api("/api/set", { exp_log: e.target.checked }).then(done);
   $("#oi").onchange = e => api("/api/set", { idle_min: +e.target.value }).then(done);
-  $("#ofp").onchange = e => api("/api/set", { fight_pics: e.target.checked }).then(done);
   $("#ocap").onchange = e => api("/api/set", { capture: e.target.value }).then(r => (r.ok ? say("Saved. It is used from the next Start recording.") : done(r)));
   $("#oscans").onclick = () => api("/api/open-scans").then(r => r.ok || say(r.error || "Could not open the folder."));
   $("#oshot").onclick = () => api("/api/screenshot").then(r => say(r.ok ? `Saved ${r.file} in the scans folder.` : r.error || "Could not save a screenshot."));
@@ -632,7 +572,7 @@ function updOpts(st) {
     checking: "Checking…", offline: "Can't reach GitHub right now.", unavailable: "No release to check yet.", off: "Update checks are switched off."
   }[u.state] || "");
   const se = st.settings || {}, ae = document.activeElement || {};
-  for (const [id, v] of [["ox", !!se.autostart], ["ol", se.exp_log !== false], ["ofp", !!se.fight_pics]]) if (ae.id !== id) $("#" + id).checked = v;
+  for (const [id, v] of [["ox", !!se.autostart], ["ol", se.exp_log !== false]]) if (ae.id !== id) $("#" + id).checked = v;
   if (ae.id !== "oi" && [...$("#oi").options].some(o => +o.value === +se.idle_min)) $("#oi").value = +se.idle_min;
   $("#tess").textContent = st.tesseract ? "✓ Installed. Map names and mesos are read for the run log." : "Not installed. EXP works without it.";
   $("#tess").className = st.tesseract ? "up" : "mu";
@@ -640,7 +580,7 @@ function updOpts(st) {
 }
 /* ===== Buttons ===== */
 document.addEventListener("click", e => {
-  const b = e.target.closest("[data-x],[data-xr],[data-xk],[data-xs],[data-xl],[data-mns],[data-mnx],[data-upd],[data-page]");
+  const b = e.target.closest("[data-x],[data-xr],[data-xk],[data-xs],[data-xl],[data-upd],[data-page]");
   if (!b) return;
   const d = b.dataset;
   if (d.xl) {
@@ -649,14 +589,7 @@ document.addEventListener("click", e => {
     else if (d.xl === "rename") { xren = d.id; drawRuns(true); }
     else if (d.xl === "save") { api("/api/exp-log", { action: "rename", id: d.id, name: $("#xrn").value }).then(done); xren = null; drawRuns(true); }
     else if (d.xl === "delete") api("/api/exp-log", { action: "delete", id: d.id }).then(done);
-    else if (d.xl === "mobs") { xmobs = xmobs === d.id ? null : d.id; drawRuns(true); }
     else if (d.xl === "export") api("/api/export-runs").then(r => say(r.ok ? `Saved ${r.file} in the scans folder (${r.rows} run${r.rows === 1 ? "" : "s"}). Open folder: Settings → Your data.` : r.error || "Could not save the runs."));
-  } else if (d.mns !== undefined || d.mnx !== undefined) {
-    const exp = +(d.mns !== undefined ? d.mns : d.mnx),
-      body = d.mns !== undefined ? { exp, name: ($(`[data-mn="${exp}"]`) || {}).value || "" } : { exp, action: "forget" };
-    if (d.mns !== undefined && !body.name.trim()) return say("Type the mob's name first.");
-    api("/api/mob-name", body).then(r => (r.ok ? pull(true).then(() => say(d.mnx !== undefined ? "Picture dropped. The next clear kill takes a new one." : `Saved: ${body.name.trim()} gives ${fmt(exp)} EXP.`))
-      : say(r.error || "Could not save that.")));
   } else if (d.xr || d.xk || d.xs) {
     if (d.xr) xr = d.xr;
     if (d.xk) xkind = d.xk;
@@ -675,10 +608,10 @@ document.addEventListener("click", e => {
   else if (d.upd) api("/api/update").then(r => r.ok || say(r.error || "Could not start the update."));
   else if (d.page) window.open(d.page, "_blank", "noopener");
 });
-// Enter in a name box presses its Save button (never return false: that would eat the key)
+// Enter in the rename box presses its Save button (never return false: that would eat the key)
 document.addEventListener("keydown", e => {
-  if (e.key !== "Enter" || !(e.target.id === "xrn" || e.target.classList.contains("mn"))) return;
-  const box = e.target.closest(".mob,td"), b = box && box.querySelector("[data-xl=save],[data-mns]");
+  if (e.key !== "Enter" || e.target.id !== "xrn") return;
+  const box = e.target.closest("td"), b = box && box.querySelector("[data-xl=save]");
   if (b) { e.preventDefault(); b.click(); }
 });
 document.querySelectorAll("[data-nav]").forEach(b => (b.onclick = () => { view = b.dataset.nav; xren = null; xask = 0; draw(); }));

@@ -143,7 +143,7 @@ def main():
     old = os.path.join(home, 'OneDrive', 'Desktop', 'Sapline')   # the zip version's folder
     os.makedirs(os.path.join(old, 'scans', 'mobs'))
     for rel, text in (('scans/exp_log.json', '[{"id": "1", "date": 1}]'), ('scans/mobs/22.png', 'png'), ('scans/exp_days.json', '{}'),
-                      ('settings.json', '{"monitor": 2}'), ('mobs.txt', 'Evil Eye | 22\n')):
+                      ('settings.json', '{"monitor": 2}')):
         with open(os.path.join(old, rel), 'w') as f:
             f.write(text)
     before = sorted(os.walk(old))
@@ -152,8 +152,7 @@ def main():
     msg = migrate.first_run(app, env)
     ok(f'first run brings the old data over ({msg})', msg and 'Brought over' in msg and
        open(os.path.join(app, 'scans', 'exp_log.json')).read().startswith('[{"id"') and
-       os.path.isfile(os.path.join(app, 'scans', 'mobs', '22.png')) and os.path.isfile(os.path.join(app, 'settings.json')) and
-       os.path.isfile(os.path.join(app, 'mobs.txt')))
+       os.path.isfile(os.path.join(app, 'scans', 'mobs', '22.png')) and os.path.isfile(os.path.join(app, 'settings.json')))
     ok('the old folder is left as it was', sorted(os.walk(old)) == before)
     ok('it only happens once', migrate.first_run(app, env) is None)
     ok('no old folder: nothing happens', migrate.first_run(tempfile.mkdtemp(), {'USERPROFILE': tempfile.mkdtemp()}) is None)

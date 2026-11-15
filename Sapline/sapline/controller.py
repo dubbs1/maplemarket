@@ -15,8 +15,6 @@ from collections import deque
 from . import __version__, engine
 from .config import APP_DIR, EXP_IDLE, UPDATE_EVERY
 from .exp import ExpDays, ExpLog, ExpTracker
-from .mobs import Mobs, parse_mobs
-from .mobpics import MobPics
 from .ocr import find_tesseract
 from .recorder import Events, ExpRunner
 from . import update as updater
@@ -48,10 +46,7 @@ class Controller:
         self._tess_check = 0                         # when we last looked for a newly installed Tesseract
         self.exp_days = ExpDays(os.path.join('scans', 'exp_days.json'))   # EXP gained each day (kept by Reset)
         self.exp_log = ExpLog(os.path.join('scans', 'exp_log.json'))     # one line per hunting run (the Runs tab)
-        self.mobs = Mobs(os.path.join(APP_DIR, 'mobs.txt'))   # names for the kills counted (a list the owner keeps)
-        self.mobs.ensure()
-        self.mobpics = MobPics(os.path.join(APP_DIR, 'scans', 'mobs'), os.path.join(APP_DIR, 'scans', 'fight'))   # a picture of each mob killed
-        self.exp = ExpTracker(on_gain=self.exp_days.add, on_run=self._log_run, namer=self.mobs.name)   # kept across stop/start: Reset clears it
+        self.exp = ExpTracker(on_gain=self.exp_days.add, on_run=self._log_run)   # kept across stop/start: Reset clears it
         self.exp.idle = int(self.settings['idle_min']) * 60
         self.exp_runner = None
         self.seq = 0
@@ -62,7 +57,6 @@ class Controller:
         self.update_info = {'state': 'checking'}
         self._update_at = 0
         self.quit_requested = False                  # set when an update is about to install: the window closes
-        self._mobs_all = (None, [])                  # (key, list): the all-time mob counts, redone when the run log changes
         if self.frozen:
             self._after_update()
 
@@ -79,7 +73,6 @@ class Controller:
         s.setdefault('exp_log', True)                # keep the run log (the Runs tab's "Log my runs" switch)
         s.setdefault('idle_min', EXP_IDLE // 60)     # minutes without EXP before the clock pauses
         s.setdefault('capture', 'auto')              # screenshots: 'auto' (fast when it works) or 'standard'
-        s['fight_pics'] = False                      # save whole screenshots around each kill (for tuning): off at every start
         return s
 
     def _save(self):
@@ -193,42 +186,14 @@ class Controller:
             self.last_seen = time.time()
             settings = dict(self.settings)
             return dict(version=__version__, engine=self.engine, tesseract=self.tesseract, update=self.update_info,
-                        settings=settings, exp=self._with_pics(self.exp.summary()), exp_days=self.exp_days.last(7), exp_log=self.exp_log.list(),
-                        mobs_all=self.mobs_all(),
+                        settings=settings, exp=self.exp.summary(), exp_days=self.exp_days.last(7), exp_log=self.exp_log.list(),
+                       
                         exp_on=bool(r), exp_found=bool(r and r.found), exp_unread=r.watcher.unread if r else 0, meso_seen=r.meso_seen if r else None,
                         exp_lost_s=round(time.time() - lost) if lost is not None and not (r and r.found) else None,
                         capture=r.screen.state() if r else None,
                         seq=self.seq, events=[e for e in self.events if e['seq'] > since])
 
-    MOBS_ALL = 40                                    # mobs on the all-time list at most
-
-    def mobs_all(self):
-        """Every mob killed over the whole run log: [{exp, name, n, gained}], most killed first, amounts seen at least
-        twice. Worked out again only when the log changed (the page asks once a second)."""
-        log = self.exp_log.list(self.exp_log.KEEP)
-        self.mobs.load()                             # (mobs.txt re-read when it changed: a name given just now counts)
-        key = (len(log), log[0]['id'] if log else None, self.mobs.stamp)
-        if key != self._mobs_all[0]:
-            n, names = {}, {}
-            for e in log:                            # (newest first: the first name seen for an amount is the newest)
-                for k in e.get('kills') or []:
-                    n[k['exp']] = n.get(k['exp'], 0) + int(k.get('n') or 0)
-                    if k.get('name') and k['exp'] not in names:
-                        names[k['exp']] = k['name']
-            out = [{'exp': a, 'name': self.mobs.name(a) or names.get(a), 'n': c, 'gained': a * c} for a, c in n.items() if c >= 2]   # the name of today first
-            self._mobs_all = (key, sorted(out, key=lambda m: -m['n'])[:self.MOBS_ALL])
-        return [dict(m) for m in self._mobs_all[1]]
-
     # --- EXP: Start/Stop (the `exp` setting) ---
-    def _with_pics(self, x):
-        """The EXP summary with `pic` on each mob: a stamp that changes with its picture in scans/mobs (the page
-        reloads the picture when it changes), or None without one."""
-        if x:
-            for ks in (x.get('kills') or [], (x.get('run') or {}).get('kills') or []):
-                for k in ks:
-                    k['pic'] = self.mobpics.have.get(k['exp'])
-        return x
-
     def exp_start(self):
         with self._start_lock:
             if self.exp_runner:
@@ -236,8 +201,7 @@ class Controller:
             old = self._last_thread                      # a recorder just stopped: let it close its screen capture first
             if old is not None and old.is_alive():       # (the fast capture is one camera per screen: a late close would
                 old.join(5)                              # take it from under the new recorder)
-            r = self.exp_runner = ExpRunner(self.exp, events=_Feed(self), mobpics=self.mobpics,
-                                            fight=lambda: bool(self.settings.get('fight_pics')), capture=self.settings.get('capture', 'auto'),
+            r = self.exp_runner = ExpRunner(self.exp, events=_Feed(self), capture=self.settings.get('capture', 'auto'),
                                             meso_dir=os.path.join(APP_DIR, 'scans', 'meso'))
             self.exp.resume()                            # (the time it was stopped doesn't count)
 
@@ -264,25 +228,6 @@ class Controller:
         if self.settings.get('exp_log', True):
             self.exp_log.add(e)
 
-    def mob_name(self, d):
-        """The "Name this mob" box: the name goes into mobs.txt (replacing a line with the same EXP), or
-        action "forget" drops a wrong picture so the next clear kill brings a new one."""
-        exp = int(d.get('exp'))
-        if d.get('action') == 'forget':
-            self.mobpics.forget(exp)
-            return {'ok': True}
-        name = ' '.join(str(d.get('name', '')).split())
-        if not 1 <= len(name) <= 40 or '|' in name or not 0 < exp < 100_000_000:
-            return {'ok': False, 'error': 'A name is 1 to 40 letters, without |.'}
-        self.mobs.ensure()
-        with open(self.mobs.path, encoding='utf-8-sig') as f:
-            lines = f.read().splitlines()
-        keep = [ln for ln in lines if exp not in parse_mobs(ln) or ln.lstrip().startswith('#')]
-        with open(self.mobs.path, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(keep + [f'{name} | {exp}']) + '\n')
-        self.mobs.checked = 0                        # (read again at once)
-        return {'ok': True}
-
     def exp_log_edit(self, d):
         """The run log's Rename and Delete buttons."""
         ok = self.exp_log.rename(str(d.get('id')), d.get('name')) if d.get('action') == 'rename' else \
@@ -300,9 +245,9 @@ class Controller:
             self.exp_start()
 
     def update(self, d):
-        """From the window: the settings autostart, exp_log, idle_min, fight_pics; and exp = record now or stop
+        """From the window: the settings autostart, exp_log, idle_min, capture; and exp = record now or stop
         (not a setting: whether to record is asked each time the app opens)."""
-        for k, conv in (('autostart', bool), ('exp_log', bool), ('idle_min', int), ('fight_pics', bool), ('capture', str)):
+        for k, conv in (('autostart', bool), ('exp_log', bool), ('idle_min', int), ('capture', str)):
             if k in d:
                 self.settings[k] = conv(d[k])
         if 'capture' in d and self.settings['capture'] not in ('auto', 'standard'):
@@ -339,13 +284,12 @@ class Controller:
             with open(os.path.join(path, self.EXPORT), 'w', encoding='utf-8-sig', newline='') as f:
                 w = csv.writer(f)
                 w.writerow(['date', 'name', 'level', 'party', 'minutes', 'gained', 'exp_per_hour', 'mesos', 'mesos_per_hour',
-                            'kills', 'damage_taken', 'mobs'])
+                            'kills', 'damage_taken'])
                 blank = lambda v: '' if v is None else v
                 for e in rows:
-                    mobs = '; '.join(f"{k.get('name') or str(k['exp']) + ' EXP'} x{k['n']}" for k in e.get('kills') or [])
                     w.writerow([time.strftime('%Y-%m-%d %H:%M', time.localtime(e['date'])), e.get('name') or e.get('map') or '',
                                 blank(e.get('level')), blank(e.get('party')), e.get('minutes', 0), e.get('gained', 0), e.get('per_hour', 0),
-                                blank(e.get('mesos')), blank(e.get('mesos_per_hour')), e.get('kills_total', 0), e.get('taken', 0), mobs])
+                                blank(e.get('mesos')), blank(e.get('mesos_per_hour')), e.get('kills_total', 0), e.get('taken', 0)])
         except OSError as e:
             return {'ok': False, 'error': f'Could not write it: {e}'}
         return {'ok': True, 'file': self.EXPORT, 'rows': len(rows)}

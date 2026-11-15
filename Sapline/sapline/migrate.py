@@ -2,7 +2,7 @@
 
 The installed app keeps its data next to itself (in AppData). People who used the zip version have their
 scans folder (the run log, day totals, mob pictures) in a folder like Desktop\\Sapline. On the very first
-run, if that folder is found, that folder, settings.json and mobs.txt are copied over, so nothing is lost.
+run, if that folder is found, that folder and settings.json are copied over, so nothing is lost.
 The old folder is left exactly as it was.
 """
 import os
@@ -10,7 +10,7 @@ import shutil
 import threading
 import time
 
-KEEP = ('settings.json', 'mobs.txt')             # files next to the app
+KEEP = ('settings.json',)                        # files next to the app
 MARK = 'exp_log.json'                            # in scans/: its being here means the data came over (or was made here)
 MOVED = 'moved_from.txt'                         # written by the installer when it moved the app to a new folder
 
@@ -45,7 +45,7 @@ def needed(app_dir):
 
 
 def bring_over(src, dst):
-    """Copy the scans folder (and settings, mobs.txt) from src to dst. Returns how many files were copied."""
+    """Copy the scans folder (and settings) from src to dst. Returns how many files were copied."""
     n = 0
     for name in KEEP:
         if os.path.isfile(os.path.join(src, name)) and not os.path.exists(os.path.join(dst, name)):
@@ -85,7 +85,7 @@ def first_run(app_dir, env=None):
 
 
 def sync_newer(src, dst):
-    """Copy the data files (scans/**, settings.json, mobs.txt) that src has and dst lacks, or that are newer in
+    """Copy the data files (scans/**, settings.json) that src has and dst lacks, or that are newer in
     src: the old copy may have kept running and writing after the installer copied the data."""
     n = 0
     pairs = [(os.path.join(src, k), os.path.join(dst, k)) for k in KEEP]

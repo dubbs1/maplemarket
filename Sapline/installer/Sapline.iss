@@ -110,7 +110,6 @@ begin
   if DirExists(OldDir + '\scans') then
     CopyTree(OldDir + '\scans', NewDir + '\scans');
   CopyOne(OldDir + '\settings.json', NewDir + '\settings.json');
-  CopyOne(OldDir + '\mobs.txt', NewDir + '\mobs.txt');
   CopyOne(OldDir + '\updates\pending.json', NewDir + '\updates\pending.json');
   CopyOne(OldDir + '\updates\install.log', NewDir + '\updates\install.log');
   // UTF-8 (a user name may carry any letter); the app reads it with utf-8-sig

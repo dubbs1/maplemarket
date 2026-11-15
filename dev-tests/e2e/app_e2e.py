@@ -103,7 +103,7 @@ async def main():
                 await pg.click('[data-x=copy]'); await pg.wait_for_timeout(500)
                 clip = await pg.evaluate("navigator.clipboard.readText().catch(() => summaryText(APP.st))")
                 ok(f'A16 Copy summary copies a plain-text summary {clip.splitlines()[:2]}', 'copied' in await pg.inner_text('#live') and 'EXP per hour' in clip
-                   and clip.startswith('Sapline · ') and 'Level 37 at 43.17%' in clip and 'Gained: 20,000' in clip)
+                   and clip.startswith('Sapline · ') and 'Level 37 at 43.17%' in clip and 'Gained: 20,000' in clip and 'Mobs:' not in clip)
                 # Reset asks first
                 with ctl.exp.lock: ctl.exp.gained = 777
                 await pg.click('[data-x=reset]'); await pg.wait_for_timeout(300)
@@ -118,7 +118,7 @@ async def main():
                 # Runs
                 for i, m in enumerate(('The Land of Wild Boar II', 'Ant Tunnel I')):
                     ctl.exp_log.add({'date': time.time() - 3600 * (i + 1), 'minutes': 45, 'gained': 40000, 'per_hour': 53333, 'level': 37, 'map': m, 'party': 4 - i * 3,
-                                     'kills': [{'exp': 20, 'n': 30, 'name': 'Snail'}], 'kills_total': 30, 'taken': 120})
+                                     'kills': [{'exp': 20, 'n': 30}], 'kills_total': 30, 'taken': 120})
                 await pg.click('[data-nav=runs]'); await pg.wait_for_timeout(1500)
                 rt = await pg.inner_text('.xlog')
                 ok('A7 the Runs tab lists past runs, with the party, kills and damage', await pg.locator('.xlog tbody tr:not(.now)').count() == 2 and
@@ -134,50 +134,15 @@ async def main():
                 rt = (await pg.inner_text('#app')).lower()
                 ok('A7f the week summary above the log', 'best map this week' in rt and 'longest run' in rt and 'ant tunnel i' in rt)
                 await pg.click('[data-xl=on]'); await pg.wait_for_timeout(800)
-                ok('A17 no hover-only text on the Kills cell', await pg.get_attribute('.xlog tbody tr:not(.now) td:nth-child(8)', 'title') is None)
-                await pg.click('.xlog [data-xl=mobs] >> nth=-1'); await pg.wait_for_timeout(300)
-                xm = await pg.inner_text('.xlog tr.xm') if await pg.locator('.xlog tr.xm').count() else ''
-                ok(f'A17b Mobs opens a line under the run with its mobs {xm!r}', await pg.locator('.xlog tr.xm').count() == 1 and 'Snail ×30' in xm)
-                await pg.wait_for_timeout(1200)
-                ok('A17c the line stays through the page refreshing', await pg.locator('.xlog tr.xm').count() == 1)
-                await pg.click('.xlog [data-xl=mobs] >> nth=-1'); await pg.wait_for_timeout(300)
-                ok('A17d and closes again', await pg.locator('.xlog tr.xm').count() == 0)
+                ok('A17 the Kills cell is a plain number with no hover-only text', await pg.get_attribute('.xlog tbody tr:not(.now) td:nth-child(8)', 'title') is None
+                   and (await pg.inner_text('.xlog tbody tr:not(.now) td:nth-child(8)')).strip() == '30' and await pg.locator('.xlog [data-xl=mobs]').count() == 0)
                 await pg.click('[data-xl=export]'); await pg.wait_for_timeout(800)
                 ok('A18 Export CSV writes scans/runs.csv and says so', 'Saved runs.csv in the scans folder (1 run)' in await pg.inner_text('#live')
                    and 'Boars with Sam' in open(os.path.join(work, 'scans', 'runs.csv'), encoding='utf-8-sig').read())
                 await pg.screenshot(path=OUT + '_runs.png')
-                # Mobs
-                ctl.exp.amounts = {22: 5, 45: 1}       # (as if kills had been seen)
-                await pg.click('[data-nav=mobs]'); await pg.wait_for_timeout(1500)
-                mt = await pg.inner_text('#app')
-                ok('A8 the Mobs tab lists the kills by EXP amount, with a name box', await pg.get_attribute('input.mn', 'data-mn') == '22'
-                   and 'Other gains' in mt and await pg.locator('input.mn').count() == 1 and '22 EXP' in mt)
-                await pg.click('[data-mns]'); await pg.wait_for_timeout(300)
-                ok('A8a Save with an empty name just asks for one', 'name first' in await pg.inner_text('#live') and ctl.mobs.name(22) is None)
-                await pg.fill('input.mn', 'Evil'); await pg.click('h1'); ctl.exp.amounts = {22: 6, 45: 1}; await pg.wait_for_timeout(1500)
-                ok('A8d a half-typed name survives a kill (the redraw)', '6' in await pg.inner_text('.mob') and await pg.input_value('input.mn') == 'Evil')
-                await pg.fill('input.mn', 'Evil Eye'); await pg.press('input.mn', 'Enter'); await pg.wait_for_timeout(600)
-                ok('A8b naming a mob goes into mobs.txt and the card at once', ctl.mobs.name(22) == 'Evil Eye' and 'Evil Eye' in await pg.inner_text('#app')
-                   and 'Saved: Evil Eye' in await pg.inner_text('#live') and 'Evil Eye | 22' in open(os.path.join(work, 'mobs.txt'), encoding='utf-8').read())
-                r = await pg.evaluate("() => fetch('/api/mobpic/22.png').then(r => r.status)")
-                ok('A8c no picture of it yet: 404, not an error', r == 404)
-                from PIL import Image as _I
-                os.makedirs(os.path.join(work, 'scans', 'mobs'), exist_ok=True)
-                _I.new('RGB', (60, 70), (200, 40, 40)).save(os.path.join(work, 'scans', 'mobs', '22.png'))
-                ctl.mobpics.have[22] = 123; await pg.wait_for_timeout(1500)
-                src = await pg.get_attribute('.mob img', 'src')
-                ok('A8e the picture shows with its stamp (a new picture reloads)', src is not None and src.endswith('/api/mobpic/22.png?v=123')
-                   and await pg.evaluate("() => fetch('/api/mobpic/22.png?v=123').then(r => r.status)") == 200 and await pg.locator('[data-mnx]').count() == 1)
-                at = await pg.inner_text('#alltime') if await pg.locator('#alltime').count() else ''
-                ok(f'A19 All time lists the mobs of the whole run log {at.splitlines()[:1]}', 'Snail' in at and '30' in at and 'From your run log' in at)
-                ctl.snapshot = lambda since=0: {**real_snapshot(since), 'mobs_all': []}
-                await pg.wait_for_timeout(1500)
-                ok('A19b and is not there without any', await pg.locator('#alltime').count() == 0)
-                ctl.snapshot = real_snapshot; await pg.wait_for_timeout(1200)
-                await pg.screenshot(path=OUT + '_mobs.png')
                 # Options
                 await pg.click('[data-nav=more]'); await pg.wait_for_timeout(500)
-                ok('A9 Settings: every setting is a row with a sentence, no screen choice, with the stance text', await pg.locator('#app .opt').count() >= 7 and
+                ok('A9 Settings: every setting is a row with a sentence, no screen choice, with the stance text', await pg.locator('#app .opt').count() >= 6 and
                    await pg.locator('#om').count() == 0 and 'only looks at your screen' in await pg.inner_text('#app') and 'You have' in await pg.inner_text('#updline'))
                 await pg.select_option('#oi', '5'); await pg.check('#ox'); await pg.wait_for_timeout(1500)
                 st = json.load(open(os.path.join(work, 'settings.json')))
