@@ -121,8 +121,9 @@ async def main():
                                      'kills': [{'exp': 20, 'n': 30}], 'kills_total': 30, 'taken': 120})
                 await pg.click('[data-nav=runs]'); await pg.wait_for_timeout(1500)
                 rt = await pg.inner_text('.xlog')
+                ok('A7g the Runs table fits the window: nothing scrolls sideways', await pg.evaluate("() => { const t = document.querySelector('.xlog .tw'); return t.scrollWidth <= t.clientWidth + 1; }"))
                 ok('A7 the Runs tab lists past runs, with the party, kills and damage', await pg.locator('.xlog tbody tr:not(.now)').count() == 2 and
-                   'Ant Tunnel I' in rt and '4 in party' in rt and 'dmg taken' in rt.lower())
+                   'Ant Tunnel I' in rt and '4 in party' in rt and 'damage' in rt.lower())
                 await pg.click('.xlog [data-xl=rename] >> nth=0'); await pg.fill('#xrn', 'Boars with Sam'); await pg.wait_for_timeout(1500)
                 ok('A7b typing a name is not wiped by the page refreshing', await pg.input_value('#xrn') == 'Boars with Sam')
                 await pg.press('#xrn', 'Enter'); await pg.wait_for_timeout(1500)
@@ -134,8 +135,8 @@ async def main():
                 rt = (await pg.inner_text('#app')).lower()
                 ok('A7f the week summary above the log', 'best map this week' in rt and 'longest run' in rt and 'ant tunnel i' in rt)
                 await pg.click('[data-xl=on]'); await pg.wait_for_timeout(800)
-                ok('A17 the Kills cell is a plain number with no hover-only text', await pg.get_attribute('.xlog tbody tr:not(.now) td:nth-child(8)', 'title') is None
-                   and (await pg.inner_text('.xlog tbody tr:not(.now) td:nth-child(8)')).strip() == '30' and await pg.locator('.xlog [data-xl=mobs]').count() == 0)
+                ok('A17 the Kills cell is a plain number with no hover-only text', await pg.get_attribute('.xlog tbody tr:not(.now) td:nth-child(6)', 'title') is None
+                   and (await pg.inner_text('.xlog tbody tr:not(.now) td:nth-child(6)')).strip() == '30' and await pg.locator('.xlog [data-xl=mobs]').count() == 0)
                 await pg.click('[data-xl=export]'); await pg.wait_for_timeout(800)
                 ok('A18 Export CSV writes scans/runs.csv and says so', 'Saved runs.csv in the scans folder (1 run)' in await pg.inner_text('#live')
                    and 'Boars with Sam' in open(os.path.join(work, 'scans', 'runs.csv'), encoding='utf-8-sig').read())

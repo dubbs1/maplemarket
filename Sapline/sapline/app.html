@@ -127,6 +127,8 @@ input[type=checkbox]{width:22px;height:22px;min-height:0;margin:0;padding:0;acce
 th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);font-weight:800;padding:12px 10px}
 th:first-child,td:first-child{padding-left:18px}th:last-child,td:last-child{padding-right:18px}
 td{padding:11px 10px;border-top:1px solid var(--bd);white-space:nowrap}
+td.map{white-space:normal;min-width:0;overflow-wrap:anywhere}td.map b{display:block}td.map .mu{display:block;font-size:12px;margin-top:2px}
+td.acts{white-space:nowrap}td.acts button{min-height:30px;padding:0 10px;font-size:13px}
 td.r,th.r{text-align:right}
 tr.now td{color:var(--gold)}
 td button{min-height:34px;padding:0 12px;font-size:13px;margin-left:6px;background:var(--sf)}td input{width:170px;min-height:34px;display:inline-block}
@@ -476,11 +478,12 @@ function drawRuns(force) {
     r = x && x.run && x.run.minutes >= 1 ? x.run : null,
     logOn = (st.settings || {}).exp_log !== false,
     dt = t => new Date(t * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-    row = (e, now) => `<tr${now ? ' class="now"' : ""}><td>${now ? "Now" : dt(e.date)}</td><td><b>${esc(e.name || e.map || "—")}</b></td>` +
-      `<td class="num">${e.level || "—"}</td><td>${e.party > 1 ? e.party + " in party" : "solo"}</td><td class="num">${mins(e.minutes)}</td>` +
+    // one row fits the window without sideways scrolling: the level and the party sit under the map's name
+    row = (e, now) => `<tr${now ? ' class="now"' : ""}><td>${now ? "Now" : dt(e.date)}</td><td class="map"><b>${esc(e.name || e.map || "—")}</b>` +
+      `<span class="mu">${e.level ? "Lv " + e.level : "Level —"} · ${e.party > 1 ? e.party + " in party" : "solo"}</span></td><td class="num">${mins(e.minutes)}</td>` +
       `<td class="num r gold">${e.per_hour == null ? "…" : fmt(e.per_hour)}</td><td class="num r">${e.mesos_per_hour == null ? "—" : fmt(e.mesos_per_hour)}</td>` +
       `<td class="num r">${e.kills_total == null ? "—" : fmt(e.kills_total)}</td>` +
-      `<td class="num r">${e.taken == null ? "—" : fmt(e.taken)}</td><td class="r">` +
+      `<td class="num r">${e.taken == null ? "—" : fmt(e.taken)}</td><td class="r acts">` +
       (now ? "" : xren === e.id
         ? `<input id="xrn" maxlength="40" value="${esc(e.name || e.map || "")}" aria-label="Name"><button data-xl="save" data-id="${e.id}">Save</button>`
         : `<button data-xl="rename" data-id="${e.id}">Rename</button><button data-xl="delete" data-id="${e.id}">Delete</button>`) + `</td></tr>`;
@@ -489,8 +492,8 @@ function drawRuns(force) {
     (L.length ? `<button data-xl="export">Export CSV</button>` : "")) +
     weekTiles(L) +
     `<section class="card tcard xlog" aria-label="Runs">` +
-    (r || L.length ? `<div class="tw"><table><thead><tr><th>When</th><th>Map</th><th>Level</th><th>Party</th><th>Time</th><th class="r">EXP / h</th><th class="r">Mesos / h</th>` +
-      `<th class="r">Kills</th><th class="r">Dmg taken</th><th></th></tr></thead><tbody>${r ? row(r, true) : ""}${L.map(e => row(e)).join("")}</tbody></table></div>`
+    (r || L.length ? `<div class="tw"><table><thead><tr><th>When</th><th>Map</th><th>Time</th><th class="r">EXP / h</th><th class="r">Mesos / h</th>` +
+      `<th class="r">Kills</th><th class="r">Damage</th><th></th></tr></thead><tbody>${r ? row(r, true) : ""}${L.map(e => row(e)).join("")}</tbody></table></div>`
       : '<p class="mu" style="padding:12px 18px">No runs yet. Your first line appears after a hunt of at least a minute.</p>') +
     `<p class="mu tfoot">${st.tesseract ? "Mesos / h needs the Item window open at least once in a hunt (at its end is enough): a run without a look at it shows —." : "Map names and mesos need the free text reader (Settings). Without it those two columns stay empty; everything else still works."}</p>` +
     `</section>` + notesHtml(), force);
