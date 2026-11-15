@@ -23,8 +23,9 @@ class ExpRunner:
     (mobpics.py). Runs on its own thread until stop()."""
     FRAMES = 5                                         # screenshots kept (the last few seconds) for the mob pictures
 
-    def __init__(self, tracker, monitor=1, events=None, every=1.0, mobpics=None, fight=None, capture='auto'):
+    def __init__(self, tracker, monitor=1, events=None, every=1.0, mobpics=None, fight=None, capture='auto', meso_dir=None):
         self.tracker, self.monitor, self.every = tracker, monitor, every
+        self.meso_dir = meso_dir                      # scans/meso: a record of every meso reading, for reports
         self.screen = Screen(prefer=capture, monitor=monitor)   # the screenshots (capture.py: fast when it works, standard otherwise)
         self.events = events or Events()
         self.watcher = ExpWatcher()
@@ -88,8 +89,11 @@ class ExpRunner:
         elif self.meso_shot is None:
             self.meso_seen = 'none'
 
+    MESO_KEEP = 60                                     # meso box pictures kept in scans/meso (the newest)
+
     def look_mesos(self, img, box=None):
-        """The meso box read (Tesseract): the amount goes to the tracker."""
+        """The meso box read (Tesseract): the amount goes to the tracker. Every look is written down in
+        scans/meso/meso.log with the box's picture beside it, so a wrong amount can be traced to its picture."""
         try:
             from .mesos import find_box, read_mesos
             box = box or find_box(img)
@@ -97,13 +101,30 @@ class ExpRunner:
                 self.meso_seen = 'none'
                 return
             m = read_mesos(img, box)
-            if m is None:
-                self.meso_seen = 'unread'
-                return
-            self.meso_seen = 'read'
-            self.tracker.set_mesos(m)
+            self.meso_seen = 'read' if m is not None else 'unread'
+            self._meso_note(img, box, m)
+            if m is not None:
+                self.tracker.set_mesos(m)
         except Exception:
             self.meso_seen = 'unread'
+
+    def _meso_note(self, img, box, amount):
+        if not self.meso_dir:
+            return
+        try:
+            import os
+            os.makedirs(self.meso_dir, exist_ok=True)
+            stamp = time.strftime('%Y%m%d_%H%M%S')
+            name = f'{stamp}_{amount if amount is not None else "unread"}.png'
+            x0, y0, x1, y1 = box
+            img.crop((max(0, x0 - 40), max(0, y0 - 6), min(img.width, x1 + 60), min(img.height, y1 + 6))).save(os.path.join(self.meso_dir, name), 'PNG')
+            with open(os.path.join(self.meso_dir, 'meso.log'), 'a', encoding='utf-8') as f:
+                f.write(f'{time.strftime("%Y-%m-%d %H:%M:%S")}\t{amount if amount is not None else "unread"}\t{name}\n')
+            old = sorted(f for f in os.listdir(self.meso_dir) if f.endswith('.png'))
+            for f in old[:-self.MESO_KEEP]:
+                os.remove(os.path.join(self.meso_dir, f))
+        except OSError:
+            pass
 
     def look_map(self, img):
         """The map's name (Tesseract): a new name counts once read the same twice. True when a name is waiting

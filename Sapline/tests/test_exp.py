@@ -395,6 +395,16 @@ def mesos():
     t3.add(r(50000), now=0); t3.add(r(50000), now=3); t3.add(r(50500), now=400)
     t3.set_mesos(500, now=400)
     check(t3.summary(now=400)['mesos_per_hour'] is None, 'the first look of a session only sets where mesos stand: no rate from it')
+    # a digit read wrong upward (94,115 as 941,150 once) is not mesos gained; a real big rise seen twice (a sale) is
+    t4 = E.ExpTracker()
+    t4.add(r(50000), now=0); t4.add(r(50000), now=3)
+    t4.set_mesos(94_115, now=10); t4.set_mesos(941_150, now=15); t4.set_mesos(94_315, now=20)
+    s4 = t4.summary(now=20)
+    check(s4['mesos_gained'] == 200 and s4['mesos'] == 94_315, f'one wrong read of 941,150 between 94,115 and 94,315: 200 gained, not 847,000 ({s4["mesos_gained"]})')
+    t4.set_mesos(84_315, now=25); t4.set_mesos(94_415, now=30)
+    check(t4.summary(now=30)['mesos_gained'] == 300, f'84,315 once (a digit wrong) then 94,415: just the 100 more ({t4.summary(now=30)["mesos_gained"]})')
+    t4.set_mesos(244_415, now=35); t4.set_mesos(244_500, now=40)
+    check(t4.summary(now=40)['mesos_gained'] == 300 + 150_085 and t4.summary(now=40)['mesos_at'] == 40, f'a sale of 150,000 seen on two looks counts ({t4.summary(now=40)["mesos_gained"]})')
 
 
 def loop():

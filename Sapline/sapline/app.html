@@ -297,6 +297,8 @@ function put(html, force) {
     document.querySelectorAll("input.mn").forEach(b => { if (names[b.dataset.mn] && !b.value) b.value = names[b.dataset.mn]; });
   }
 }
+// "read 17:06": when the Item window's amount was last read, so a wrong number can be matched with the game
+const lastRead = x => (x.mesos_at ? `, read ${new Date(x.mesos_at * 1000).toTimeString().slice(0, 5)}` : "");
 /* ===== Home ===== numbers from ExpTracker.summary in exp.py */
 function drawExp(force) {
   const st = APP.st || {}, x = st.exp, on = !!st.exp_on, D = st.exp_days || [],
@@ -337,9 +339,9 @@ function drawExp(force) {
       tile("Gained this session", `+${fmt(x.gained)}`, `${x.lost ? fmt(x.lost) + " lost from dying" : "0 lost"} · ${x.levels ? x.levels + " level-up" + (x.levels > 1 ? "s" : "") : "no level-ups"} · ${mins(x.minutes)}`) +
       tile("Kills", fmt(x.kills_total || 0), x.kills_total && x.gained > 0 ? `${x.kills_per_hour != null ? fmt(x.kills_per_hour) + " an hour · " : ""}${fmt(x.gained / x.kills_total)} EXP a kill` : "counted from each rise of your EXP") +
       tile("Damage taken", fmt(x.taken || 0), x.hits ? `${x.hits} hits · biggest ${fmt(x.big)}` : x.hp ? `HP ${fmt(x.hp[0])} of ${fmt(x.hp[1])}` : "") +
-      tile("Mesos", x.mesos_gained != null ? (x.mesos_gained >= 0 ? "+" : "") + fmt(x.mesos_gained) : "—", x.mesos_per_hour != null ? fmt(x.mesos_per_hour) + " an hour"
+      tile("Mesos", x.mesos_gained != null ? (x.mesos_gained >= 0 ? "+" : "") + fmt(x.mesos_gained) : "—", x.mesos_per_hour != null ? `${fmt(x.mesos_per_hour)} an hour · ${fmt(x.mesos)} on hand${lastRead(x)}`
         : !st.tesseract ? "needs the text reader (Settings)" : st.meso_seen === "unread" ? "the Item window is on screen but the amount can't be read: save a screenshot (Settings) and send it"
-        : x.mesos == null ? (st.meso_seen === "none" ? "open the Item window now and then (not seen on screen yet)" : "open the Item window now and then") : `${fmt(x.mesos)} on hand`) +
+        : x.mesos == null ? (st.meso_seen === "none" ? "open the Item window now and then (not seen on screen yet)" : "open the Item window now and then") : `${fmt(x.mesos)} on hand${lastRead(x)}`) +
       `</div><div class="g3">` +
       `<section class="card s2" aria-label="EXP over time"><div class="row wrap"><b>${xr === "week" ? "EXP per day" : "EXP every 10 minutes"}</b>` +
         `${segBtns("xr", xr, [["session", "This session"], ["week", "Last 7 days"]])}</div><div class="row wrap">` +

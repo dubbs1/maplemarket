@@ -237,7 +237,8 @@ class Controller:
             if old is not None and old.is_alive():       # (the fast capture is one camera per screen: a late close would
                 old.join(5)                              # take it from under the new recorder)
             r = self.exp_runner = ExpRunner(self.exp, events=_Feed(self), mobpics=self.mobpics,
-                                            fight=lambda: bool(self.settings.get('fight_pics')), capture=self.settings.get('capture', 'auto'))
+                                            fight=lambda: bool(self.settings.get('fight_pics')), capture=self.settings.get('capture', 'auto'),
+                                            meso_dir=os.path.join(APP_DIR, 'scans', 'meso'))
             self.exp.resume()                            # (the time it was stopped doesn't count)
 
         def run():
