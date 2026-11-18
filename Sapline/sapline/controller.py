@@ -327,6 +327,41 @@ class Controller:
             return {'ok': False, 'error': f'Could not save it: {e}'}
         return {'ok': True, 'file': name}
 
+    REPORT_KEEP = 5                                  # report zips kept in scans (the newest)
+
+    def report(self):
+        """Settings → Make a report: one zip in scans (report_<time>.zip) with everything a report needs and nothing
+        personal: a fresh screenshot, the meso readings (scans/meso), the run log and day totals, settings.json,
+        the update logs, and a text file with the version, the capture in use and the state. Nothing is sent
+        anywhere: the owner attaches the file themselves."""
+        import zipfile
+        shot = self.screenshot()
+        path = os.path.join(APP_DIR, 'scans')
+        name = time.strftime('report_%Y%m%d_%H%M%S.zip')
+        try:
+            with zipfile.ZipFile(os.path.join(path, name), 'w', zipfile.ZIP_DEFLATED) as z:
+                if shot.get('ok'):
+                    z.write(os.path.join(path, shot['file']), shot['file'])
+                for rel in ('scans/exp_log.json', 'scans/exp_days.json', 'settings.json', 'updates/install.log', 'updates/setup.log'):
+                    full = os.path.join(APP_DIR, *rel.split('/'))
+                    if os.path.isfile(full):
+                        z.write(full, rel)
+                meso = os.path.join(path, 'meso')
+                if os.path.isdir(meso):
+                    for f in sorted(os.listdir(meso))[-61:]:          # (the log and the last MESO_KEEP pictures)
+                        z.write(os.path.join(meso, f), 'meso/' + f)
+                st = self.snapshot()
+                about = {'version': __version__, 'capture': st.get('capture'), 'meso_seen': st.get('meso_seen'), 'tesseract': st.get('tesseract'),
+                         'engine': st.get('engine'), 'exp_on': st.get('exp_on'), 'exp_found': st.get('exp_found'), 'exp_lost_s': st.get('exp_lost_s'),
+                         'screenshot': shot, 'exp': st.get('exp'), 'settings': st.get('settings'), 'made': time.strftime('%Y-%m-%d %H:%M:%S')}
+                z.writestr('about.json', json.dumps(about, indent=1, default=str))
+            old = sorted(f for f in os.listdir(path) if f.startswith('report_') and f.endswith('.zip'))
+            for f in old[:-self.REPORT_KEEP]:
+                os.remove(os.path.join(path, f))
+        except OSError as e:
+            return {'ok': False, 'error': f'Could not make the report: {e}'}
+        return {'ok': True, 'file': name, 'screenshot': bool(shot.get('ok'))}
+
     def install_tesseract(self):
         if sys.platform != 'win32':
             return {'ok': False, 'error': 'Only on Windows.'}

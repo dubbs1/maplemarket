@@ -111,6 +111,17 @@ def main():
     ctl.exp_stop(); time.sleep(0.3)
     r = ctl.screenshot()
     ok('not recording: a screenshot opens its own capture and closes it', r['ok'] and len(opened) == 3 and closed[-1] is opened[-1])
+    import zipfile
+    os.makedirs(os.path.join(work, 'scans', 'meso'), exist_ok=True)
+    open(os.path.join(work, 'scans', 'meso', 'meso.log'), 'w').write('2026-11-15 10:00:00\t94115\tx.png\n')
+    r = post(url + 'api/report', {})
+    names = zipfile.ZipFile(os.path.join(work, 'scans', r['file'])).namelist() if r.get('ok') else []
+    ok('Make a report: one zip with the screenshot, the meso readings, the run log, the settings and about.json',
+       r.get('ok') and r['screenshot'] and any(n.startswith('screen_') for n in names) and 'meso/meso.log' in names
+       and 'scans/exp_log.json' in names and 'settings.json' in names and 'about.json' in names)
+    about = json.loads(zipfile.ZipFile(os.path.join(work, 'scans', r['file'])).read('about.json'))
+    ok('about.json says the version and the capture, nothing personal', about['version'] == ctl.snapshot()['version'] and 'settings' in about
+       and not any(k in json.dumps(about).lower() for k in ('user', 'email', 'name"')))
     srv.stop()
     ctl.shutdown()
     print('SERVER CHECK PASSED' if not fails else 'SERVER CHECK FAILED')
